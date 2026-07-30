@@ -662,6 +662,11 @@ export default function AdminMerchants() {
               </div>
             )}
 
+            {/* Full account record: documents, integration, activity */}
+            <MerchantAccountPanel userId={selected.id} />
+
+
+
             {/* Wallet Info */}
             <div className="bg-background-100 rounded-lg p-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
               <div>
