@@ -359,25 +359,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        profile,
-        loading,
-        profileLoading,
-        profileError,
-        authError,
-        loginVerified,
-        globalVerificationEnabled,
-        signOut,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  // Memoised so every consumer of useAuth() does not re-render on each
+  // AuthProvider render (this provider wraps the entire app).
+  const value = useMemo<AuthState>(
+    () => ({
+      user,
+      session,
+      profile,
+      loading,
+      profileLoading,
+      profileError,
+      authError,
+      loginVerified,
+      globalVerificationEnabled,
+      signOut,
+      refreshProfile,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      user,
+      session,
+      profile,
+      loading,
+      profileLoading,
+      profileError,
+      authError,
+      loginVerified,
+      globalVerificationEnabled,
+    ],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
