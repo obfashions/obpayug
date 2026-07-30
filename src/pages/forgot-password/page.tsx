@@ -3,6 +3,7 @@ import { Link } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/friendly-error";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -26,14 +27,14 @@ export default function ForgotPassword() {
       });
 
       if (resetErr) {
-        setError(resetErr.message || "Failed to send reset email. Please try again.");
+        setError(friendlyError(resetErr, "We couldn't send the reset email. Please try again in a moment."));
         setSending(false);
         return;
       }
 
       setSubmitted(true);
     } catch (err: any) {
-      setError(err?.message || "Network error. Please try again.");
+      setError(friendlyError(err, "We couldn't reach the server. Please check your connection and try again."));
     } finally {
       setSending(false);
     }

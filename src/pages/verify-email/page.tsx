@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/friendly-error";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function VerifyEmail() {
@@ -88,7 +89,7 @@ export default function VerifyEmail() {
       );
 
       if (result === "timeout") {
-        setError("Request timed out. Please check your connection and try again.");
+        setError("That took too long to respond. Please check your connection and try again.");
         codeSentRef.current = false;
         return;
       }
@@ -96,7 +97,7 @@ export default function VerifyEmail() {
       const { data, error: fnError } = result as { data: any; error: any };
 
       if (fnError || !data?.success) {
-        setError(data?.error || (fnError as any)?.message || "Failed to send verification code. Please try again.");
+        setError(friendlyError(data?.error || (fnError as any)?.message, "We couldn't send the verification code right now. Please try again."));
         // Allow retry by not setting codeSent
         codeSentRef.current = false;
       } else {
@@ -104,7 +105,7 @@ export default function VerifyEmail() {
         setResendCooldown(60);
       }
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError("We couldn't reach the server. Please check your connection and try again.");
       codeSentRef.current = false;
     } finally {
       setSendingCode(false);
@@ -172,7 +173,7 @@ export default function VerifyEmail() {
       );
 
       if (result === "timeout") {
-        setError("Request timed out. Please check your connection and try again.");
+        setError("That took too long to respond. Please check your connection and try again.");
         setSubmitting(false);
         return;
       }
@@ -180,7 +181,7 @@ export default function VerifyEmail() {
       const { data, error: fnError } = result as { data: any; error: any };
 
       if (fnError || !data?.success) {
-        setError(data?.error || (fnError as any)?.message || "Verification failed. Please try again.");
+        setError(friendlyError(data?.error || (fnError as any)?.message, "That code didn't work. Please check it and try again."));
         setSubmitting(false);
         return;
       }
@@ -205,7 +206,7 @@ export default function VerifyEmail() {
         navigate("/dashboard", { replace: true });
       }, 1500);
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError("We couldn't reach the server. Please check your connection and try again.");
       setSubmitting(false);
     }
   };

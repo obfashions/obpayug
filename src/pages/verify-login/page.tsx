@@ -3,6 +3,7 @@ import { useNavigate } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/friendly-error";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function VerifyLogin() {
@@ -98,7 +99,7 @@ export default function VerifyLogin() {
       });
 
       if (fnError || !data?.success) {
-        setError(data?.error || fnError?.message || "Failed to send verification code. Please try again.");
+        setError(friendlyError(data?.error || fnError?.message, "We couldn't send the verification code right now. Please try again."));
       } else {
         setCodeSent(true);
         setResendCooldown(60);
@@ -165,7 +166,7 @@ export default function VerifyLogin() {
       });
 
       if (fnError || !data?.success) {
-        setError(data?.error || fnError?.message || "Verification failed. Please try again.");
+        setError(friendlyError(data?.error || fnError?.message, "That code didn't work. Please check it and try again."));
         setSubmitting(false);
         return;
       }
