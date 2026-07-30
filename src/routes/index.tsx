@@ -1,22 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import Page from "@/pages/home/page";
 
 export const Route = createFileRoute("/")({
-  component: Index,
   head: () => ({
     meta: [
-      { title: "White Page" },
-      { name: "description", content: "A clean white page." },
-      { property: "og:title", content: "White Page" },
-      { property: "og:description", content: "A clean white page." },
+      { title: "ObPay — Payment Gateway for East Africa" },
+      { name: "description", content: "Collect payments, send payouts and integrate mobile money, bank transfers and payment links with one unified API." },
+      { property: "og:title", content: "ObPay — Payment Gateway for East Africa" },
+      { property: "og:description", content: "Collect payments, send payouts and integrate mobile money, bank transfers and payment links with one unified API." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  component: Page,
 });
-
-function Index() {
-  return (
-    <div className="min-h-screen bg-background" />
-  );
-}
-
