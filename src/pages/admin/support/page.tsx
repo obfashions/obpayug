@@ -220,7 +220,8 @@ export default function AdminSupportPage() {
 
   const selectedConv = conversations.find((c) => c.userId === selectedUserId);
 
-  const showList = !showChatOnMobile || window.innerWidth >= 1024;
+  // NOTE: list/chat visibility is handled purely by responsive CSS classes below.
+  // Reading window.innerWidth during render crashed SSR and never updated on resize.
 
   return (
     <AdminLayout>
