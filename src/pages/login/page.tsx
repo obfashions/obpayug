@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/friendly-error";
 import { useAuth } from "@/contexts/AuthContext";
 
 function isNetworkError(msg: string): boolean {
@@ -192,7 +193,7 @@ export default function Login() {
           "Network error. Please check your internet connection and try again."
         );
       } else {
-        setServerError(finalMsg);
+        setServerError(friendlyError(finalMsg, "We couldn't sign you in. Please try again."));
       }
       setSubmitting(false);
       return;

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/friendly-error";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -132,7 +133,7 @@ export default function Register() {
           "This domain is not yet configured in our authentication system. Please contact support to whitelist this domain."
         );
       } else {
-        setServerError(error.message);
+        setServerError(friendlyError(error, "We couldn't create your account. Please try again."));
       }
       setSubmitting(false);
       return;
