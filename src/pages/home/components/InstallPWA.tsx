@@ -1,58 +1,59 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 export default function InstallPWA() {
   const { isInstallable, isInstalled, install, dismiss, hasNativePrompt } = usePWAInstall();
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const closedRef = useRef(false);
 
   useEffect(() => {
-    if (!isInstallable || isInstalled) return;
+    if (!isInstallable || isInstalled || closedRef.current) return;
 
     const showTimer = setTimeout(() => {
       setVisible(true);
     }, 200);
 
     const hideTimer = setTimeout(() => {
-      setExiting(true);
-      setTimeout(() => {
-        setVisible(false);
-        setExiting(false);
-        dismiss();
-      }, 400);
+      close();
     }, 5200);
 
     return () => {
       clearTimeout(showTimer);
       clearTimeout(hideTimer);
     };
-  }, [isInstallable, isInstalled, dismiss]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInstallable, isInstalled]);
+
+  const close = (runDismiss = true) => {
+    closedRef.current = true;
+    setExiting(true);
+    setTimeout(() => {
+      setVisible(false);
+      setExiting(false);
+      if (runDismiss) dismiss();
+    }, 400);
+  };
 
   if (!visible && !exiting) return null;
 
   const handleInstall = async () => {
     await install();
-    setExiting(true);
-    setTimeout(() => { setVisible(false); setExiting(false); }, 400);
+    close(false);
   };
 
-  const handleDismiss = () => {
-    setExiting(true);
-    setTimeout(() => {
-      setVisible(false);
-      setExiting(false);
-      dismiss();
-    }, 400);
-  };
+  const handleDismiss = () => close();
 
   return (
     <>
       <div
         className={`fixed inset-0 z-[9998] bg-foreground-950/40 transition-opacity duration-300 ${
-          exiting ? 'opacity-0' : 'opacity-100'
+          exiting ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
         onClick={handleDismiss}
       />
+
+
 
       <div
         className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-[90vw] max-w-sm transition-all duration-300 ease-out ${
