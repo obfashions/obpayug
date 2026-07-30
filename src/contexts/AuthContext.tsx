@@ -62,6 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [globalVerificationEnabled, setGlobalVerificationEnabled] = useState(true);
   const signOutInProgress = useRef(false);
+  // Mirror of `profile` readable from the auth-state listener without
+  // re-subscribing on every profile change.
+  const profileRef = useRef<Profile | null>(null);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   // Derive loginVerified from profile's login_verified_at.
   // Once a user verifies their login, they stay verified until they explicitly
