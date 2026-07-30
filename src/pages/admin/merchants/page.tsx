@@ -3,6 +3,8 @@ import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase, safeGetSession } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { invokeObpay } from "@/lib/edge-function";
+import MerchantAccountPanel from "./MerchantAccountPanel";
+
 
 interface Merchant {
   id: string;
