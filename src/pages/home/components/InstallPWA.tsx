@@ -17,6 +17,7 @@ export default function InstallPWA() {
       setExiting(true);
       setTimeout(() => {
         setVisible(false);
+        setExiting(false);
         dismiss();
       }, 400);
     }, 5200);
@@ -32,13 +33,14 @@ export default function InstallPWA() {
   const handleInstall = async () => {
     await install();
     setExiting(true);
-    setTimeout(() => setVisible(false), 400);
+    setTimeout(() => { setVisible(false); setExiting(false); }, 400);
   };
 
   const handleDismiss = () => {
     setExiting(true);
     setTimeout(() => {
       setVisible(false);
+      setExiting(false);
       dismiss();
     }, 400);
   };
