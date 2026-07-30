@@ -99,7 +99,7 @@ export default function PricingPage() {
         {/* Hero Section */}
         <section className="relative w-full min-h-[520px] md:min-h-[600px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
-            <img
+            <img loading="lazy" decoding="async"
               src="https://readdy.ai/api/search-image?query=Abstract%20geometric%20composition%20with%20warm%20amber%20and%20deep%20emerald%20green%20accents%20on%20a%20soft%20cream%20background%2C%20overlapping%20organic%20shapes%20with%20smooth%20gradients%2C%20minimalist%20and%20elegant%20financial%20technology%20aesthetic%2C%20clean%20lines%2C%20subtle%20texture%2C%20modern%20professional%20design%2C%20no%20text%20or%20typography%2C%20abstract%20flow%20shapes%2C%20light%20airy%20atmosphere&width=1920&height=1080&seq=pricing-hero-2026-x1&orientation=landscape"
               alt="ObPay pricing background"
               className="w-full h-full object-cover object-top"

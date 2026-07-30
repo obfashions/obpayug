@@ -557,7 +557,7 @@ export default function PayPage() {
             {showQR && (
               <div className="flex flex-col items-center gap-3 p-4 bg-background-100 rounded-lg">
                 <div className="w-40 h-40 bg-background-50 rounded-lg border border-background-200/70 p-2 flex items-center justify-center">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={getQRCodeUrl(currentUrl)}
                     alt="QR Code for payment"
                     className="w-full h-full object-contain"

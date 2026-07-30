@@ -576,7 +576,7 @@ export default function AdminKYCReview() {
                       <p className="text-xs text-foreground-500 mb-2">Front of National ID</p>
                       <div className="rounded-lg border border-background-200/70 overflow-hidden bg-background-100">
                         {selectedReview.id_front_url ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={selectedReview.id_front_url}
                             alt="National ID Front"
                             className="w-full h-56 object-cover object-top"
@@ -592,7 +592,7 @@ export default function AdminKYCReview() {
                       <p className="text-xs text-foreground-500 mb-2">Back of National ID</p>
                       <div className="rounded-lg border border-background-200/70 overflow-hidden bg-background-100">
                         {selectedReview.id_back_url ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={selectedReview.id_back_url}
                             alt="National ID Back"
                             className="w-full h-56 object-cover object-top"
