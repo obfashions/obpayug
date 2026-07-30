@@ -173,7 +173,7 @@ export default function WebhooksPage() {
     if (!user || !newName.trim() || !newUrl.trim()) return;
 
     // Basic URL validation
-    let url = newUrl.trim();
+    const url = newUrl.trim();
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       setError("Webhook URL must start with http:// or https://");
       return;
