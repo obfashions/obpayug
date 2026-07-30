@@ -10,33 +10,545 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as VerifyLoginRouteImport } from './routes/verify-login'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminApiMonitoringRouteImport } from './routes/admin.api-monitoring'
+import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
+import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.company-documents'
+import { Route as AdminEmailCampaignsRouteImport } from './routes/admin.email-campaigns'
+import { Route as AdminKycReviewRouteImport } from './routes/admin.kyc-review'
+import { Route as AdminLoansRouteImport } from './routes/admin.loans'
+import { Route as AdminMerchantsRouteImport } from './routes/admin.merchants'
+import { Route as AdminPayoutRequestsRouteImport } from './routes/admin.payout-requests'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminSupportRouteImport } from './routes/admin.support'
+import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
+import { Route as AdminTransactionLookupRouteImport } from './routes/admin.transaction-lookup'
+import { Route as AdminTransactionsRouteImport } from './routes/admin.transactions'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardApiKeysRouteImport } from './routes/dashboard.api-keys'
+import { Route as DashboardApiSandboxRouteImport } from './routes/dashboard.api-sandbox'
+import { Route as DashboardCollectionsRouteImport } from './routes/dashboard.collections'
+import { Route as DashboardCompanyDocumentsRouteImport } from './routes/dashboard.company-documents'
+import { Route as DashboardKycRouteImport } from './routes/dashboard.kyc'
+import { Route as DashboardLoansRouteImport } from './routes/dashboard.loans'
+import { Route as DashboardPaymentLinksRouteImport } from './routes/dashboard.payment-links'
+import { Route as DashboardPayoutsRouteImport } from './routes/dashboard.payouts'
+import { Route as DashboardReportsRouteImport } from './routes/dashboard.reports'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
+import { Route as DashboardTransactionsRouteImport } from './routes/dashboard.transactions'
+import { Route as DashboardWebhookTestRouteImport } from './routes/dashboard.webhook-test'
+import { Route as DashboardWebhooksRouteImport } from './routes/dashboard.webhooks'
+import { Route as PaySlugRouteImport } from './routes/pay.$slug'
+import { Route as FunctionsV1SplatRouteImport } from './routes/functions.v1.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyLoginRoute = VerifyLoginRouteImport.update({
+  id: '/verify-login',
+  path: '/verify-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminApiMonitoringRoute = AdminApiMonitoringRouteImport.update({
+  id: '/admin/api-monitoring',
+  path: '/admin/api-monitoring',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuditLogsRoute = AdminAuditLogsRouteImport.update({
+  id: '/admin/audit-logs',
+  path: '/admin/audit-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCompanyDocumentsRoute = AdminCompanyDocumentsRouteImport.update({
+  id: '/admin/company-documents',
+  path: '/admin/company-documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminEmailCampaignsRoute = AdminEmailCampaignsRouteImport.update({
+  id: '/admin/email-campaigns',
+  path: '/admin/email-campaigns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminKycReviewRoute = AdminKycReviewRouteImport.update({
+  id: '/admin/kyc-review',
+  path: '/admin/kyc-review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoansRoute = AdminLoansRouteImport.update({
+  id: '/admin/loans',
+  path: '/admin/loans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
+  id: '/admin/merchants',
+  path: '/admin/merchants',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPayoutRequestsRoute = AdminPayoutRequestsRouteImport.update({
+  id: '/admin/payout-requests',
+  path: '/admin/payout-requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSupportRoute = AdminSupportRouteImport.update({
+  id: '/admin/support',
+  path: '/admin/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTicketsRoute = AdminTicketsRouteImport.update({
+  id: '/admin/tickets',
+  path: '/admin/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTransactionLookupRoute = AdminTransactionLookupRouteImport.update({
+  id: '/admin/transaction-lookup',
+  path: '/admin/transaction-lookup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTransactionsRoute = AdminTransactionsRouteImport.update({
+  id: '/admin/transactions',
+  path: '/admin/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/dashboard/',
+  path: '/dashboard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardApiKeysRoute = DashboardApiKeysRouteImport.update({
+  id: '/dashboard/api-keys',
+  path: '/dashboard/api-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardApiSandboxRoute = DashboardApiSandboxRouteImport.update({
+  id: '/dashboard/api-sandbox',
+  path: '/dashboard/api-sandbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardCollectionsRoute = DashboardCollectionsRouteImport.update({
+  id: '/dashboard/collections',
+  path: '/dashboard/collections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardCompanyDocumentsRoute =
+  DashboardCompanyDocumentsRouteImport.update({
+    id: '/dashboard/company-documents',
+    path: '/dashboard/company-documents',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DashboardKycRoute = DashboardKycRouteImport.update({
+  id: '/dashboard/kyc',
+  path: '/dashboard/kyc',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardLoansRoute = DashboardLoansRouteImport.update({
+  id: '/dashboard/loans',
+  path: '/dashboard/loans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardPaymentLinksRoute = DashboardPaymentLinksRouteImport.update({
+  id: '/dashboard/payment-links',
+  path: '/dashboard/payment-links',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardPayoutsRoute = DashboardPayoutsRouteImport.update({
+  id: '/dashboard/payouts',
+  path: '/dashboard/payouts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardReportsRoute = DashboardReportsRouteImport.update({
+  id: '/dashboard/reports',
+  path: '/dashboard/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/dashboard/settings',
+  path: '/dashboard/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardTransactionsRoute = DashboardTransactionsRouteImport.update({
+  id: '/dashboard/transactions',
+  path: '/dashboard/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardWebhookTestRoute = DashboardWebhookTestRouteImport.update({
+  id: '/dashboard/webhook-test',
+  path: '/dashboard/webhook-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardWebhooksRoute = DashboardWebhooksRouteImport.update({
+  id: '/dashboard/webhooks',
+  path: '/dashboard/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaySlugRoute = PaySlugRouteImport.update({
+  id: '/pay/$slug',
+  path: '/pay/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FunctionsV1SplatRoute = FunctionsV1SplatRouteImport.update({
+  id: '/functions/v1/$',
+  path: '/functions/v1/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/docs': typeof DocsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
+  '/register': typeof RegisterRoute
+  '/support': typeof SupportRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/verify-login': typeof VerifyLoginRoute
+  '/admin/api-monitoring': typeof AdminApiMonitoringRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/company-documents': typeof AdminCompanyDocumentsRoute
+  '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
+  '/admin/kyc-review': typeof AdminKycReviewRoute
+  '/admin/loans': typeof AdminLoansRoute
+  '/admin/merchants': typeof AdminMerchantsRoute
+  '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/support': typeof AdminSupportRoute
+  '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
+  '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/api-keys': typeof DashboardApiKeysRoute
+  '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
+  '/dashboard/collections': typeof DashboardCollectionsRoute
+  '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
+  '/dashboard/kyc': typeof DashboardKycRoute
+  '/dashboard/loans': typeof DashboardLoansRoute
+  '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
+  '/dashboard/payouts': typeof DashboardPayoutsRoute
+  '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/transactions': typeof DashboardTransactionsRoute
+  '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
+  '/dashboard/webhooks': typeof DashboardWebhooksRoute
+  '/pay/$slug': typeof PaySlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/docs': typeof DocsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
+  '/register': typeof RegisterRoute
+  '/support': typeof SupportRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/verify-login': typeof VerifyLoginRoute
+  '/admin/api-monitoring': typeof AdminApiMonitoringRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/company-documents': typeof AdminCompanyDocumentsRoute
+  '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
+  '/admin/kyc-review': typeof AdminKycReviewRoute
+  '/admin/loans': typeof AdminLoansRoute
+  '/admin/merchants': typeof AdminMerchantsRoute
+  '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/support': typeof AdminSupportRoute
+  '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
+  '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/api-keys': typeof DashboardApiKeysRoute
+  '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
+  '/dashboard/collections': typeof DashboardCollectionsRoute
+  '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
+  '/dashboard/kyc': typeof DashboardKycRoute
+  '/dashboard/loans': typeof DashboardLoansRoute
+  '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
+  '/dashboard/payouts': typeof DashboardPayoutsRoute
+  '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/transactions': typeof DashboardTransactionsRoute
+  '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
+  '/dashboard/webhooks': typeof DashboardWebhooksRoute
+  '/pay/$slug': typeof PaySlugRoute
+  '/admin': typeof AdminIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
+  '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/docs': typeof DocsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
+  '/register': typeof RegisterRoute
+  '/support': typeof SupportRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/verify-login': typeof VerifyLoginRoute
+  '/admin/api-monitoring': typeof AdminApiMonitoringRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/company-documents': typeof AdminCompanyDocumentsRoute
+  '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
+  '/admin/kyc-review': typeof AdminKycReviewRoute
+  '/admin/loans': typeof AdminLoansRoute
+  '/admin/merchants': typeof AdminMerchantsRoute
+  '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/support': typeof AdminSupportRoute
+  '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
+  '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/api-keys': typeof DashboardApiKeysRoute
+  '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
+  '/dashboard/collections': typeof DashboardCollectionsRoute
+  '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
+  '/dashboard/kyc': typeof DashboardKycRoute
+  '/dashboard/loans': typeof DashboardLoansRoute
+  '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
+  '/dashboard/payouts': typeof DashboardPayoutsRoute
+  '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/transactions': typeof DashboardTransactionsRoute
+  '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
+  '/dashboard/webhooks': typeof DashboardWebhooksRoute
+  '/pay/$slug': typeof PaySlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/docs'
+    | '/forgot-password'
+    | '/login'
+    | '/pricing'
+    | '/register'
+    | '/support'
+    | '/verify-email'
+    | '/verify-login'
+    | '/admin/api-monitoring'
+    | '/admin/audit-logs'
+    | '/admin/company-documents'
+    | '/admin/email-campaigns'
+    | '/admin/kyc-review'
+    | '/admin/loans'
+    | '/admin/merchants'
+    | '/admin/payout-requests'
+    | '/admin/reports'
+    | '/admin/settings'
+    | '/admin/support'
+    | '/admin/tickets'
+    | '/admin/transaction-lookup'
+    | '/admin/transactions'
+    | '/dashboard/api-keys'
+    | '/dashboard/api-sandbox'
+    | '/dashboard/collections'
+    | '/dashboard/company-documents'
+    | '/dashboard/kyc'
+    | '/dashboard/loans'
+    | '/dashboard/payment-links'
+    | '/dashboard/payouts'
+    | '/dashboard/reports'
+    | '/dashboard/settings'
+    | '/dashboard/transactions'
+    | '/dashboard/webhook-test'
+    | '/dashboard/webhooks'
+    | '/pay/$slug'
+    | '/admin/'
+    | '/dashboard/'
+    | '/functions/v1/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/docs'
+    | '/forgot-password'
+    | '/login'
+    | '/pricing'
+    | '/register'
+    | '/support'
+    | '/verify-email'
+    | '/verify-login'
+    | '/admin/api-monitoring'
+    | '/admin/audit-logs'
+    | '/admin/company-documents'
+    | '/admin/email-campaigns'
+    | '/admin/kyc-review'
+    | '/admin/loans'
+    | '/admin/merchants'
+    | '/admin/payout-requests'
+    | '/admin/reports'
+    | '/admin/settings'
+    | '/admin/support'
+    | '/admin/tickets'
+    | '/admin/transaction-lookup'
+    | '/admin/transactions'
+    | '/dashboard/api-keys'
+    | '/dashboard/api-sandbox'
+    | '/dashboard/collections'
+    | '/dashboard/company-documents'
+    | '/dashboard/kyc'
+    | '/dashboard/loans'
+    | '/dashboard/payment-links'
+    | '/dashboard/payouts'
+    | '/dashboard/reports'
+    | '/dashboard/settings'
+    | '/dashboard/transactions'
+    | '/dashboard/webhook-test'
+    | '/dashboard/webhooks'
+    | '/pay/$slug'
+    | '/admin'
+    | '/dashboard'
+    | '/functions/v1/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/docs'
+    | '/forgot-password'
+    | '/login'
+    | '/pricing'
+    | '/register'
+    | '/support'
+    | '/verify-email'
+    | '/verify-login'
+    | '/admin/api-monitoring'
+    | '/admin/audit-logs'
+    | '/admin/company-documents'
+    | '/admin/email-campaigns'
+    | '/admin/kyc-review'
+    | '/admin/loans'
+    | '/admin/merchants'
+    | '/admin/payout-requests'
+    | '/admin/reports'
+    | '/admin/settings'
+    | '/admin/support'
+    | '/admin/tickets'
+    | '/admin/transaction-lookup'
+    | '/admin/transactions'
+    | '/dashboard/api-keys'
+    | '/dashboard/api-sandbox'
+    | '/dashboard/collections'
+    | '/dashboard/company-documents'
+    | '/dashboard/kyc'
+    | '/dashboard/loans'
+    | '/dashboard/payment-links'
+    | '/dashboard/payouts'
+    | '/dashboard/reports'
+    | '/dashboard/settings'
+    | '/dashboard/transactions'
+    | '/dashboard/webhook-test'
+    | '/dashboard/webhooks'
+    | '/pay/$slug'
+    | '/admin/'
+    | '/dashboard/'
+    | '/functions/v1/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DocsRoute: typeof DocsRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  PricingRoute: typeof PricingRoute
+  RegisterRoute: typeof RegisterRoute
+  SupportRoute: typeof SupportRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
+  VerifyLoginRoute: typeof VerifyLoginRoute
+  AdminApiMonitoringRoute: typeof AdminApiMonitoringRoute
+  AdminAuditLogsRoute: typeof AdminAuditLogsRoute
+  AdminCompanyDocumentsRoute: typeof AdminCompanyDocumentsRoute
+  AdminEmailCampaignsRoute: typeof AdminEmailCampaignsRoute
+  AdminKycReviewRoute: typeof AdminKycReviewRoute
+  AdminLoansRoute: typeof AdminLoansRoute
+  AdminMerchantsRoute: typeof AdminMerchantsRoute
+  AdminPayoutRequestsRoute: typeof AdminPayoutRequestsRoute
+  AdminReportsRoute: typeof AdminReportsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminSupportRoute: typeof AdminSupportRoute
+  AdminTicketsRoute: typeof AdminTicketsRoute
+  AdminTransactionLookupRoute: typeof AdminTransactionLookupRoute
+  AdminTransactionsRoute: typeof AdminTransactionsRoute
+  DashboardApiKeysRoute: typeof DashboardApiKeysRoute
+  DashboardApiSandboxRoute: typeof DashboardApiSandboxRoute
+  DashboardCollectionsRoute: typeof DashboardCollectionsRoute
+  DashboardCompanyDocumentsRoute: typeof DashboardCompanyDocumentsRoute
+  DashboardKycRoute: typeof DashboardKycRoute
+  DashboardLoansRoute: typeof DashboardLoansRoute
+  DashboardPaymentLinksRoute: typeof DashboardPaymentLinksRoute
+  DashboardPayoutsRoute: typeof DashboardPayoutsRoute
+  DashboardReportsRoute: typeof DashboardReportsRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardTransactionsRoute: typeof DashboardTransactionsRoute
+  DashboardWebhookTestRoute: typeof DashboardWebhookTestRoute
+  DashboardWebhooksRoute: typeof DashboardWebhooksRoute
+  PaySlugRoute: typeof PaySlugRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  FunctionsV1SplatRoute: typeof FunctionsV1SplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +560,324 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-login': {
+      id: '/verify-login'
+      path: '/verify-login'
+      fullPath: '/verify-login'
+      preLoaderRoute: typeof VerifyLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/api-monitoring': {
+      id: '/admin/api-monitoring'
+      path: '/admin/api-monitoring'
+      fullPath: '/admin/api-monitoring'
+      preLoaderRoute: typeof AdminApiMonitoringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/audit-logs': {
+      id: '/admin/audit-logs'
+      path: '/admin/audit-logs'
+      fullPath: '/admin/audit-logs'
+      preLoaderRoute: typeof AdminAuditLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/company-documents': {
+      id: '/admin/company-documents'
+      path: '/admin/company-documents'
+      fullPath: '/admin/company-documents'
+      preLoaderRoute: typeof AdminCompanyDocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/email-campaigns': {
+      id: '/admin/email-campaigns'
+      path: '/admin/email-campaigns'
+      fullPath: '/admin/email-campaigns'
+      preLoaderRoute: typeof AdminEmailCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/kyc-review': {
+      id: '/admin/kyc-review'
+      path: '/admin/kyc-review'
+      fullPath: '/admin/kyc-review'
+      preLoaderRoute: typeof AdminKycReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/loans': {
+      id: '/admin/loans'
+      path: '/admin/loans'
+      fullPath: '/admin/loans'
+      preLoaderRoute: typeof AdminLoansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/merchants': {
+      id: '/admin/merchants'
+      path: '/admin/merchants'
+      fullPath: '/admin/merchants'
+      preLoaderRoute: typeof AdminMerchantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/payout-requests': {
+      id: '/admin/payout-requests'
+      path: '/admin/payout-requests'
+      fullPath: '/admin/payout-requests'
+      preLoaderRoute: typeof AdminPayoutRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/support': {
+      id: '/admin/support'
+      path: '/admin/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AdminSupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/tickets': {
+      id: '/admin/tickets'
+      path: '/admin/tickets'
+      fullPath: '/admin/tickets'
+      preLoaderRoute: typeof AdminTicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/transaction-lookup': {
+      id: '/admin/transaction-lookup'
+      path: '/admin/transaction-lookup'
+      fullPath: '/admin/transaction-lookup'
+      preLoaderRoute: typeof AdminTransactionLookupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/transactions': {
+      id: '/admin/transactions'
+      path: '/admin/transactions'
+      fullPath: '/admin/transactions'
+      preLoaderRoute: typeof AdminTransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/api-keys': {
+      id: '/dashboard/api-keys'
+      path: '/dashboard/api-keys'
+      fullPath: '/dashboard/api-keys'
+      preLoaderRoute: typeof DashboardApiKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/api-sandbox': {
+      id: '/dashboard/api-sandbox'
+      path: '/dashboard/api-sandbox'
+      fullPath: '/dashboard/api-sandbox'
+      preLoaderRoute: typeof DashboardApiSandboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/collections': {
+      id: '/dashboard/collections'
+      path: '/dashboard/collections'
+      fullPath: '/dashboard/collections'
+      preLoaderRoute: typeof DashboardCollectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/company-documents': {
+      id: '/dashboard/company-documents'
+      path: '/dashboard/company-documents'
+      fullPath: '/dashboard/company-documents'
+      preLoaderRoute: typeof DashboardCompanyDocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/kyc': {
+      id: '/dashboard/kyc'
+      path: '/dashboard/kyc'
+      fullPath: '/dashboard/kyc'
+      preLoaderRoute: typeof DashboardKycRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/loans': {
+      id: '/dashboard/loans'
+      path: '/dashboard/loans'
+      fullPath: '/dashboard/loans'
+      preLoaderRoute: typeof DashboardLoansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/payment-links': {
+      id: '/dashboard/payment-links'
+      path: '/dashboard/payment-links'
+      fullPath: '/dashboard/payment-links'
+      preLoaderRoute: typeof DashboardPaymentLinksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/payouts': {
+      id: '/dashboard/payouts'
+      path: '/dashboard/payouts'
+      fullPath: '/dashboard/payouts'
+      preLoaderRoute: typeof DashboardPayoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/reports': {
+      id: '/dashboard/reports'
+      path: '/dashboard/reports'
+      fullPath: '/dashboard/reports'
+      preLoaderRoute: typeof DashboardReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/dashboard/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/transactions': {
+      id: '/dashboard/transactions'
+      path: '/dashboard/transactions'
+      fullPath: '/dashboard/transactions'
+      preLoaderRoute: typeof DashboardTransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/webhook-test': {
+      id: '/dashboard/webhook-test'
+      path: '/dashboard/webhook-test'
+      fullPath: '/dashboard/webhook-test'
+      preLoaderRoute: typeof DashboardWebhookTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/webhooks': {
+      id: '/dashboard/webhooks'
+      path: '/dashboard/webhooks'
+      fullPath: '/dashboard/webhooks'
+      preLoaderRoute: typeof DashboardWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pay/$slug': {
+      id: '/pay/$slug'
+      path: '/pay/$slug'
+      fullPath: '/pay/$slug'
+      preLoaderRoute: typeof PaySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/functions/v1/$': {
+      id: '/functions/v1/$'
+      path: '/functions/v1/$'
+      fullPath: '/functions/v1/$'
+      preLoaderRoute: typeof FunctionsV1SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DocsRoute: DocsRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  PricingRoute: PricingRoute,
+  RegisterRoute: RegisterRoute,
+  SupportRoute: SupportRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
+  VerifyLoginRoute: VerifyLoginRoute,
+  AdminApiMonitoringRoute: AdminApiMonitoringRoute,
+  AdminAuditLogsRoute: AdminAuditLogsRoute,
+  AdminCompanyDocumentsRoute: AdminCompanyDocumentsRoute,
+  AdminEmailCampaignsRoute: AdminEmailCampaignsRoute,
+  AdminKycReviewRoute: AdminKycReviewRoute,
+  AdminLoansRoute: AdminLoansRoute,
+  AdminMerchantsRoute: AdminMerchantsRoute,
+  AdminPayoutRequestsRoute: AdminPayoutRequestsRoute,
+  AdminReportsRoute: AdminReportsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminSupportRoute: AdminSupportRoute,
+  AdminTicketsRoute: AdminTicketsRoute,
+  AdminTransactionLookupRoute: AdminTransactionLookupRoute,
+  AdminTransactionsRoute: AdminTransactionsRoute,
+  DashboardApiKeysRoute: DashboardApiKeysRoute,
+  DashboardApiSandboxRoute: DashboardApiSandboxRoute,
+  DashboardCollectionsRoute: DashboardCollectionsRoute,
+  DashboardCompanyDocumentsRoute: DashboardCompanyDocumentsRoute,
+  DashboardKycRoute: DashboardKycRoute,
+  DashboardLoansRoute: DashboardLoansRoute,
+  DashboardPaymentLinksRoute: DashboardPaymentLinksRoute,
+  DashboardPayoutsRoute: DashboardPayoutsRoute,
+  DashboardReportsRoute: DashboardReportsRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardTransactionsRoute: DashboardTransactionsRoute,
+  DashboardWebhookTestRoute: DashboardWebhookTestRoute,
+  DashboardWebhooksRoute: DashboardWebhooksRoute,
+  PaySlugRoute: PaySlugRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  FunctionsV1SplatRoute: FunctionsV1SplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

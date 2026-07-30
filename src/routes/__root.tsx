@@ -11,6 +11,12 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { I18nextProvider } from "react-i18next";
+import i18n from "@/i18n";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import ErrorBoundary from "@/components/base/ErrorBoundary";
+import SupportChatWidget from "@/components/feature/SupportChatWidget";
 
 function NotFoundComponent() {
   return (
@@ -77,21 +83,50 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "ObPay — Powering Business Payments Across East Africa" },
+      {
+        name: "description",
+        content:
+          "ObPay enables businesses across East Africa to collect payments, send payouts, create payment links, and integrate secure payment APIs.",
+      },
+      {
+        name: "keywords",
+        content:
+          "ObPay, payment gateway, East Africa, mobile money, MTN Mobile Money, Airtel Money, payments, fintech, Uganda, Kenya, collections, payouts, API",
+      },
+      { name: "author", content: "ObPay" },
+      { name: "robots", content: "index, follow" },
+      { name: "theme-color", content: "#0f172a" },
+      { name: "geo.position", content: "0.6716;30.2750" },
+      { name: "geo.region", content: "UG" },
+      { name: "geo.placename", content: "Fortportal Rubona, Uganda" },
+      { property: "og:site_name", content: "ObPay" },
+      { property: "og:locale", content: "en_US" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
       {
         rel: "stylesheet",
-        href: appCss,
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      {
+        rel: "stylesheet",
+        href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -119,8 +154,18 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ErrorBoundary>
+        <I18nextProvider i18n={i18n}>
+          <AuthProvider>
+            <CurrencyProvider>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+              <SupportChatWidget />
+            </CurrencyProvider>
+          </AuthProvider>
+        </I18nextProvider>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }
+

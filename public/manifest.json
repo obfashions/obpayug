@@ -1,0 +1,28 @@
+{
+  "name": "ObPay - Business Payments Across East Africa",
+  "short_name": "ObPay",
+  "description": "Collect payments, send payouts, create payment links, and integrate secure payment APIs. Accept MTN Mobile Money, Airtel Money, and bank transfers.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://storage.readdy-site.link/project_files/f591f50b-9b67-4c2e-91b2-e9cd02864c7f/c3af3d6a-4922-444f-b121-d8c41e1841fc_compressed_file_000000001c7471f4988719b77b5ed56d.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "https://storage.readdy-site.link/project_files/f591f50b-9b67-4c2e-91b2-e9cd02864c7f/c3af3d6a-4922-444f-b121-d8c41e1841fc_compressed_file_000000001c7471f4988719b77b5ed56d.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "business", "productivity"],
+  "lang": "en",
+  "scope": "/",
+  "prefer_related_applications": false
+}
