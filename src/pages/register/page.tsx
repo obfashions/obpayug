@@ -84,6 +84,8 @@ export default function Register() {
         data: {
           full_name: formData.full_name,
           phone_number: formData.phone_number,
+          // Optional — stored on the auth user's metadata only when provided.
+          ...(formData.website.trim() ? { website: formData.website.trim() } : {}),
         },
       },
     });
