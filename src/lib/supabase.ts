@@ -36,7 +36,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   we clear the corrupted session from localStorage and return null
   instead of letting the error crash the app.
 */
-export async function safeGetSession(): Promise<ReturnType<typeof supabase.auth.getSession>> {
+export async function safeGetSession(): Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>> {
   try {
     return await supabase.auth.getSession();
   } catch (err: unknown) {
