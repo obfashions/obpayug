@@ -648,7 +648,7 @@ export default function DashboardPage() {
                 key={bank.name}
                 className="relative overflow-hidden rounded-xl h-48 group cursor-default transition-all hover:shadow-sm"
               >
-                <img
+                <img loading="lazy" decoding="async"
                   src={bank.image}
                   alt={bank.name}
                   className="absolute inset-0 w-full h-full object-cover"
@@ -796,7 +796,7 @@ export default function DashboardPage() {
                 key={bank.name}
                 className={`relative overflow-hidden rounded-xl border ${bank.borderColor} ${bank.bgLight} h-44 group cursor-default transition-all hover:shadow-sm`}
               >
-                <img
+                <img loading="lazy" decoding="async"
                   src={bank.image}
                   alt={bank.name}
                   className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"

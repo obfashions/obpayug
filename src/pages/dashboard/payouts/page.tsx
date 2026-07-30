@@ -779,7 +779,7 @@ export default function PayoutsPage() {
             {showFundingQR && (
               <div className="flex flex-col items-center gap-3 p-4 bg-background-100 rounded-lg">
                 <div className="w-48 h-48 bg-background-50 rounded-lg border border-background-200/70 p-3 flex items-center justify-center">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={getQRCodeUrl(getFundingUrl())}
                     alt="QR Code for funding link"
                     className="w-full h-full object-contain"
