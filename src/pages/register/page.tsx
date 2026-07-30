@@ -33,6 +33,12 @@ export default function Register() {
     } else if (formData.phone_number.length < 10) {
       newErrors.phone_number = "Please enter a valid phone number";
     }
+    // Website is optional — only validated when the merchant actually enters one.
+    const website = formData.website.trim();
+    if (website && !/^(https?:\/\/)?[\w-]+(\.[\w-]+)+([/?#][^\s]*)?$/i.test(website)) {
+      newErrors.website = "Please enter a valid website (e.g. yourbusiness.com)";
+    }
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
