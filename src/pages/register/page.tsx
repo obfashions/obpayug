@@ -268,6 +268,34 @@ export default function Register() {
 
                 <div>
                   <label className="block text-sm font-medium text-foreground-700 mb-1.5">
+                    Website URL{" "}
+                    <span className="font-normal text-foreground-500">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="website"
+                    inputMode="url"
+                    autoComplete="url"
+                    value={formData.website}
+                    onChange={(e) =>
+                      setFormData({ ...formData, website: e.target.value })
+                    }
+                    className={inputClass("website")}
+                    placeholder="yourbusiness.com"
+                  />
+                  {errors.website ? (
+                    <p className="text-xs text-accent-600 mt-1">{errors.website}</p>
+                  ) : (
+                    <p className="text-xs text-foreground-500 mt-1">
+                      You can add this later from your dashboard.
+                    </p>
+                  )}
+                </div>
+
+
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground-700 mb-1.5">
                     Password
                   </label>
                   <input
