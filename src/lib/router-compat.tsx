@@ -103,16 +103,23 @@ export function useParams<
 }
 
 export function useLocation() {
-  return useRouterState({
-    select: (s) => ({
-      pathname: s.location.pathname,
-      search: s.location.searchStr ? `?${s.location.searchStr}` : "",
-      hash: s.location.hash ? `#${s.location.hash}` : "",
-      state: s.location.state as unknown,
+  // Select primitives only — returning a fresh object from `select` on every
+  // render makes consumers re-render in a loop.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const searchStr = useRouterState({ select: (s) => s.location.searchStr });
+  const hash = useRouterState({ select: (s) => s.location.hash });
 
+  return React.useMemo(
+    () => ({
+      pathname,
+      search: searchStr ? `?${searchStr}` : "",
+      hash: hash ? `#${hash}` : "",
+      state: undefined as unknown,
     }),
-  });
+    [pathname, searchStr, hash],
+  );
 }
+
 
 export function useSearchParams(): [
   URLSearchParams,
