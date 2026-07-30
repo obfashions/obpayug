@@ -161,11 +161,11 @@ export default function KYCPage() {
     );
   }
 
-  const UploadBox = ({ side, label }: { side: Side; label: string }) => {
+  const renderUpload = (side: Side, label: string) => {
     const ref = side === "front" ? frontInput : backInput;
     const value = docs[side];
     return (
-      <div className="flex-1 min-w-0">
+      <div key={side} className="flex-1 min-w-0">
         <label className="block text-sm font-medium text-foreground-700 mb-1.5">
           {label} <span className="text-accent-500">*</span>
         </label>
@@ -303,8 +303,8 @@ export default function KYCPage() {
               Identity Documents
             </h3>
             <div className="flex flex-col sm:flex-row gap-4">
-              <UploadBox side="front" label="Front of ID" />
-              <UploadBox side="back" label="Back of ID" />
+              {renderUpload("front", "Front of ID")}
+              {renderUpload("back", "Back of ID")}
             </div>
           </div>
 
