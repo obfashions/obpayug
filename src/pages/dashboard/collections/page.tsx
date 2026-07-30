@@ -203,7 +203,7 @@ export default function CollectionsPage() {
               silentRefresh();
             }
           })
-          .catch(() => {});
+          .then(undefined, () => {});
       }
     }, 3000);
     return () => clearInterval(interval);
@@ -220,7 +220,7 @@ export default function CollectionsPage() {
           silentRefresh();
         }
       })
-      .catch(() => {});
+      .then(undefined, () => {});
   }, [user, loading]);
 
   useEffect(() => {
@@ -228,7 +228,7 @@ export default function CollectionsPage() {
     const channel = supabase
       .channel("collections-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "merchant_wallets", filter: `user_id=eq.${user.id}` }, () => {
-        supabase.from("merchant_wallets").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => { if (data) setWallet(data as WalletData); }).catch(() => {});
+        supabase.from("merchant_wallets").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => { if (data) setWallet(data as WalletData); }).then(undefined, () => {});
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "transactions", filter: `user_id=eq.${user.id}` }, (payload) => {
         const newStatus = (payload.new as any).status;
@@ -328,7 +328,7 @@ export default function CollectionsPage() {
               }
               if (pollCount >= 10) clearInterval(pollInterval);
             })
-            .catch(() => {});
+            .then(undefined, () => {});
         }, 2000);
       } else {
         let errMsg = apiData?.error || apiData?.message || "Collection request was rejected.";

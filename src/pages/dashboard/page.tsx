@@ -193,10 +193,10 @@ export default function DashboardPage() {
           ]).then(([walletRes, txnRes]) => {
             if (!walletRes.error && walletRes.data) setWallet(walletRes.data as WalletData);
             if (!txnRes.error && txnRes.data) setTransactions(txnRes.data as Transaction[]);
-          }).catch(() => {});
+          }).then(undefined, () => {});
         }
       })
-      .catch(() => {});
+      .then(undefined, () => {});
   }, [user, addToast]);
 
   useEffect(() => {
@@ -229,7 +229,7 @@ export default function DashboardPage() {
             console.log("[ObPay Sync]", data.message, data.logs.slice(-5));
           }
         })
-        .catch(() => {});
+        .then(undefined, () => {});
 
       // Refresh wallet + transactions from DB
       Promise.all([
@@ -240,7 +240,7 @@ export default function DashboardPage() {
           if (!walletRes.error && walletRes.data) setWallet(walletRes.data as WalletData);
           if (!txnRes.error && txnRes.data) setTransactions(txnRes.data as Transaction[]);
         })
-        .catch(() => {});
+        .then(undefined, () => {});
     }, 5000);
     return () => clearInterval(interval);
   }, [user, addToast]);
@@ -273,7 +273,7 @@ export default function DashboardPage() {
               if (!walletRes.error && walletRes.data) setWallet(walletRes.data as WalletData);
               if (!txnRes.error && txnRes.data) setTransactions(txnRes.data as Transaction[]);
             })
-            .catch(() => {});
+            .then(undefined, () => {});
         }
       )
       .on(
@@ -288,7 +288,7 @@ export default function DashboardPage() {
             .then(({ data }) => {
               if (data) setWallet(data as WalletData);
             })
-            .catch(() => {});
+            .then(undefined, () => {});
         }
       )
       .subscribe();
@@ -412,7 +412,7 @@ export default function DashboardPage() {
           ]).then(([walletRes, txnRes]) => {
             if (!walletRes.error && walletRes.data) setWallet(walletRes.data as WalletData);
             if (!txnRes.error && txnRes.data) setTransactions(txnRes.data as Transaction[]);
-          }).catch(() => {});
+          }).then(undefined, () => {});
         }, 1500);
       } else {
         setWithdrawStatus({ ok: false, message: apiData?.error || "Withdrawal could not be processed." });

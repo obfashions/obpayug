@@ -129,7 +129,7 @@ export default function Login() {
             details: {},
           })
           .then(() => {})
-          .catch(() => {});
+          .then(undefined, () => {});
 
         // Check if login verification is enabled for this merchant
         // 1. Check the global platform setting first (admin master switch)

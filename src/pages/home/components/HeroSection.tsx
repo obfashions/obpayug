@@ -39,7 +39,7 @@ const slides = [
 export default function HeroSection() {
   const [current, setCurrent] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const goTo = (index: number) => {
     if (index === current) return;

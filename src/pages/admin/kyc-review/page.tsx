@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface MerchantProfile {
+  verified_at?: string | null;
   id: string | null;
   user_id: string;
   company_name: string;

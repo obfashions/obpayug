@@ -109,7 +109,7 @@ export function useLocation() {
       search: s.location.searchStr ? `?${s.location.searchStr}` : "",
       hash: s.location.hash ? `#${s.location.hash}` : "",
       state: s.location.state as unknown,
-      key: s.location.key ?? "default",
+
     }),
   });
 }

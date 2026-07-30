@@ -87,7 +87,7 @@ export default function VerifyEmail() {
         "send-code"
       );
 
-      if (result === "timeout") {
+      if ((result as unknown) === "timeout") {
         setError("Request timed out. Please check your connection and try again.");
         codeSentRef.current = false;
         return;
@@ -171,7 +171,7 @@ export default function VerifyEmail() {
         "verify-code"
       );
 
-      if (result === "timeout") {
+      if ((result as unknown) === "timeout") {
         setError("Request timed out. Please check your connection and try again.");
         setSubmitting(false);
         return;

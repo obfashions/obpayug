@@ -118,6 +118,7 @@ export async function getProviderConnectionStatus(): Promise<ProviderConnectionS
 
 // Legacy alias — keep existing code working
 export const getLivePayConnectionStatus = getProviderConnectionStatus;
+export type LivePayConnectionStatus = ProviderConnectionStatus;
 
 // ─── Test Connection (via Edge Function) ──────────────────────
 

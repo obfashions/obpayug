@@ -13,6 +13,8 @@ export interface Profile {
   login_verified_at: string | null;
   login_verification_enabled: boolean;
   support_agent: boolean;
+  default_currency?: string | null;
+  merchant_profiles?: Array<Record<string, unknown> & { company_name?: string }> | null;
   role_tag: string | null;
   created_at: string;
 }
@@ -210,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setGlobalVerificationEnabled(data.require_login_verification ?? true);
           }
         })
-        .catch(() => {}); // silent — default stays true
+        .then(undefined, () => {}); // silent — default stays true
     };
 
     fetchGlobalSetting();
@@ -313,7 +315,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .update({ login_verified_at: null })
         .eq("id", user.id)
         .then(() => {})
-        .catch(() => {});
+        .then(undefined, () => {});
     }
 
     try {

@@ -11,6 +11,12 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { I18nextProvider } from "react-i18next";
+import i18n from "@/i18n";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import ErrorBoundary from "@/components/base/ErrorBoundary";
+import SupportChatWidget from "@/components/feature/SupportChatWidget";
 
 function NotFoundComponent() {
   return (

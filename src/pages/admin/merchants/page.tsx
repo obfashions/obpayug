@@ -25,11 +25,11 @@ interface Merchant {
 }
 
 interface WalletData {
+  withdrawals_enabled?: boolean;
   available_balance: number;
   pending_balance: number;
   total_collections: number;
   total_payouts: number;
-  withdrawals_enabled: boolean;
 }
 
 function formatCurrency(amount: number) { return "UGX " + amount.toLocaleString("en-UG"); }
