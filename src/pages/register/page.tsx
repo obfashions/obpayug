@@ -10,6 +10,7 @@ export default function Register() {
     full_name: "",
     email: "",
     phone_number: "",
+    website: "",
     password: "",
     confirm_password: "",
   });
@@ -32,6 +33,12 @@ export default function Register() {
     } else if (formData.phone_number.length < 10) {
       newErrors.phone_number = "Please enter a valid phone number";
     }
+    // Website is optional — only validated when the merchant actually enters one.
+    const website = formData.website.trim();
+    if (website && !/^(https?:\/\/)?[\w-]+(\.[\w-]+)+([/?#][^\s]*)?$/i.test(website)) {
+      newErrors.website = "Please enter a valid website (e.g. yourbusiness.com)";
+    }
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
@@ -77,6 +84,8 @@ export default function Register() {
         data: {
           full_name: formData.full_name,
           phone_number: formData.phone_number,
+          // Optional — stored on the auth user's metadata only when provided.
+          ...(formData.website.trim() ? { website: formData.website.trim() } : {}),
         },
       },
     });
@@ -256,6 +265,34 @@ export default function Register() {
                     <p className="text-xs text-accent-600 mt-1">{errors.phone_number}</p>
                   )}
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground-700 mb-1.5">
+                    Website URL{" "}
+                    <span className="font-normal text-foreground-500">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="website"
+                    inputMode="url"
+                    autoComplete="url"
+                    value={formData.website}
+                    onChange={(e) =>
+                      setFormData({ ...formData, website: e.target.value })
+                    }
+                    className={inputClass("website")}
+                    placeholder="yourbusiness.com"
+                  />
+                  {errors.website ? (
+                    <p className="text-xs text-accent-600 mt-1">{errors.website}</p>
+                  ) : (
+                    <p className="text-xs text-foreground-500 mt-1">
+                      You can add this later from your dashboard.
+                    </p>
+                  )}
+                </div>
+
+
 
                 <div>
                   <label className="block text-sm font-medium text-foreground-700 mb-1.5">
