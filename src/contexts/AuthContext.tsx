@@ -281,15 +281,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(newSession);
       setUser(newSession?.user ?? null);
 
-      if (newSession?.user) {
-        withTimeout(fetchProfile(newSession.user.id), 10000).then((p) => {
-          if (cancelled) return;
-          if (p !== "timeout" && p) setProfile(p);
-          else setProfile(null);
-        });
-      } else {
+      if (!newSession?.user) {
         setProfile(null);
+        return;
       }
+
+      // Token refreshes fire roughly hourly and on every tab focus. Re-fetching
+      // the profile there caused needless load, and a slow/failed fetch wiped a
+      // perfectly good profile — which logged the user out of guarded pages.
+      const uid = newSession.user.id;
+      if (event === "TOKEN_REFRESHED" && profileRef.current?.id === uid) return;
+
+      withTimeout(fetchProfile(uid), 10000).then((p) => {
+        if (cancelled) return;
+        if (p !== "timeout" && p) setProfile(p);
+        else if (p !== "timeout" && profileRef.current?.id !== uid) setProfile(null);
+        // On timeout: keep whatever profile we already have instead of clearing it.
+      });
     });
 
     return () => {
