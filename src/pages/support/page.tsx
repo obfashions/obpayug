@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router-compat";
 import { JsonLd } from "@/components/base/JsonLd";
 
 interface Ticket {

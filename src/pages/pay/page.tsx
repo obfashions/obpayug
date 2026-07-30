@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "@/lib/router-compat";
 import { supabase } from "@/lib/supabase";
 import { JsonLd } from "@/components/base/JsonLd";
 import { invokeObpay, invokePublicLookup } from "@/lib/edge-function";

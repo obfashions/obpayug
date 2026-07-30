@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/feature/DashboardLayout";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import CollectionBreakdown from "./components/CollectionBreakdown";
 import LiveTransactionFeed from "./components/LiveTransactionFeed";
 import SavingsCalculator from "./components/SavingsCalculator";
