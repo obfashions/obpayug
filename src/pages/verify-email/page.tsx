@@ -93,7 +93,7 @@ export default function VerifyEmail() {
         return;
       }
 
-      const { data, error: fnError } = result;
+      const { data, error: fnError } = result as { data: any; error: any };
 
       if (fnError || !data?.success) {
         setError(data?.error || (fnError as any)?.message || "Failed to send verification code. Please try again.");
@@ -177,7 +177,7 @@ export default function VerifyEmail() {
         return;
       }
 
-      const { data, error: fnError } = result;
+      const { data, error: fnError } = result as { data: any; error: any };
 
       if (fnError || !data?.success) {
         setError(data?.error || (fnError as any)?.message || "Verification failed. Please try again.");
