@@ -3,6 +3,8 @@ import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase, safeGetSession } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { invokeObpay } from "@/lib/edge-function";
+import MerchantAccountPanel from "./MerchantAccountPanel";
+
 
 interface Merchant {
   id: string;
@@ -661,6 +663,11 @@ export default function AdminMerchants() {
                 </div>
               </div>
             )}
+
+            {/* Full account record: documents, integration, activity */}
+            <MerchantAccountPanel userId={selected.id} />
+
+
 
             {/* Wallet Info */}
             <div className="bg-background-100 rounded-lg p-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
