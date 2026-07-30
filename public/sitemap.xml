@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://example.com/</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://storage.readdy-site.link/project_files/f591f50b-9b67-4c2e-91b2-e9cd02864c7f/c3af3d6a-4922-444f-b121-d8c41e1841fc_compressed_file_000000001c7471f4988719b77b5ed56d.webp</image:loc>
+      <image:title>ObPay Logo - Powering Business Payments Across East Africa</image:title>
+      <image:caption>ObPay payment gateway for mobile money and bank transfers across Uganda and East Africa</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://example.com/docs</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://example.com/pricing</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://example.com/support</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>
