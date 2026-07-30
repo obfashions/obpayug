@@ -41,9 +41,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | "timeout"> {
   return Promise.race([
     promise.then((v) => v as T | "timeout"),
-    new Promise<"timeout">((resolve) =>
-      window.setTimeout(() => resolve("timeout"), ms)
-    ),
+    new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), ms)),
   ]);
 }
 
@@ -64,6 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [globalVerificationEnabled, setGlobalVerificationEnabled] = useState(true);
   const signOutInProgress = useRef(false);
+  // Mirror of `profile` readable from the auth-state listener without
+  // re-subscribing on every profile change.
+  const profileRef = useRef<Profile | null>(null);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   // Derive loginVerified from profile's login_verified_at.
   // Once a user verifies their login, they stay verified until they explicitly
@@ -283,15 +287,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(newSession);
       setUser(newSession?.user ?? null);
 
-      if (newSession?.user) {
-        withTimeout(fetchProfile(newSession.user.id), 10000).then((p) => {
-          if (cancelled) return;
-          if (p !== "timeout" && p) setProfile(p);
-          else setProfile(null);
-        });
-      } else {
+      if (!newSession?.user) {
         setProfile(null);
+        return;
       }
+
+      // Token refreshes fire roughly hourly and on every tab focus. Re-fetching
+      // the profile there caused needless load, and a slow/failed fetch wiped a
+      // perfectly good profile — which logged the user out of guarded pages.
+      const uid = newSession.user.id;
+      if (event === "TOKEN_REFRESHED" && profileRef.current?.id === uid) return;
+
+      withTimeout(fetchProfile(uid), 10000).then((p) => {
+        if (cancelled) return;
+        if (p !== "timeout" && p) setProfile(p);
+        else if (p !== "timeout" && profileRef.current?.id !== uid) setProfile(null);
+        // On timeout: keep whatever profile we already have instead of clearing it.
+      });
     });
 
     return () => {
@@ -347,25 +359,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        profile,
-        loading,
-        profileLoading,
-        profileError,
-        authError,
-        loginVerified,
-        globalVerificationEnabled,
-        signOut,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  // Memoised so every consumer of useAuth() does not re-render on each
+  // AuthProvider render (this provider wraps the entire app).
+  const value = useMemo<AuthState>(
+    () => ({
+      user,
+      session,
+      profile,
+      loading,
+      profileLoading,
+      profileError,
+      authError,
+      loginVerified,
+      globalVerificationEnabled,
+      signOut,
+      refreshProfile,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      user,
+      session,
+      profile,
+      loading,
+      profileLoading,
+      profileError,
+      authError,
+      loginVerified,
+      globalVerificationEnabled,
+    ],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

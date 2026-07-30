@@ -33,7 +33,7 @@ function timeAgo(dateStr: string): string {
 function maskName(name: string | null | undefined): string {
   if (!name || name.trim().length === 0) return "Customer";
   const trimmed = name.trim();
-  if (/^\+?\d[\d\s\-]+$/.test(trimmed)) {
+  if (/^\+?\d[\d\s-]+$/.test(trimmed)) {
     const digits = trimmed.replace(/\D/g, "");
     if (digits.length >= 8) {
       return digits.slice(0, 3) + "****" + digits.slice(-2);

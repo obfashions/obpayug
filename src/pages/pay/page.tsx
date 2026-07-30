@@ -105,7 +105,12 @@ export default function PayPage() {
 
   const estimatedFee = amount > 0 ? Math.round(amount * (feePercent / 100) * 100) / 100 : 0;
   const netAmount = amount > 0 ? amount - estimatedFee : 0;
-  const currentUrl = window.location.href;
+
+  // `window` does not exist during server rendering — read the URL after mount.
+  const [currentUrl, setCurrentUrl] = useState("");
+  useEffect(() => {
+    setCurrentUrl(window.location.href);
+  }, [slug]);
 
   const copyUrl = () => {
     navigator.clipboard.writeText(currentUrl);

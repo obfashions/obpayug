@@ -120,7 +120,18 @@ export default function AdminSupportPage() {
     }
   }, [profile?.id]);
 
+  // Keep the current selection readable inside the realtime callback without
+  // making the subscription depend on it (that tore down and re-opened the
+  // WebSocket on every conversation click).
+  const selectedUserIdRef = useRef<string | null>(null);
   useEffect(() => {
+    selectedUserIdRef.current = selectedUserId;
+  }, [selectedUserId]);
+
+  useEffect(() => {
+    // No admin session yet — don't query or open a WebSocket that will be rejected.
+    if (!profile?.id) return;
+
     fetchConversations();
 
     const channel = supabase
@@ -130,8 +141,9 @@ export default function AdminSupportPage() {
         { event: "INSERT", schema: "public", table: "support_messages" },
         (payload: any) => {
           const newMsg = payload.new as Message;
+          const currentUserId = selectedUserIdRef.current;
           fetchConversations();
-          if (selectedUserId && (newMsg.sender_id === selectedUserId || newMsg.receiver_id === selectedUserId)) {
+          if (currentUserId && (newMsg.sender_id === currentUserId || newMsg.receiver_id === currentUserId)) {
             setMessages((prev) => {
               const withoutOptimistic = newMsg.sender_id === profile?.id
                 ? prev.filter((m) => m.id < 1000000000000)
@@ -139,7 +151,7 @@ export default function AdminSupportPage() {
               if (withoutOptimistic.find((m) => m.id === newMsg.id)) return withoutOptimistic;
               return [...withoutOptimistic, newMsg];
             });
-            if (newMsg.sender_id === selectedUserId && profile?.id) {
+            if (newMsg.sender_id === currentUserId && profile?.id) {
               supabase.from("support_messages").update({ is_read: true }).eq("id", newMsg.id);
             }
           }
@@ -150,7 +162,8 @@ export default function AdminSupportPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedUserId, profile?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -220,7 +233,8 @@ export default function AdminSupportPage() {
 
   const selectedConv = conversations.find((c) => c.userId === selectedUserId);
 
-  const showList = !showChatOnMobile || window.innerWidth >= 1024;
+  // NOTE: list/chat visibility is handled purely by responsive CSS classes below.
+  // Reading window.innerWidth during render crashed SSR and never updated on resize.
 
   return (
     <AdminLayout>
