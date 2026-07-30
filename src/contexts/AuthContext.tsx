@@ -41,9 +41,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | "timeout"> {
   return Promise.race([
     promise.then((v) => v as T | "timeout"),
-    new Promise<"timeout">((resolve) =>
-      window.setTimeout(() => resolve("timeout"), ms)
-    ),
+    new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), ms)),
   ]);
 }
 
