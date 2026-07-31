@@ -903,7 +903,7 @@ export default function PayoutsPage() {
                 <div>
                   <label className="block text-xs font-medium text-foreground-600 mb-1">Recipient Phone *</label>
                   <div className="flex items-center gap-2">
-                    <input type="text" value={form.phoneNumber} onChange={(e) => handlePayoutPhoneChange(e.target.value)} placeholder="e.g. 2567XXXXXXXX" className="flex-1 px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required />
+                    <input type="text" value={form.phoneNumber} onChange={(e) => handlePayoutPhoneChange(e.target.value)} placeholder="e.g. +256771234567" className="flex-1 px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required />
                     <button
                       type="button"
                       onClick={handleVerifyPayoutNumber}
