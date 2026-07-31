@@ -211,7 +211,7 @@ export async function runMarzAction(action: string, payload: any) {
       method: "POST",
       body: {
         amount: Number(payload?.amount),
-        phone_number: payload?.phoneNumber,
+        phone_number: normalizePhone(payload?.phoneNumber, payload?.currency),
         reference: ref(payload?.reference),
         description: payload?.description || "Collection via ObPay",
         country: country(payload?.currency),
@@ -225,7 +225,7 @@ export async function runMarzAction(action: string, payload: any) {
       method: "POST",
       body: {
         amount: Number(payload?.amount),
-        phone_number: payload?.phoneNumber,
+        phone_number: normalizePhone(payload?.phoneNumber, payload?.currency),
         reference: ref(payload?.reference),
         description: payload?.description || "Payout via ObPay",
         country: country(payload?.currency),

@@ -6,7 +6,7 @@
 // Database writes go through Supabase REST with the CALLER's access token, so
 // row level security still applies exactly as it would in the browser.
 
-import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser } from "./marz.server";
+import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone } from "./marz.server";
 
 const SUPA_URL = () =>
   (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -211,14 +211,15 @@ export async function runObpayAction(action: string, accessToken: string, body: 
   if (action === "verify-phone" || action === "verify-number") {
     const res = await marzFetch(creds, "/phone-verification/verify", {
       method: "POST",
-      body: { phone_number: body?.phoneNumber },
+      body: { phone_number: normalizePhone(body?.phoneNumber, body?.currency) },
     });
     if (!res.ok) return { success: false, error: res.error || "Could not verify that number." };
     const d = res.data?.data || {};
     return {
       success: true,
       data: {
-        customer_name: d.name || d.customer_name || d.user?.name || null,
+        customer_name: d.full_name || [d.first_name, d.last_name].filter(Boolean).join(" ") || d.name || d.customer_name || null,
+        phone_number: d.phone_number || res.data?.phone_number || null,
         network: (d.provider || d.network || "").toUpperCase(),
       },
     };
@@ -310,7 +311,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       method: "POST",
       body: {
         amount: Math.round(numAmount),
-        phone_number: phoneNumber,
+        phone_number: normalizePhone(phoneNumber, currency),
         method: "mobile_money",
         country: marzCountry(currency),
         reference: providerRef,
@@ -392,7 +393,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       method: "POST",
       body: {
         amount: Math.round(numAmount),
-        phone_number: phoneNumber,
+        phone_number: normalizePhone(phoneNumber, currency),
         country: marzCountry(currency),
         reference: providerRef,
         description: (description || (isWithdraw ? "Withdrawal" : "Payout")).slice(0, 255),
