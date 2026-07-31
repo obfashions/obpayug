@@ -65,8 +65,8 @@ function normalizeStatus(raw: string): "pending" | "success" | "failed" | null {
 function friendlyProviderError(res: { error?: string; data?: any }, kind: "collection" | "payout"): string {
   if (isIpWhitelistError(res)) {
     return kind === "payout"
-      ? "MarzPay is blocking payouts from this server because IP whitelisting is switched on for your account. Turn it off (or whitelist the server) in the MarzPay dashboard under IP Whitelist, then try again."
-      : "MarzPay is blocking this request because IP whitelisting is switched on for your account.";
+      ? "MarzPay is blocking payouts because IP whitelisting is switched on for your account. In the MarzPay dashboard open Security → IP Whitelist and either turn it off or add this server IP: 34.38.19.178. Then try the payout again."
+      : "MarzPay is blocking this request because IP whitelisting is switched on. Add 34.38.19.178 to the IP Whitelist in your MarzPay dashboard, or turn whitelisting off.";
   }
   const raw = (res?.error || "").toString();
   if (/insufficient/i.test(raw)) return "Your MarzPay float is too low for this transfer. Top it up and try again.";
