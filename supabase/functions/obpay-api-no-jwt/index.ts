@@ -8,7 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
-const LIVEPAY_BASE = "https://livepay.me/api";
+// ════════════════════════════════════════════════════════════════════
+// PROVIDER: MarzPay  —  https://wallet.wearemarz.com/api/v1
+// Auth: Authorization: Basic base64(api_key:api_secret)
+// ════════════════════════════════════════════════════════════════════
+const MARZ_BASE = "https://wallet.wearemarz.com/api/v1";
 
 function json(data: any, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -24,224 +28,83 @@ function redactKey(k: string): string {
   return k.slice(0, 6) + "..." + k.slice(-4);
 }
 
-interface KeyVariant {
-  key: string;
-  label: string;
-  length: number;
-  hasDot: boolean;
-  dotParts: string[];
+export interface MarzAuth { basic: string; key: string; secret: string; }
+
+function buildAuth(key: string, secret: string): MarzAuth {
+  return { basic: btoa(`${key}:${secret}`), key, secret };
 }
 
-function getKeyVariants(rawKey: string): KeyVariant[] {
-  const trimmed = rawKey.trim();
-  const variants: KeyVariant[] = [];
-  variants.push({ key: trimmed, label: "full_key", length: trimmed.length, hasDot: trimmed.includes("."), dotParts: trimmed.split(".") });
-  if (trimmed.includes(".")) {
-    const parts = trimmed.split(".");
-    if (parts.length >= 2 && parts[parts.length - 1].length >= 32) {
-      variants.push({ key: parts[parts.length - 1], label: "secret_only", length: parts[parts.length - 1].length, hasDot: false, dotParts: [parts[parts.length - 1]] });
-    }
-    if (parts[0].length >= 8) {
-      variants.push({ key: parts[0], label: "key_id_only", length: parts[0].length, hasDot: false, dotParts: [parts[0]] });
-    }
-    if (parts.length === 2 && parts[0].length >= 8 && parts[1].length >= 32) {
-      const b64 = btoa(`${parts[0]}:${parts[1]}`);
-      variants.push({ key: b64, label: "basic_auth_b64", length: b64.length, hasDot: false, dotParts: [b64] });
-    }
-  }
-  return variants;
+// A UUID v4 reference is REQUIRED by MarzPay for collections and disbursements.
+function providerReference(): string {
+  return crypto.randomUUID();
 }
 
 function mapNetwork(network?: string): string | undefined {
   if (!network) return undefined;
-  const map: Record<string, string> = {
-    mtn: "MTN", airtel: "AIRTEL", safaricom: "SAFARICOM", airteltigo: "AIRTELTIGO", vodafone: "VODAFONE", orange: "ORANGE",
-  };
-  const lower = network.toLowerCase().trim();
-  if (lower === "bank") return undefined;
-  return map[lower] || network.toUpperCase();
+  const lower = (network || "").toLowerCase().trim();
+  if (lower === "bank" || lower === "card") return undefined;
+  if (lower.includes("mtn")) return "MTN";
+  if (lower.includes("airtel")) return "AIRTEL";
+  return network.toUpperCase();
 }
 
-async function getLivePayKey(supabase: any, userId?: string | null): Promise<{ key: string; accountNumber: string; source: string; variants: KeyVariant[] }> {
+function marzCountry(currency?: string): string {
+  const map: Record<string, string> = { UGX: "UG", KES: "KE", GHS: "GH", XAF: "CM", TZS: "TZ" };
+  return map[(currency || "UGX").toUpperCase()] || "UG";
+}
+
+/**
+ * Resolve MarzPay credentials.
+ * Order: Supabase secrets → platform_settings (marz_* columns) →
+ *        platform_settings legacy slots → per-user credential rows.
+ * A single combined value in the form "key:secret" is also accepted.
+ */
+async function getMarzCreds(
+  supabase: any,
+  userId?: string | null,
+): Promise<{ key: string; secret: string; source: string; auth: MarzAuth | null }> {
+  const pack = (key: string, secret: string, source: string) => {
+    const k = (key || "").trim();
+    let s = (secret || "").trim();
+    if (k && !s && k.includes(":")) {
+      const parts = k.split(":");
+      return { key: parts[0].trim(), secret: parts.slice(1).join(":").trim(), source, auth: buildAuth(parts[0].trim(), parts.slice(1).join(":").trim()) };
+    }
+    if (k && s.includes(":") && s.startsWith(k + ":")) s = s.slice(k.length + 1);
+    if (k && s) return { key: k, secret: s, source, auth: buildAuth(k, s) };
+    return null;
+  };
+
+  const envHit = pack(Deno.env.get("MARZ_API_KEY") || "", Deno.env.get("MARZ_API_SECRET") || "", "supabase_secret");
+  if (envHit) return envHit;
+
   try {
     const { data: ps } = await supabase.from("platform_settings")
-      .select("livepay_api_key, livepay_account_number, julypay_api_key, updated_at").limit(1).maybeSingle();
-    if (ps?.livepay_api_key) {
-      const trimmedKey = ps.livepay_api_key.trim();
-      if (trimmedKey.length > 10) {
-        return { key: trimmedKey, accountNumber: (ps.livepay_account_number || "").trim(), source: "platform_settings", variants: getKeyVariants(trimmedKey) };
-      }
-    }
-    if (ps?.julypay_api_key) {
-      const trimmedKey = ps.julypay_api_key.trim();
-      if (trimmedKey.length > 10) {
-        return { key: trimmedKey, accountNumber: (ps.livepay_account_number || "").trim(), source: "platform_settings_legacy", variants: getKeyVariants(trimmedKey) };
-      }
-    }
-  } catch (e: any) { console.error("[LivePay] platform_settings query error:", e.message); }
+      .select("marz_api_key, marz_api_secret").limit(1).maybeSingle();
+    const hit = pack(ps?.marz_api_key || "", ps?.marz_api_secret || "", "platform_settings");
+    if (hit) return hit;
+  } catch (_) { /* columns may not exist yet */ }
 
-  const envKey = (Deno.env.get("LIVEPAY_API_KEY") || "").trim();
-  const envAccount = (Deno.env.get("LIVEPAY_ACCOUNT_NUMBER") || "").trim();
-  if (envKey && envKey.length > 10) {
-    return { key: envKey, accountNumber: envAccount, source: "supabase_secret", variants: getKeyVariants(envKey) };
-  }
+  // Legacy storage slots reused by the admin settings screen.
+  try {
+    const { data: ps } = await supabase.from("platform_settings")
+      .select("livepay_api_key, livepay_account_number").limit(1).maybeSingle();
+    const hit = pack(ps?.livepay_api_key || "", ps?.livepay_account_number || "", "platform_settings_legacy_slot");
+    if (hit) return hit;
+  } catch (_) { /* ignore */ }
 
   if (userId) {
     try {
-      const { data: lp } = await supabase.from("livepay_credentials")
+      const { data: row } = await supabase.from("livepay_credentials")
         .select("api_key, account_number").eq("user_id", userId).eq("status", "active").maybeSingle();
-      if (lp?.api_key) {
-        const trimmedKey = lp.api_key.trim();
-        if (trimmedKey.length > 10) {
-          return { key: trimmedKey, accountNumber: (lp.account_number || "").trim(), source: "livepay_credentials_user", variants: getKeyVariants(trimmedKey) };
-        }
-      }
-    } catch (e: any) { console.error("[LivePay] livepay_credentials query error:", e.message); }
+      const hit = pack(row?.api_key || "", row?.account_number || "", "merchant_credentials");
+      if (hit) return hit;
+    } catch (_) { /* ignore */ }
   }
 
-  try {
-    const { data: lpAny } = await supabase.from("livepay_credentials")
-      .select("api_key, account_number").eq("status", "active").limit(1).maybeSingle();
-    if (lpAny?.api_key) {
-      const trimmedKey = lpAny.api_key.trim();
-      if (trimmedKey.length > 10) {
-        return { key: trimmedKey, accountNumber: (lpAny.account_number || "").trim(), source: "livepay_credentials_fallback", variants: getKeyVariants(trimmedKey) };
-      }
-    }
-  } catch (e: any) { console.error("[LivePay] livepay_credentials fallback query error:", e.message); }
-
-  return { key: "", accountNumber: "", source: "none", variants: [] };
+  return { key: "", secret: "", source: "none", auth: null };
 }
 
-async function authenticateRequest(req: Request, body: any, supabase: any): Promise<{ userId: string | null; error: string | null; authMethod: string }> {
-  const xApiKey = req.headers.get("x-api-key") || "";
-  const xObpayKey = req.headers.get("x-obpay-key") || "";
-  const authHeader = req.headers.get("authorization") || "";
-  const apiKeyHeader = req.headers.get("apikey") || "";
-  const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
-  const bodyApiKey = (body?._api_key || body?.apiKey || "").trim();
-
-  for (const [key, method] of [[xApiKey, "x_api_key"], [xObpayKey, "x_obpay_key"], [bodyApiKey, "body_api_key"], [apiKeyHeader, "apikey_header"]] as [string, string][]) {
-    if (key && key.startsWith("sk_live_")) {
-      const { data: keyData } = await supabase.from("api_keys").select("user_id, status").eq("secret_key", key).eq("status", "active").maybeSingle();
-      if (!keyData) return { userId: null, error: "Invalid API key", authMethod: method + "_invalid" };
-      const { data: profileData } = await supabase.from("profiles").select("status").eq("id", keyData.user_id).maybeSingle();
-      if (!profileData || profileData.status !== "active") return { userId: null, error: "Account not active", authMethod: "account_inactive" };
-      return { userId: keyData.user_id, error: null, authMethod: method };
-    }
-  }
-
-  if (bearerToken && bearerToken.startsWith("eyJ")) {
-    try {
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(bearerToken);
-      if (authErr || !user) return { userId: null, error: "Session expired", authMethod: "jwt_failed" };
-      const { data: profileData } = await supabase.from("profiles").select("status").eq("id", user.id).maybeSingle();
-      if (!profileData || profileData.status !== "active") return { userId: null, error: "Account not active", authMethod: "jwt_inactive" };
-      return { userId: user.id, error: null, authMethod: "jwt" };
-    } catch { return { userId: null, error: "JWT auth failed", authMethod: "jwt_exception" }; }
-  }
-
-  return { userId: null, error: "Authentication required", authMethod: "none" };
-}
-
-interface AuthFormat {
-  label: string;
-  headers: Record<string, string>;
-}
-
-function buildAuthFormats(variant: KeyVariant): AuthFormat[] {
-  const formats: AuthFormat[] = [];
-  formats.push({ label: "bearer", headers: { "Authorization": `Bearer ${variant.key}`, "Content-Type": "application/json" } });
-  formats.push({ label: "x_api_key", headers: { "x-api-key": variant.key, "Content-Type": "application/json" } });
-  if (variant.label === "basic_auth_b64") {
-    formats.push({ label: "basic_auth", headers: { "Authorization": `Basic ${variant.key}`, "Content-Type": "application/json" } });
-  }
-  return formats;
-}
-
-async function doLivePayRequest(
-  method: string, endpoint: string, authFormat: AuthFormat, body?: Record<string, any>
-): Promise<{ ok: boolean; data?: any; error?: string; httpStatus?: number; raw?: string }> {
-  const url = `${LIVEPAY_BASE}${endpoint}`;
-  const opts: RequestInit = { method, headers: { ...authFormat.headers } };
-  if (body && method !== "GET") opts.body = JSON.stringify(body);
-  try {
-    const resp = await fetch(url, opts);
-    const raw = await resp.text();
-    let parsed: any;
-    try { parsed = JSON.parse(raw); } catch {
-      return { ok: false, httpStatus: resp.status, error: `Provider non-JSON (HTTP ${resp.status}): ${raw.slice(0, 200)}`, raw: raw.slice(0, 500) };
-    }
-    if (!resp.ok || parsed.success === false || parsed.error) {
-      return { ok: false, data: parsed, httpStatus: resp.status, error: parsed?.error || parsed?.message || `Provider HTTP ${resp.status}`, raw: raw.slice(0, 500) };
-    }
-    return { ok: true, data: parsed, httpStatus: resp.status };
-  } catch (err: any) {
-    return { ok: false, error: `Cannot reach LivePay: ${err.message}` };
-  }
-}
-
-async function tryLivePayAggressive(
-  method: string, endpoint: string, variants: KeyVariant[], accountNumber: string,
-  body?: Record<string, any>, query?: Record<string, string>
-): Promise<{ ok: boolean; data?: any; error?: string; httpStatus?: number; raw?: string; usedVariant?: string; usedAuthFormat?: string; allAttempts: any[] }> {
-  const allAttempts: any[] = [];
-  let url = endpoint;
-  if (query && Object.keys(query).length > 0) { const q = new URLSearchParams(query); url = `${endpoint}?${q.toString()}`; }
-  for (const v of variants) {
-    const reqBody = body ? { ...body } : undefined;
-    if (reqBody && accountNumber) reqBody.accountNumber = accountNumber;
-    for (const af of buildAuthFormats(v)) {
-      const result = await doLivePayRequest(method, url, af, reqBody);
-      allAttempts.push({ variant: v.label, authFormat: af.label, keyHint: redactKey(v.key), ...result });
-      if (result.ok) return { ok: true, data: result.data, httpStatus: result.httpStatus, usedVariant: v.label, usedAuthFormat: af.label, allAttempts };
-    }
-  }
-  const firstRealError = allAttempts.find((a: any) => {
-    const err = (a.error || "").toLowerCase();
-    return !err.includes("invalid api key") && !err.includes("authorization required") && !err.includes("unauthorized");
-  });
-  const last = allAttempts[allAttempts.length - 1];
-  return { ok: false, error: firstRealError?.error || last?.error || "All key+auth combinations rejected by LivePay", httpStatus: firstRealError?.httpStatus || last?.httpStatus, raw: firstRealError?.raw || last?.raw, allAttempts };
-}
-
-async function livePayCollect(keyVariants: KeyVariant[], accountNumber: string, params: {
-  phoneNumber: string; amount: number; currency: string; reference: string; description: string; network?: string;
-}) {
-  const payload: Record<string, any> = { accountNumber, phoneNumber: params.phoneNumber, amount: params.amount, currency: params.currency, reference: params.reference.slice(0, 30), description: params.description || "Payment via ObPay" };
-  const mappedNetwork = mapNetwork(params.network);
-  if (mappedNetwork) payload.network = mappedNetwork;
-  return tryLivePayAggressive("POST", "/collect-money", keyVariants, accountNumber, payload);
-}
-
-async function livePaySend(keyVariants: KeyVariant[], accountNumber: string, params: {
-  phoneNumber: string; amount: number; currency: string; reference: string; description: string; network?: string;
-}) {
-  const payload: Record<string, any> = { accountNumber, phoneNumber: params.phoneNumber, amount: params.amount, currency: params.currency, reference: params.reference.slice(0, 30), description: params.description || "Payout via ObPay" };
-  const mappedNetwork = mapNetwork(params.network);
-  if (mappedNetwork) payload.network = mappedNetwork;
-  return tryLivePayAggressive("POST", "/send-money", keyVariants, accountNumber, payload);
-}
-
-async function livePayBalance(keyVariants: KeyVariant[], accountNumber: string, currency: string = "UGX") {
-  return tryLivePayAggressive("GET", "/check-balance", keyVariants, accountNumber, undefined, { accountNumber, currency });
-}
-
-async function livePayTxnStatus(keyVariants: KeyVariant[], accountNumber: string, reference: string, currency: string = "UGX") {
-  return tryLivePayAggressive("GET", "/transaction-status", keyVariants, accountNumber, undefined, { accountNumber, currency, reference });
-}
-
-async function livePayValidateNumber(keyVariants: KeyVariant[], phoneNumber: string) {
-  return tryLivePayAggressive("POST", "/validate-number", keyVariants, "", { phoneNumber });
-}
-
-function normalizeLivePayStatus(rawStatus: string): "pending" | "success" | "failed" | null {
-  const s = (rawStatus || "").toLowerCase().trim();
-  if (["success", "successful", "completed"].includes(s)) return "success";
-  if (["failed", "failure", "rejected", "declined", "cancelled"].includes(s)) return "failed";
-  if (["pending", "processing", "in_progress"].includes(s)) return "pending";
-  return null;
-}
 
 async function dispatchMerchantWebhooks(supabase: any, userId: string, event: string, payload: any) {
   try {
