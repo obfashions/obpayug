@@ -105,6 +105,200 @@ async function getMarzCreds(
   return { key: "", secret: "", source: "none", auth: null };
 }
 
+async function authenticateRequest(req: Request, body: any, supabase: any): Promise<{ userId: string | null; error: string | null; authMethod: string }> {
+  const xApiKey = req.headers.get("x-api-key") || "";
+  const xObpayKey = req.headers.get("x-obpay-key") || "";
+  const authHeader = req.headers.get("authorization") || "";
+  const apiKeyHeader = req.headers.get("apikey") || "";
+  const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const bodyApiKey = (body?._api_key || body?.apiKey || "").trim();
+
+  for (const [key, method] of [[xApiKey, "x_api_key"], [xObpayKey, "x_obpay_key"], [bodyApiKey, "body_api_key"], [apiKeyHeader, "apikey_header"]] as [string, string][]) {
+    if (key && key.startsWith("sk_live_")) {
+      const { data: keyData } = await supabase.from("api_keys").select("user_id, status").eq("secret_key", key).eq("status", "active").maybeSingle();
+      if (!keyData) return { userId: null, error: "Invalid API key", authMethod: method + "_invalid" };
+      const { data: profileData } = await supabase.from("profiles").select("status").eq("id", keyData.user_id).maybeSingle();
+      if (!profileData || profileData.status !== "active") return { userId: null, error: "Account not active", authMethod: "account_inactive" };
+      return { userId: keyData.user_id, error: null, authMethod: method };
+    }
+  }
+
+  if (bearerToken && bearerToken.startsWith("eyJ")) {
+    try {
+      const { data: { user }, error: authErr } = await supabase.auth.getUser(bearerToken);
+      if (authErr || !user) return { userId: null, error: "Session expired", authMethod: "jwt_failed" };
+      const { data: profileData } = await supabase.from("profiles").select("status").eq("id", user.id).maybeSingle();
+      if (!profileData || profileData.status !== "active") return { userId: null, error: "Account not active", authMethod: "jwt_inactive" };
+      return { userId: user.id, error: null, authMethod: "jwt" };
+    } catch { return { userId: null, error: "JWT auth failed", authMethod: "jwt_exception" }; }
+  }
+
+  return { userId: null, error: "Authentication required", authMethod: "none" };
+}
+
+// ─── MarzPay HTTP layer ─────────────────────────────────────────────
+async function marzRequest(
+  method: "GET" | "POST" | "PUT" | "DELETE",
+  path: string,
+  auth: MarzAuth,
+  body?: Record<string, any>,
+): Promise<{ ok: boolean; data?: any; error?: string; httpStatus?: number; raw?: string }> {
+  const url = `${MARZ_BASE}${path}`;
+  const opts: RequestInit = {
+    method,
+    headers: {
+      "Authorization": `Basic ${auth.basic}`,
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+  };
+  if (body && method !== "GET") opts.body = JSON.stringify(body);
+  try {
+    const resp = await fetch(url, { ...opts, signal: AbortSignal.timeout(30000) });
+    const raw = await resp.text();
+    let parsed: any;
+    try { parsed = JSON.parse(raw); } catch {
+      return { ok: false, httpStatus: resp.status, error: `MarzPay non-JSON (HTTP ${resp.status}): ${raw.slice(0, 200)}`, raw: raw.slice(0, 500) };
+    }
+    const failed = !resp.ok || parsed?.status === "error" || parsed?.success === false;
+    if (failed) {
+      const detail = parsed?.errors ? JSON.stringify(parsed.errors).slice(0, 200) : "";
+      return { ok: false, data: parsed, httpStatus: resp.status, error: parsed?.message || parsed?.error || `MarzPay HTTP ${resp.status}${detail ? ` — ${detail}` : ""}`, raw: raw.slice(0, 500) };
+    }
+    return { ok: true, data: parsed, httpStatus: resp.status };
+  } catch (err: any) {
+    return { ok: false, error: `Cannot reach MarzPay: ${err.message}` };
+  }
+}
+
+async function marzCollect(auth: MarzAuth, params: {
+  phoneNumber: string; amount: number; currency: string; reference?: string; description: string; network?: string; callbackUrl?: string; method?: string;
+}): Promise<{ ok: boolean; data?: any; error?: string; httpStatus?: number; raw?: any }> {
+  const ref = params.reference || providerReference();
+  const payload: Record<string, any> = {
+    amount: Math.round(Number(params.amount)),
+    country: marzCountry(params.currency),
+    reference: ref,
+    description: (params.description || "Payment via ObPay").slice(0, 255),
+  };
+  if (params.method === "card") payload.method = "card";
+  else { payload.method = "mobile_money"; payload.phone_number = params.phoneNumber; }
+  if (params.callbackUrl) payload.callback_url = params.callbackUrl.slice(0, 255);
+
+  const res = await marzRequest("POST", "/collect-money", auth, payload);
+  if (!res.ok) return res;
+  const d = res.data?.data || {};
+  return {
+    ok: true,
+    httpStatus: res.httpStatus,
+    data: {
+      reference: d.transaction?.reference || ref,
+      internal_reference: d.transaction?.uuid || "",
+      network: (d.collection?.provider || mapNetwork(params.network) || "").toUpperCase(),
+      status: d.transaction?.status || "processing",
+      redirect_url: d.redirect_url || "",
+      message: res.data?.message || "Collection initiated",
+    },
+    raw: res.data,
+  };
+}
+
+async function marzSend(auth: MarzAuth, params: {
+  phoneNumber: string; amount: number; currency: string; reference?: string; description: string; network?: string; callbackUrl?: string;
+}): Promise<{ ok: boolean; data?: any; error?: string; httpStatus?: number; raw?: any }> {
+  const ref = params.reference || providerReference();
+  const payload: Record<string, any> = {
+    amount: Math.round(Number(params.amount)),
+    phone_number: params.phoneNumber,
+    country: marzCountry(params.currency),
+    reference: ref,
+    description: (params.description || "Payout via ObPay").slice(0, 255),
+  };
+  if (params.callbackUrl) payload.callback_url = params.callbackUrl.slice(0, 255);
+
+  const res = await marzRequest("POST", "/send-money", auth, payload);
+  if (!res.ok) return res;
+  const d = res.data?.data || {};
+  return {
+    ok: true,
+    httpStatus: res.httpStatus,
+    data: {
+      reference: d.transaction?.reference || ref,
+      internal_reference: d.transaction?.uuid || "",
+      provider_reference: d.transaction?.provider_reference || "",
+      network: (d.disbursement?.provider || mapNetwork(params.network) || "").toUpperCase(),
+      status: d.transaction?.status || "processing",
+      message: res.data?.message || "Send money initiated",
+    },
+    raw: res.data,
+  };
+}
+
+async function marzBalance(auth: MarzAuth) {
+  const res = await marzRequest("GET", "/balance", auth);
+  if (!res.ok) return res;
+  const account = res.data?.data?.account || {};
+  return {
+    ok: true,
+    httpStatus: res.httpStatus,
+    data: {
+      business_name: account.business_name || "",
+      balance: account.balance?.raw ?? 0,
+      formatted: account.balance?.formatted || "0.00",
+      currency: account.balance?.currency || "UGX",
+      mode: account.status?.mode || "",
+      account_status: account.status?.account_status || "",
+      is_frozen: !!account.status?.is_frozen,
+      summary: res.data?.data?.summary || null,
+    },
+  };
+}
+
+/** Transaction details — accepts the MarzPay uuid or your reference. */
+async function marzTxnStatus(auth: MarzAuth, reference: string) {
+  const res = await marzRequest("GET", `/transactions/${encodeURIComponent(reference)}`, auth);
+  if (!res.ok) return res;
+  const body = res.data?.data || res.data || {};
+  const txn = body.transaction || {};
+  const detail = body.collection || body.disbursement || {};
+  return {
+    ok: true,
+    httpStatus: res.httpStatus,
+    data: {
+      status: txn.status || "",
+      event_type: body.event_type || "",
+      uuid: txn.uuid || "",
+      reference: txn.reference || reference,
+      charge: Number(detail.charge?.raw ?? detail.charge ?? txn.charge?.raw ?? txn.charge ?? 0) || 0,
+      provider_transaction_id: detail.provider_transaction_id || txn.provider_reference || "",
+      amount: txn.amount?.raw ?? null,
+      currency: txn.amount?.currency || "UGX",
+    },
+  };
+}
+
+async function marzVerifyPhone(auth: MarzAuth, phoneNumber: string) {
+  const res = await marzRequest("POST", "/phone-verification/verify", auth, { phone_number: phoneNumber });
+  if (!res.ok) return res;
+  const d = res.data?.data || {};
+  return {
+    ok: true,
+    httpStatus: res.httpStatus,
+    data: {
+      customer_name: d.name || d.customer_name || d.user?.name || null,
+      network: (d.provider || d.network || "").toUpperCase(),
+    },
+  };
+}
+
+function normalizeStatus(rawStatus: string): "pending" | "success" | "failed" | null {
+  const s = (rawStatus || "").toLowerCase().trim();
+  if (["success", "successful", "completed", "sandbox"].includes(s)) return "success";
+  if (["failed", "failure", "rejected", "declined", "cancelled", "canceled", "expired"].includes(s)) return "failed";
+  if (["pending", "processing", "in_progress", "initiated"].includes(s)) return "pending";
+  return null;
+}
+
 
 async function dispatchMerchantWebhooks(supabase: any, userId: string, event: string, payload: any) {
   try {
