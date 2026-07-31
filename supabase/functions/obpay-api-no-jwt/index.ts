@@ -35,8 +35,9 @@ function buildAuth(key: string, secret: string): MarzAuth {
 }
 
 // A UUID v4 reference is REQUIRED by MarzPay for collections and disbursements.
-function providerReference(): string {
-  return crypto.randomUUID();
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function providerReference(candidate?: string): string {
+  return candidate && UUID_V4.test(candidate.trim()) ? candidate.trim() : crypto.randomUUID();
 }
 
 function mapNetwork(network?: string): string | undefined {
@@ -174,7 +175,7 @@ async function marzRequest(
 async function marzCollect(auth: MarzAuth, params: {
   phoneNumber: string; amount: number; currency: string; reference?: string; description: string; network?: string; callbackUrl?: string; method?: string;
 }): Promise<{ ok: boolean; data?: any; error?: string; httpStatus?: number; raw?: any }> {
-  const ref = params.reference || providerReference();
+  const ref = providerReference(params.reference);
   const payload: Record<string, any> = {
     amount: Math.round(Number(params.amount)),
     country: marzCountry(params.currency),
@@ -206,7 +207,7 @@ async function marzCollect(auth: MarzAuth, params: {
 async function marzSend(auth: MarzAuth, params: {
   phoneNumber: string; amount: number; currency: string; reference?: string; description: string; network?: string; callbackUrl?: string;
 }): Promise<{ ok: boolean; data?: any; error?: string; httpStatus?: number; raw?: any }> {
-  const ref = params.reference || providerReference();
+  const ref = providerReference(params.reference);
   const payload: Record<string, any> = {
     amount: Math.round(Number(params.amount)),
     phone_number: params.phoneNumber,
@@ -653,7 +654,7 @@ serve(async (req: Request) => {
       const { key, secret, auth } = await getMarzCreds(supabase, userId);
       if (!key || !secret) {
         await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "collection", amount, currency, status: "pending", customer_phone: phoneNumber, metadata: { note: "No provider key configured" } });
-        return apiError("Provider key or account number not configured. Go to Settings → Payment Provider.", 503, { data: { reference: ref, transaction_id: txnId, status: "pending" } });
+        return apiError("MarzPay API key and secret are not configured. Go to Settings → Payment Provider.", 503, { data: { reference: ref, transaction_id: txnId, status: "pending" } });
       }
       const lp = await marzCollect(auth!, { phoneNumber, amount, currency, reference: ref, description: description || "Collection via ObPay", network });
       if (lp.ok && lp.data) {
@@ -662,7 +663,7 @@ serve(async (req: Request) => {
         await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "collection", amount, currency, status: "pending", customer_phone: phoneNumber, customer_name: customerName || "", description: description || "", merchant_reference: lpRef, metadata: { lp_reference: lpRef, lp_internal_ref: internalRef, network: lp.data.network || mapNetwork(network) || "" }, created_at: new Date().toISOString() });
         dispatchMerchantWebhooks(supabase, userId, "payment.initiated", { transaction_id: txnId, reference: ref, status: "pending", amount, currency });
         schedulePostCollectSync(supabase, txnId, auth!);
-        return apiSuccess({ transaction_id: txnId, reference: ref, lp_reference: lpRef, internal_reference: internalRef, status: "pending", amount, currency, network: lp.data.network || mapNetwork(network) || "", message: lp.data.message || "Collection request sent", success: true });
+        return apiSuccess({ transaction_id: txnId, reference: ref, lp_reference: lpRef, internal_reference: internalRef, status: "pending", amount, currency, network: lp.data.network || mapNetwork(network) || "", message: lp.data.message || "Collection request sent", redirect_url: lp.data.redirect_url || "", success: true });
       }
       await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "collection", amount, currency, status: "failed", customer_phone: phoneNumber, metadata: { error: lp.error, httpStatus: lp.httpStatus, providerResponse: lp.data } });
       return apiError(lp.error || "Provider declined", 502, { data: { reference: ref, transaction_id: txnId, status: "failed", providerResponse: lp.data, httpStatus: lp.httpStatus, usedKeyHint: redactKey(key) } });
@@ -729,10 +730,10 @@ serve(async (req: Request) => {
     // ─── TEST CONNECTION / TEST WEBHOOK / TRANSACTION STATUS / SYNC / LIST ───
     if (action === "test-connection") {
       const { key, secret, source, auth } = await getMarzCreds(supabase, userId);
-      if (!key) return apiSuccess({ status: "disconnected", error: "No LivePay API key configured.", keySource: source });
-      if (!accountNumber) return apiSuccess({ status: "partial", error: "Account number not configured.", keySource: source });
+      if (!key) return apiSuccess({ status: "disconnected", error: "No MarzPay API key configured.", keySource: source });
+      if (!secret) return apiSuccess({ status: "partial", error: "MarzPay API secret not configured.", keySource: source });
       const res = await marzBalance(auth!);
-      return apiSuccess({ status: res.ok ? "connected" : "error", provider: "livepay", accountNumber, keySource: source, usedVariant: res.usedVariant || null, usedAuthFormat: res.usedAuthFormat || null, balance: res.data || null, error: res.error || null, timestamp: new Date().toISOString() });
+      return apiSuccess({ status: res.ok ? "connected" : "error", provider: "marzpay", keySource: source, balance: res.data || null, error: res.error || null, timestamp: new Date().toISOString() });
     }
 
     if (action === "test-webhook") {
