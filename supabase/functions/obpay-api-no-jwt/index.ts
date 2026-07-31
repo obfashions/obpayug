@@ -519,11 +519,20 @@ serve(async (req: Request) => {
         diag.marz_test = { endpoint: "/balance", ok: balRes.ok, http_status: balRes.httpStatus || null, error: balRes.error || null, balance_data: balRes.data || null };
         if (!balRes.ok) {
           const errMsg = (balRes.error || "").toLowerCase();
-          if (errMsg.includes("unauthenticated") || errMsg.includes("unauthorized") || errMsg.includes("invalid credentials") || balRes.httpStatus === 401) diag.recommendation = "MarzPay rejected the credentials. Check the API key and API secret in your MarzPay dashboard, and make sure the key is active.";
+          if (isIpWhitelistError(balRes)) {
+            const probe = await marzVerifyPhone(auth!, "+256777123456");
+            diag.credentials_valid = probe.ok;
+            diag.balance_restricted = true;
+            diag.recommendation = probe.ok
+              ? "Credentials are valid. MarzPay only restricts the balance/account endpoints to whitelisted IPs — payments, payouts and status checks work from any IP. Add your server IP under Dashboard > IP Whitelist if you want live balance."
+              : "MarzPay requires an IP whitelist entry for this key. Add your server IP under Dashboard > IP Whitelist.";
+          }
+          else if (errMsg.includes("unauthenticated") || errMsg.includes("unauthorized") || errMsg.includes("invalid credentials") || balRes.httpStatus === 401) diag.recommendation = "MarzPay rejected the credentials. Check the API key and API secret in your MarzPay dashboard, and make sure the key is active.";
           else if (balRes.httpStatus === 403) diag.recommendation = "MarzPay denied access. Your account may not be approved for API access, or this IP is not allowed.";
           else if (errMsg.includes("frozen")) diag.recommendation = "Your MarzPay account is frozen. Contact MarzPay support.";
           else diag.recommendation = `MarzPay error: ${balRes.error}`;
         }
+
       } else { diag.recommendation = key && !secret ? "API key is set but the API secret is missing." : "No MarzPay credentials found. Set MARZ_API_KEY and MARZ_API_SECRET."; }
       return apiSuccess(diag);
     }
