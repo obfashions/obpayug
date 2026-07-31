@@ -131,10 +131,13 @@ export async function testProviderConnection(): Promise<TestConnectionResult> {
     if (data?.data?.status === "connected") {
       return {
         ok: true,
-        message: `Connected to MarzPay as ${data.data.accountNumber || "unknown"}. Balance: ${JSON.stringify(data.data.balance)}`,
+        message: data.data.balance_restricted
+          ? (data.data.note || "Connected to MarzPay. Live balance is hidden because MarzPay limits that endpoint to whitelisted IPs.")
+          : `Connected to MarzPay as ${data.data.accountNumber || "unknown"}. Balance: ${JSON.stringify(data.data.balance)}`,
         data: data.data,
       };
     }
+
 
     if (data?.data?.status === "partial") {
       return {

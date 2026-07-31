@@ -34,6 +34,16 @@ function buildAuth(key: string, secret: string): MarzAuth {
   return { basic: btoa(`${key}:${secret}`), key, secret };
 }
 
+/** MarzPay only enforces IP whitelisting on sensitive reads (balance/account).
+ *  Collections, payouts, transaction status and phone verification work from any IP,
+ *  so a whitelist rejection must never be treated as "not connected". */
+function isIpWhitelistError(res: { error?: string; data?: any; httpStatus?: number }): boolean {
+  const code = (res?.data?.error_code || "").toString().toUpperCase();
+  if (code === "IP_WHITELIST_REQUIRED") return true;
+  return /ip whitelist/i.test(res?.error || "");
+}
+
+
 // A UUID v4 reference is REQUIRED by MarzPay for collections and disbursements.
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function providerReference(candidate?: string): string {
@@ -78,6 +88,21 @@ async function getMarzCreds(
 
   const envHit = pack(Deno.env.get("MARZ_API_KEY") || "", Deno.env.get("MARZ_API_SECRET") || "", "supabase_secret");
   if (envHit) return envHit;
+
+  // Optional: a ready-made base64 "key:secret" value for the Authorization header.
+  const basicEnv = (Deno.env.get("MARZ_API_BASIC") || "").trim();
+  if (basicEnv) {
+    try {
+      const decoded = atob(basicEnv);
+      const idx = decoded.indexOf(":");
+      if (idx > 0) {
+        const k = decoded.slice(0, idx).trim();
+        const s = decoded.slice(idx + 1).trim();
+        if (k && s) return { key: k, secret: s, source: "supabase_secret_basic", auth: { basic: basicEnv, key: k, secret: s } };
+      }
+    } catch (_) { /* not valid base64 — ignore */ }
+  }
+
 
   try {
     const { data: ps } = await supabase.from("platform_settings")
@@ -494,11 +519,20 @@ serve(async (req: Request) => {
         diag.marz_test = { endpoint: "/balance", ok: balRes.ok, http_status: balRes.httpStatus || null, error: balRes.error || null, balance_data: balRes.data || null };
         if (!balRes.ok) {
           const errMsg = (balRes.error || "").toLowerCase();
-          if (errMsg.includes("unauthenticated") || errMsg.includes("unauthorized") || errMsg.includes("invalid credentials") || balRes.httpStatus === 401) diag.recommendation = "MarzPay rejected the credentials. Check the API key and API secret in your MarzPay dashboard, and make sure the key is active.";
+          if (isIpWhitelistError(balRes)) {
+            const probe = await marzVerifyPhone(auth!, "+256777123456");
+            diag.credentials_valid = probe.ok;
+            diag.balance_restricted = true;
+            diag.recommendation = probe.ok
+              ? "Credentials are valid. MarzPay only restricts the balance/account endpoints to whitelisted IPs — payments, payouts and status checks work from any IP. Add your server IP under Dashboard > IP Whitelist if you want live balance."
+              : "MarzPay requires an IP whitelist entry for this key. Add your server IP under Dashboard > IP Whitelist.";
+          }
+          else if (errMsg.includes("unauthenticated") || errMsg.includes("unauthorized") || errMsg.includes("invalid credentials") || balRes.httpStatus === 401) diag.recommendation = "MarzPay rejected the credentials. Check the API key and API secret in your MarzPay dashboard, and make sure the key is active.";
           else if (balRes.httpStatus === 403) diag.recommendation = "MarzPay denied access. Your account may not be approved for API access, or this IP is not allowed.";
           else if (errMsg.includes("frozen")) diag.recommendation = "Your MarzPay account is frozen. Contact MarzPay support.";
           else diag.recommendation = `MarzPay error: ${balRes.error}`;
         }
+
       } else { diag.recommendation = key && !secret ? "API key is set but the API secret is missing." : "No MarzPay credentials found. Set MARZ_API_KEY and MARZ_API_SECRET."; }
       return apiSuccess(diag);
     }
@@ -733,8 +767,22 @@ serve(async (req: Request) => {
       if (!key) return apiSuccess({ status: "disconnected", error: "No MarzPay API key configured.", keySource: source });
       if (!secret) return apiSuccess({ status: "partial", error: "MarzPay API secret not configured.", keySource: source });
       const res = await marzBalance(auth!);
+      if (!res.ok && isIpWhitelistError(res)) {
+        // Balance is IP-restricted on MarzPay's side; prove the credentials with an
+        // endpoint that is not IP-restricted so the merchant is not shown as offline.
+        const probe = await marzVerifyPhone(auth!, "+256777123456");
+        if (probe.ok) {
+          return apiSuccess({
+            status: "connected", provider: "marzpay", keySource: source, balance: null,
+            error: null, balance_restricted: true,
+            note: "Connected. MarzPay restricts the balance endpoint to whitelisted IPs, so live balance is hidden — collections, payouts and transaction status work normally.",
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
       return apiSuccess({ status: res.ok ? "connected" : "error", provider: "marzpay", keySource: source, balance: res.data || null, error: res.error || null, timestamp: new Date().toISOString() });
     }
+
 
     if (action === "test-webhook") {
       const testPayload = { transaction_id: `test_${crypto.randomUUID().slice(0, 8)}`, reference: `TEST_${Date.now().toString(36).toUpperCase()}`, status: "success", amount: 5000, currency: "UGX", type: "collection", fee_amount: 250, net_amount: 4750, customer_phone: "256700000001", customer_name: "Test Customer", description: "OBPay Webhook Test", completed_at: new Date().toISOString(), is_test: true };
