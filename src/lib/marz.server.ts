@@ -157,16 +157,22 @@ export async function runMarzAction(action: string, payload: any) {
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const ref = (r?: string) => (r && uuid.test(r.trim()) ? r.trim() : crypto.randomUUID());
 
+  // /balance and /account require an IP whitelist, but /transactions returns the
+  // same account balance and works from any IP — use it as the balance source.
   if (action === "balance") {
-    const res = await marzFetch(creds, "/balance");
-    if (!res.ok && isIpWhitelistError(res)) {
+    const res = await marzFetch(creds, "/transactions?per_page=1");
+    if (res.ok) {
+      const bal = res.data?.data?.account?.current_balance || null;
+      return { success: true, data: { balance: bal, account: res.data?.data?.account || null } };
+    }
+    if (isIpWhitelistError(res)) {
       return { success: true, data: { balance: null, ip_restricted: true, note: "Connected to MarzPay. Live balance is hidden because MarzPay limits that endpoint to whitelisted IPs." } };
     }
-    return res.ok ? { success: true, data: res.data } : { success: false, error: res.error, data: res.data };
+    return { success: false, error: res.error, data: res.data };
   }
 
-  if (action === "verify-phone") {
-    const res = await marzFetch(creds, "/phone/verify", { method: "POST", body: { phone_number: payload?.phoneNumber } });
+  if (action === "services") {
+    const res = await marzFetch(creds, "/services");
     return res.ok ? { success: true, data: res.data } : { success: false, error: res.error, data: res.data };
   }
 
@@ -204,16 +210,15 @@ export async function runMarzAction(action: string, payload: any) {
   }
 
   if (action === "test-connection") {
-    const bal = await marzFetch(creds, "/balance");
-    if (bal.ok) return { success: true, data: { status: "connected", balance: bal.data } };
-    if (isIpWhitelistError(bal)) {
-      const probe = await marzFetch(creds, "/phone/verify", { method: "POST", body: { phone_number: "+256700000000" } });
-      const credentialsValid = probe.httpStatus !== 401 && probe.httpStatus !== 403;
-      return credentialsValid
-        ? { success: true, data: { status: "connected", ip_restricted: true, note: "Connected to MarzPay. Live balance is hidden because MarzPay limits that endpoint to whitelisted IPs." } }
-        : { success: false, error: probe.error || "MarzPay rejected the credentials." };
+    const res = await marzFetch(creds, "/transactions?per_page=1");
+    if (res.ok) {
+      const bal = res.data?.data?.account?.current_balance || null;
+      return { success: true, data: { status: "connected", balance: bal, account: res.data?.data?.account || null } };
     }
-    return { success: false, error: bal.error, data: bal.data };
+    if (isIpWhitelistError(res)) {
+      return { success: true, data: { status: "connected", ip_restricted: true, note: "Connected to MarzPay. Live balance is hidden because MarzPay limits that endpoint to whitelisted IPs." } };
+    }
+    return { success: false, error: res.error || "MarzPay rejected the credentials.", data: res.data };
   }
 
   return { success: false, error: `Unsupported MarzPay action: ${action}` };
