@@ -367,7 +367,7 @@ async function autoSyncTransaction(supabase: any, txn: any, keyVariants: KeyVari
   for (const ref of refsToTry) {
     const result = await livePayTxnStatus(keyVariants, accountNumber, ref, currency);
     if (!result.ok || !result.data) continue;
-    const normalized = normalizeLivePayStatus(result.data.status);
+    const normalized = normalizeStatus(result.data.status);
     if (!normalized || normalized === "pending") continue;
     const updates: any = { status: normalized };
     if (normalized === "success") updates.completed_at = new Date().toISOString();
@@ -470,10 +470,10 @@ serve(async (req: Request) => {
 
     // ═══ Public / no-auth endpoints ═══
     if (action === "health") {
-      const { key, accountNumber, source, variants } = await getLivePayKey(supabase);
+      const { key, secret, source, auth } = await getMarzCreds(supabase);
       let ps: any = { configured: !!key, keySource: source, keyRedacted: key ? redactKey(key) : "none", accountNumber: accountNumber || "not_set", keyVariants: variants.map(v => ({ label: v.label, length: v.length, hasDot: v.hasDot })) };
-      if (key && accountNumber) {
-        const balRes = await livePayBalance(variants, accountNumber, "UGX");
+      if (key && secret) {
+        const balRes = await marzBalance(auth!);
         ps.connected = balRes.ok;
         ps.balance = balRes.data || null;
         ps.balanceError = balRes.error || null;
@@ -488,10 +488,10 @@ serve(async (req: Request) => {
     }
 
     if (action === "diagnostic" || action === "test-livepay") {
-      const { key, accountNumber, source, variants } = await getLivePayKey(supabase, body.userId || null);
+      const { key, secret, source, auth } = await getMarzCreds(supabase, body.userId || null);
       const diag: any = { version: "5.6.0", key_source: source, key_redacted: redactKey(key), key_length: key?.length || 0, key_has_dot: key?.includes(".") || false, key_variants: variants.map(v => ({ label: v.label, length: v.length, hasDot: v.hasDot, keyHint: redactKey(v.key) })), account_number: accountNumber || "not_set", has_key: !!key, has_account: !!accountNumber, timestamp: new Date().toISOString() };
-      if (key && accountNumber) {
-        const balRes = await livePayBalance(variants, accountNumber, "UGX");
+      if (key && secret) {
+        const balRes = await marzBalance(auth!);
         diag.livepay_test = { endpoint: "/check-balance", ok: balRes.ok, http_status: balRes.httpStatus || null, error: balRes.error || null, balance_data: balRes.data || null, used_variant: balRes.usedVariant || null, used_auth_format: balRes.usedAuthFormat || null, all_attempts: balRes.allAttempts.map((a: any) => ({ variant: a.variant, authFormat: a.authFormat, keyHint: a.keyHint, ok: a.ok, httpStatus: a.httpStatus, error: a.error, raw: a.raw?.slice(0, 200) })) };
         if (!balRes.ok) {
           const errMsg = (balRes.error || "").toLowerCase();
@@ -507,9 +507,9 @@ serve(async (req: Request) => {
     if (action === "verify-phone" || action === "verify-number") {
       const phoneNumber = (body.phoneNumber || body.phone || "").trim();
       if (!phoneNumber) return apiError("Missing phoneNumber");
-      const { variants } = await getLivePayKey(supabase);
+      const { auth } = await getMarzCreds(supabase);
       if (!variants.length) return apiError("Provider key not configured", 503);
-      const result = await livePayValidateNumber(variants, phoneNumber);
+      const result = await marzVerifyPhone(auth!, phoneNumber);
       if (result.ok && result.data?.customer_name) {
         return apiSuccess({ phone: phoneNumber, customer_name: result.data.customer_name, network: result.data.network || "", validated: true });
       }
@@ -555,14 +555,14 @@ serve(async (req: Request) => {
       const numAmount = Number(amount);
       const ref = (reference || `PUB${Date.now().toString(36).toUpperCase()}`).replace(/\s/g, "").slice(0, 30);
       const txnId = crypto.randomUUID();
-      const { key, accountNumber, variants } = await getLivePayKey(supabase, merchantUserId);
+      const { key, secret, auth } = await getMarzCreds(supabase, merchantUserId);
 
-      if (!key || !accountNumber) {
+      if (!key || !secret) {
         await supabase.from("transactions").insert({ id: txnId, user_id: merchantUserId, reference: ref, type: "collection", amount: numAmount, currency: currency || "UGX", status: "pending", customer_phone: phoneNumber });
         return apiError("Provider not configured", 503, { data: { reference: ref, transaction_id: txnId, status: "pending" } });
       }
 
-      const lp = await livePayCollect(variants, accountNumber, { phoneNumber, amount: numAmount, currency: currency || "UGX", reference: ref, description: description || "Payment", network });
+      const lp = await marzCollect(auth!, { phoneNumber, amount: numAmount, currency: currency || "UGX", reference: ref, description: description || "Payment", network });
       if (lp.ok && lp.data) {
         const lpRef = lp.data.reference || "";
         const internalRef = lp.data.internal_reference || "";
@@ -574,7 +574,7 @@ serve(async (req: Request) => {
           metadata: { lp_reference: lpRef, lp_internal_ref: internalRef, network: lp.data.network || mapNetwork(network) || "" },
         });
         dispatchMerchantWebhooks(supabase, merchantUserId, "payment.initiated", { transaction_id: txnId, reference: ref, status: "pending", amount: numAmount, currency: currency || "UGX" });
-        schedulePostCollectSync(supabase, txnId, variants, accountNumber);
+        schedulePostCollectSync(supabase, txnId, auth!);
         return apiSuccess({ reference: ref, transaction_id: txnId, lp_reference: lpRef, status: "pending", amount: numAmount, currency: currency || "UGX" });
       }
 
@@ -651,18 +651,18 @@ serve(async (req: Request) => {
       const { data: existing } = await supabase.from("transactions").select("id").eq("reference", ref).maybeSingle();
       if (existing) return apiError(`Reference "${ref}" already used`);
       const txnId = crypto.randomUUID();
-      const { key, accountNumber, variants } = await getLivePayKey(supabase, userId);
-      if (!key || !accountNumber) {
+      const { key, secret, auth } = await getMarzCreds(supabase, userId);
+      if (!key || !secret) {
         await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "collection", amount, currency, status: "pending", customer_phone: phoneNumber, metadata: { note: "No provider key configured" } });
         return apiError("Provider key or account number not configured. Go to Settings → Payment Provider.", 503, { data: { reference: ref, transaction_id: txnId, status: "pending" } });
       }
-      const lp = await livePayCollect(variants, accountNumber, { phoneNumber, amount, currency, reference: ref, description: description || "Collection via ObPay", network });
+      const lp = await marzCollect(auth!, { phoneNumber, amount, currency, reference: ref, description: description || "Collection via ObPay", network });
       if (lp.ok && lp.data) {
         const lpRef = lp.data.reference || "";
         const internalRef = lp.data.internal_reference || "";
         await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "collection", amount, currency, status: "pending", customer_phone: phoneNumber, customer_name: customerName || "", description: description || "", merchant_reference: lpRef, metadata: { lp_reference: lpRef, lp_internal_ref: internalRef, network: lp.data.network || mapNetwork(network) || "" }, created_at: new Date().toISOString() });
         dispatchMerchantWebhooks(supabase, userId, "payment.initiated", { transaction_id: txnId, reference: ref, status: "pending", amount, currency });
-        schedulePostCollectSync(supabase, txnId, variants, accountNumber);
+        schedulePostCollectSync(supabase, txnId, auth!);
         return apiSuccess({ transaction_id: txnId, reference: ref, lp_reference: lpRef, internal_reference: internalRef, status: "pending", amount, currency, network: lp.data.network || mapNetwork(network) || "", message: lp.data.message || "Collection request sent", success: true });
       }
       await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "collection", amount, currency, status: "failed", customer_phone: phoneNumber, metadata: { error: lp.error, httpStatus: lp.httpStatus, livepayResponse: lp.data } });
@@ -687,14 +687,14 @@ serve(async (req: Request) => {
       if (!wallet || (wallet.available_balance || 0) < totalDeduction) return apiError("Insufficient balance", 400);
       const ref = (reference || `PAY${Date.now().toString(36).toUpperCase()}`).replace(/\s/g, "").slice(0, 30);
       const txnId = crypto.randomUUID();
-      const { key, accountNumber, variants } = await getLivePayKey(supabase, userId);
-      if (!key || !accountNumber) {
+      const { key, secret, auth } = await getMarzCreds(supabase, userId);
+      if (!key || !secret) {
         const prid = crypto.randomUUID();
         await supabase.from("payout_requests").insert({ id: prid, user_id: userId, amount, currency, phone_number: phoneNumber, network: mapNetwork(network) || "MTN", status: "pending", fee_amount: estimatedFee, requested_at: new Date().toISOString() });
         await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "payout", amount, currency, status: "pending", customer_phone: phoneNumber, fee_amount: estimatedFee, metadata: { note: "No provider key" } });
         return apiError("Provider not configured", 503, { data: { reference: ref, transaction_id: txnId, status: "pending" } });
       }
-      const lp = await livePaySend(variants, accountNumber, { phoneNumber, amount: Number(amount), currency, reference: ref, description: description || (isWithdraw ? "Withdrawal" : "Payout"), network });
+      const lp = await marzSend(auth!, { phoneNumber, amount: Number(amount), currency, reference: ref, description: description || (isWithdraw ? "Withdrawal" : "Payout"), network });
       if (lp.ok && lp.data) {
         const lpRef = lp.data.reference || "";
         const internalRef = lp.data.internal_reference || "";
@@ -717,8 +717,8 @@ serve(async (req: Request) => {
     if (action === "balance") {
       const { data: wallet } = await supabase.from("merchant_wallets").select("*").eq("user_id", userId).maybeSingle();
       let providerBalance: any = null;
-      const { key, accountNumber, variants } = await getLivePayKey(supabase, userId);
-      if (key && accountNumber) { const res = await livePayBalance(variants, accountNumber, wallet?.currency || "UGX"); if (res.ok) providerBalance = res.data; }
+      const { key, secret, auth } = await getMarzCreds(supabase, userId);
+      if (key && secret) { const res = await marzBalance(auth!); if (res.ok) providerBalance = res.data; }
       const now = new Date();
       if (wallet?.daily_withdrawal_limit && Number(wallet.daily_withdrawal_limit) > 0) {
         const resetAt = wallet.last_withdrawal_reset_at ? new Date(wallet.last_withdrawal_reset_at) : new Date(0);
@@ -729,10 +729,10 @@ serve(async (req: Request) => {
 
     // ─── TEST CONNECTION / TEST WEBHOOK / TRANSACTION STATUS / SYNC / LIST ───
     if (action === "test-connection") {
-      const { key, accountNumber, source, variants } = await getLivePayKey(supabase, userId);
+      const { key, secret, source, auth } = await getMarzCreds(supabase, userId);
       if (!key) return apiSuccess({ status: "disconnected", error: "No LivePay API key configured.", keySource: source });
       if (!accountNumber) return apiSuccess({ status: "partial", error: "Account number not configured.", keySource: source });
-      const res = await livePayBalance(variants, accountNumber, "UGX");
+      const res = await marzBalance(auth!);
       return apiSuccess({ status: res.ok ? "connected" : "error", provider: "livepay", accountNumber, keySource: source, usedVariant: res.usedVariant || null, usedAuthFormat: res.usedAuthFormat || null, balance: res.data || null, error: res.error || null, timestamp: new Date().toISOString() });
     }
 
@@ -767,9 +767,9 @@ serve(async (req: Request) => {
       const { data: txn } = await supabase.from("transactions").select("*").eq("reference", ref).eq("user_id", userId).maybeSingle();
       if (!txn) return apiError(`Transaction "${ref}" not found`, 404);
       if (txn.status === "pending") {
-        const { key, accountNumber, variants } = await getLivePayKey(supabase, userId);
-        if (key && accountNumber) {
-          const syncResult = await autoSyncTransaction(supabase, txn, variants, accountNumber);
+        const { key, secret, auth } = await getMarzCreds(supabase, userId);
+        if (key && secret) {
+          const syncResult = await autoSyncTransaction(supabase, txn, auth!);
           if (syncResult.synced) {
             const { data: refreshed } = await supabase.from("transactions").select("*").eq("id", txn.id).maybeSingle();
             if (refreshed) return apiSuccess({ id: refreshed.id, reference: refreshed.reference, status: refreshed.status, amount: refreshed.amount, currency: refreshed.currency, fee_amount: refreshed.fee_amount || 0, net_amount: refreshed.net_amount || refreshed.amount, created_at: refreshed.created_at, completed_at: refreshed.completed_at, auto_synced: true, previous_status: "pending" });
@@ -782,18 +782,18 @@ serve(async (req: Request) => {
     if (action === "sync-all-pending") {
       const { data: pendingTxns } = await supabase.from("transactions").select("id, user_id, reference, merchant_reference, amount, currency, type, status, created_at, metadata, fee_amount").eq("user_id", userId).eq("status", "pending").order("created_at", { ascending: false }).limit(100);
       if (!pendingTxns || pendingTxns.length === 0) return apiSuccess({ synced: 0, total_pending: 0, duration_ms: Date.now() - startTime });
-      const { key, accountNumber, variants } = await getLivePayKey(supabase, userId);
-      if (!key || !accountNumber) return apiError("Provider not configured", 503);
-      const results = (await Promise.all(pendingTxns.map((txn: any) => autoSyncTransaction(supabase, txn, variants, accountNumber)))).filter((r: any) => r.synced);
+      const { key, secret, auth } = await getMarzCreds(supabase, userId);
+      if (!key || !secret) return apiError("Provider not configured", 503);
+      const results = (await Promise.all(pendingTxns.map((txn: any) => autoSyncTransaction(supabase, txn, auth!)))).filter((r: any) => r.synced);
       return apiSuccess({ synced: results.length, total_pending: pendingTxns.length, duration_ms: Date.now() - startTime, updated: results });
     }
 
     if (action === "sync-all-pending-admin") {
       const { data: pendingTxns } = await supabase.from("transactions").select("id, user_id, reference, merchant_reference, amount, currency, type, status, created_at, metadata, fee_amount").eq("status", "pending").order("created_at", { ascending: false }).limit(200);
       if (!pendingTxns || pendingTxns.length === 0) return apiSuccess({ total_pending: 0, synced: 0, duration_ms: Date.now() - startTime });
-      const { key, accountNumber, variants } = await getLivePayKey(supabase);
-      if (!key || !accountNumber) return apiError("Provider not configured", 503);
-      const results = (await Promise.all(pendingTxns.map((txn: any) => autoSyncTransaction(supabase, txn, variants, accountNumber)))).filter((r: any) => r.synced);
+      const { key, secret, auth } = await getMarzCreds(supabase);
+      if (!key || !secret) return apiError("Provider not configured", 503);
+      const results = (await Promise.all(pendingTxns.map((txn: any) => autoSyncTransaction(supabase, txn, auth!)))).filter((r: any) => r.synced);
       return apiSuccess({ total_pending: pendingTxns.length, synced: results.length, duration_ms: Date.now() - startTime });
     }
 
