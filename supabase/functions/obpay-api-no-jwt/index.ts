@@ -340,7 +340,7 @@ async function sendTransactionEmail(supabase: any, userId: string, txn: any, nor
       completed_at: normalized === "success" ? new Date().toISOString() : null,
     };
     if (normalized === "failed") {
-      emailPayload.error_reason = txn.metadata?.error || txn.metadata?.livepayResponse?.message || "Provider declined the transaction";
+      emailPayload.error_reason = txn.metadata?.error || txn.metadata?.providerResponse?.message || "Provider declined the transaction";
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -357,7 +357,7 @@ async function sendTransactionEmail(supabase: any, userId: string, txn: any, nor
   }
 }
 
-async function autoSyncTransaction(supabase: any, txn: any, keyVariants: KeyVariant[], accountNumber: string): Promise<{ synced: boolean; newStatus?: string; note?: string }> {
+async function autoSyncTransaction(supabase: any, txn: any, auth: MarzAuth): Promise<{ synced: boolean; newStatus?: string; note?: string }> {
   if (txn.status !== "pending") return { synced: false, note: "Already resolved" };
   const meta = txn.metadata || {};
   const lpRef = String(meta?.lp_reference || meta?.customer_reference || txn.merchant_reference || "").trim();
@@ -365,13 +365,13 @@ async function autoSyncTransaction(supabase: any, txn: any, keyVariants: KeyVari
   const currency = txn.currency || "UGX";
   const refsToTry = [...new Set([lpRef, ourRef].filter(Boolean))];
   for (const ref of refsToTry) {
-    const result = await livePayTxnStatus(keyVariants, accountNumber, ref, currency);
+    const result = await marzTxnStatus(auth, ref);
     if (!result.ok || !result.data) continue;
     const normalized = normalizeStatus(result.data.status);
     if (!normalized || normalized === "pending") continue;
     const updates: any = { status: normalized };
     if (normalized === "success") updates.completed_at = new Date().toISOString();
-    const lpData = result.data;
+    const lpData: any = result.data;
     if (lpData.charge) updates.fee_amount = Number(lpData.charge);
     const { data: updatedRows } = await supabase.from("transactions").update(updates).eq("id", txn.id).eq("status", "pending").select("id");
     if (!updatedRows || updatedRows.length === 0) return { synced: false, note: "Race condition" };
@@ -401,10 +401,10 @@ async function autoSyncTransaction(supabase: any, txn: any, keyVariants: KeyVari
 
     return { synced: true, newStatus: normalized };
   }
-  return { synced: false, note: `LivePay lookup failed for refs: ${refsToTry.join(", ")}` };
+  return { synced: false, note: `MarzPay lookup failed for refs: ${refsToTry.join(", ")}` };
 }
 
-function schedulePostCollectSync(supabase: any, txnId: string, keyVariants: KeyVariant[], accountNumber: string) {
+function schedulePostCollectSync(supabase: any, txnId: string, auth: MarzAuth) {
   EdgeRuntime.waitUntil((async () => {
     const intervals = [2000, 5000, 10000, 20000, 35000];
     for (let pass = 0; pass < intervals.length; pass++) {
@@ -412,7 +412,7 @@ function schedulePostCollectSync(supabase: any, txnId: string, keyVariants: KeyV
       try {
         const { data: freshTxn } = await supabase.from("transactions").select("*").eq("id", txnId).maybeSingle();
         if (!freshTxn || freshTxn.status !== "pending") return;
-        const result = await autoSyncTransaction(supabase, freshTxn, keyVariants, accountNumber);
+        const result = await autoSyncTransaction(supabase, freshTxn, auth);
         if (result.synced) return;
       } catch (err: any) { console.error(`[ObPay v5.5] Pass ${pass + 1} error for ${txnId.slice(0, 8)}:`, err.message); }
     }
@@ -508,7 +508,7 @@ serve(async (req: Request) => {
       const phoneNumber = (body.phoneNumber || body.phone || "").trim();
       if (!phoneNumber) return apiError("Missing phoneNumber");
       const { auth } = await getMarzCreds(supabase);
-      if (!variants.length) return apiError("Provider key not configured", 503);
+      if (!auth) return apiError("Provider key not configured", 503);
       const result = await marzVerifyPhone(auth!, phoneNumber);
       if (result.ok && result.data?.customer_name) {
         return apiSuccess({ phone: phoneNumber, customer_name: result.data.customer_name, network: result.data.network || "", validated: true });
@@ -665,8 +665,8 @@ serve(async (req: Request) => {
         schedulePostCollectSync(supabase, txnId, auth!);
         return apiSuccess({ transaction_id: txnId, reference: ref, lp_reference: lpRef, internal_reference: internalRef, status: "pending", amount, currency, network: lp.data.network || mapNetwork(network) || "", message: lp.data.message || "Collection request sent", success: true });
       }
-      await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "collection", amount, currency, status: "failed", customer_phone: phoneNumber, metadata: { error: lp.error, httpStatus: lp.httpStatus, livepayResponse: lp.data } });
-      return apiError(lp.error || "Provider declined", 502, { data: { reference: ref, transaction_id: txnId, status: "failed", livepayResponse: lp.data, httpStatus: lp.httpStatus, usedKeyHint: variants.length > 0 ? redactKey(variants[0].key) : "none" } });
+      await supabase.from("transactions").insert({ id: txnId, user_id: userId, reference: ref, type: "collection", amount, currency, status: "failed", customer_phone: phoneNumber, metadata: { error: lp.error, httpStatus: lp.httpStatus, providerResponse: lp.data } });
+      return apiError(lp.error || "Provider declined", 502, { data: { reference: ref, transaction_id: txnId, status: "failed", providerResponse: lp.data, httpStatus: lp.httpStatus, usedKeyHint: redactKey(key) } });
     }
 
     // ─── PAYOUT ───────────────────────────────────────────────────────
