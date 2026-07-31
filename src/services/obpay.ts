@@ -120,14 +120,39 @@ export async function getProviderConnectionStatus(): Promise<ProviderConnectionS
 export const getMarzConnectionStatus = getProviderConnectionStatus;
 export type MarzConnectionStatus = ProviderConnectionStatus;
 
-// ─── Test Connection (via Edge Function) ──────────────────────
+// ─── Test Connection ──────────────────────────────────────────
+// Credentials are held on the ObPay server (this project), so the test runs
+// there first. If an admin is signed in we also push them into the backend
+// `platform_settings` row so the payment edge functions can use them too.
 
 export async function testProviderConnection(): Promise<TestConnectionResult> {
   try {
+    const { marzCall, syncMarzCredentials } = await import("@/lib/marz.functions");
+
+    const { data: sessionData } = await safeGetSession();
+    const accessToken = sessionData?.session?.access_token || "";
+    if (accessToken) {
+      try {
+        await syncMarzCredentials({ data: { accessToken } });
+      } catch {
+        /* non-fatal — the server-side proxy still works */
+      }
+    }
+
+    const local: any = await marzCall({ data: { action: "test-connection" } });
+    if (local?.success) {
+      return {
+        ok: true,
+        message: local.data?.ip_restricted
+          ? local.data.note
+          : `Connected to MarzPay. Balance: ${JSON.stringify(local.data?.balance)}`,
+        data: local.data,
+      };
+    }
+
+    // Fall back to the backend edge function.
     const data = await callEdgeFunction({ _action: "test-connection" });
 
-    // Edge function wraps EVERYTHING in apiSuccess (success:true at top level).
-    // The REAL connection status is inside data.data.status — check that.
     if (data?.data?.status === "connected") {
       return {
         ok: true,
@@ -138,39 +163,22 @@ export async function testProviderConnection(): Promise<TestConnectionResult> {
       };
     }
 
-
-    if (data?.data?.status === "partial") {
-      return {
-        ok: false,
-        message: data.data.error || "Account number not configured.",
-        data: data.data,
-      };
-    }
-
-    if (data?.data?.status === "disconnected") {
-      return {
-        ok: false,
-        message: data.data.error || "No MarzPay API key configured. Enter one in the field above.",
-        data: data.data,
-      };
-    }
-
-    // status === "error" or anything else — MarzPay rejected the key
-    const livePayError = data?.data?.error || data?.error || "";
+    const providerError = local?.error || data?.data?.error || data?.error || "";
     return {
       ok: false,
-      message: livePayError
-        ? `MarzPay says: "${livePayError}". Double-check your API key and account number, then save and test again.`
+      message: providerError
+        ? `MarzPay says: "${providerError}". Double-check the credentials, then test again.`
         : "Connection test failed — provider may be unreachable.",
       data: data?.data,
     };
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.message || "Failed to reach the edge function. Check your Supabase connection.",
+      message: err?.message || "Failed to run the connection test.",
     };
   }
 }
+
 
 // Legacy alias
 export const testMarzConnection = testProviderConnection;
@@ -222,6 +230,21 @@ export async function saveProviderCredentials(
 // Legacy alias
 export const saveMarzCredentialsToDB = saveProviderCredentials;
 
+// ─── Provider fallback ────────────────────────────────────────
+// If the backend edge function has no MarzPay key of its own, retry the call
+// on the ObPay server, which holds the credentials.
+
+function providerNotConfigured(res: any): boolean {
+  const msg = (res?.error || res?.data?.error || "").toString().toLowerCase();
+  return /not configured|no provider key|api key and secret are not configured|invalid api credentials/.test(msg);
+}
+
+async function marzFallback(action: string, payload: Record<string, unknown>) {
+  const { marzCall } = await import("@/lib/marz.functions");
+  const res: any = await marzCall({ data: { action, payload } });
+  return { ok: !!res?.success, data: res?.data ?? null, error: res?.error };
+}
+
 // ─── Collect Money (via Edge Function) ────────────────────────
 
 export async function collectMoney(
@@ -241,6 +264,10 @@ export async function collectMoney(
     if (secretKey) body._api_key = secretKey;
 
     const data = await callEdgeFunction(body);
+
+    if (!data?.success && providerNotConfigured(data)) {
+      return marzFallback("collect", { ...payload });
+    }
 
     return {
       ok: data?.success ?? false,
@@ -272,6 +299,10 @@ export async function sendMoney(
 
     const data = await callEdgeFunction(body);
 
+    if (!data?.success && providerNotConfigured(data)) {
+      return marzFallback("send", { ...payload });
+    }
+
     return {
       ok: data?.success ?? false,
       data: data?.data ?? data,
@@ -281,6 +312,7 @@ export async function sendMoney(
     return { ok: false, data: null, error: err?.message || "Request failed" };
   }
 }
+
 
 // ─── Check Balance (via Edge Function) ────────────────────────
 
@@ -293,8 +325,21 @@ export async function checkBalance(
     if (secretKey) body._api_key = secretKey;
 
     const data = await callEdgeFunction(body);
+    const wallet = data?.data ?? data;
 
-    return { ok: true, data: data?.data ?? data, error: data?.error };
+    // Top up the provider balance from the ObPay server when the backend
+    // could not read it (its own key is missing or IP-restricted).
+    if (wallet && !wallet.provider_balance) {
+      try {
+        const live = await marzFallback("balance", {});
+        if (live.ok) wallet.provider_balance = (live.data as any)?.balance ?? null;
+      } catch {
+        /* ignore — wallet balance is still valid */
+      }
+    }
+
+    return { ok: true, data: wallet, error: data?.error };
+
   } catch (err: any) {
     return { ok: false, data: null, error: err?.message || "Request failed" };
   }
