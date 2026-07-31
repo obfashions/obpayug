@@ -34,6 +34,16 @@ function buildAuth(key: string, secret: string): MarzAuth {
   return { basic: btoa(`${key}:${secret}`), key, secret };
 }
 
+/** MarzPay only enforces IP whitelisting on sensitive reads (balance/account).
+ *  Collections, payouts, transaction status and phone verification work from any IP,
+ *  so a whitelist rejection must never be treated as "not connected". */
+function isIpWhitelistError(res: { error?: string; data?: any; httpStatus?: number }): boolean {
+  const code = (res?.data?.error_code || "").toString().toUpperCase();
+  if (code === "IP_WHITELIST_REQUIRED") return true;
+  return /ip whitelist/i.test(res?.error || "");
+}
+
+
 // A UUID v4 reference is REQUIRED by MarzPay for collections and disbursements.
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function providerReference(candidate?: string): string {
