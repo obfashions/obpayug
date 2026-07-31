@@ -688,7 +688,7 @@ export default function DocsPage() {
                   <div className="bg-background-50 rounded-lg p-3 mb-3 border border-background-200/70">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-foreground-400 mb-1">Webhook URL</p>
                     <code className="block text-xs font-mono text-accent-800 bg-accent-100 px-3 py-2 rounded-lg break-all select-all">
-                      https://k5nkqygnd0i42zb1n5c3.helloreaddy.com/functions/v1/livepay-webhook
+                      https://k5nkqygnd0i42zb1n5c3.helloreaddy.com/functions/v1/marz-webhook
                     </code>
                   </div>
                   <div className="space-y-1.5 text-xs text-foreground-600">
