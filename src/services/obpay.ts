@@ -230,6 +230,21 @@ export async function saveProviderCredentials(
 // Legacy alias
 export const saveMarzCredentialsToDB = saveProviderCredentials;
 
+// ─── Provider fallback ────────────────────────────────────────
+// If the backend edge function has no MarzPay key of its own, retry the call
+// on the ObPay server, which holds the credentials.
+
+function providerNotConfigured(res: any): boolean {
+  const msg = (res?.error || res?.data?.error || "").toString().toLowerCase();
+  return /not configured|no provider key|api key and secret are not configured|invalid api credentials/.test(msg);
+}
+
+async function marzFallback(action: string, payload: Record<string, unknown>) {
+  const { marzCall } = await import("@/lib/marz.functions");
+  const res: any = await marzCall({ data: { action, payload } });
+  return { ok: !!res?.success, data: res?.data ?? null, error: res?.error };
+}
+
 // ─── Collect Money (via Edge Function) ────────────────────────
 
 export async function collectMoney(
@@ -249,6 +264,10 @@ export async function collectMoney(
     if (secretKey) body._api_key = secretKey;
 
     const data = await callEdgeFunction(body);
+
+    if (!data?.success && providerNotConfigured(data)) {
+      return marzFallback("collect", { ...payload });
+    }
 
     return {
       ok: data?.success ?? false,
@@ -280,6 +299,10 @@ export async function sendMoney(
 
     const data = await callEdgeFunction(body);
 
+    if (!data?.success && providerNotConfigured(data)) {
+      return marzFallback("send", { ...payload });
+    }
+
     return {
       ok: data?.success ?? false,
       data: data?.data ?? data,
@@ -289,6 +312,7 @@ export async function sendMoney(
     return { ok: false, data: null, error: err?.message || "Request failed" };
   }
 }
+
 
 // ─── Check Balance (via Edge Function) ────────────────────────
 
