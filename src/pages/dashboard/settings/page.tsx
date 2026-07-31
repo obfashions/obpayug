@@ -81,7 +81,7 @@ export default function SettingsPage() {
 
   const handleSaveProvider = async () => {
     if (!lpAccountNumber.trim()) {
-      setLpTestResult({ ok: false, message: "Account number is required (e.g. LP2305443309)." });
+      setLpTestResult({ ok: false, message: "Account number is required (Paste your MarzPay API secret here)." });
       return;
     }
     if (!profile?.id) return;
@@ -244,20 +244,20 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-foreground-700 mb-1.5">
-                LivePay Account Number
+                MarzPay API Secret
               </label>
               <input
                 type="text"
                 value={lpAccountNumber}
                 onChange={(e) => setLpAccountNumber(e.target.value)}
-                placeholder="e.g. LP2305443309"
+                placeholder="Paste your MarzPay API secret here"
                 className="w-full px-4 py-2.5 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary-400 placeholder:text-foreground-400"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-foreground-700 mb-1.5">
-                LivePay API Key
+                MarzPay API Key
               </label>
               <div className="relative">
                 <input
@@ -265,7 +265,7 @@ export default function SettingsPage() {
                   id="lp-api-key-input"
                   value={lpApiKey}
                   onChange={(e) => setLpApiKey(e.target.value)}
-                  placeholder="Paste your LivePay API key here"
+                  placeholder="Paste your MarzPay API key here"
                   className="w-full px-4 py-2.5 pr-10 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary-400 placeholder:text-foreground-400"
                 />
                 <button
@@ -280,7 +280,7 @@ export default function SettingsPage() {
                 </button>
               </div>
               <p className="text-[11px] text-foreground-400 mt-1">
-                Get your API key from your LivePay dashboard at livepay.me. It is stored securely and never exposed to the browser.
+                Get your API key from your MarzPay dashboard at wallet.wearemarz.com. It is stored securely and never exposed to the browser.
               </p>
             </div>
 
@@ -320,7 +320,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground-900">Withdraw from Provider Wallet</p>
-                <p className="text-xs text-foreground-500 mt-0.5">When ON, merchant withdrawals pull directly from your LivePay wallet balance. When OFF, money is first collected from your personal mobile money number.</p>
+                <p className="text-xs text-foreground-500 mt-0.5">When ON, merchant withdrawals pull directly from your MarzPay wallet balance. When OFF, money is first collected from your personal mobile money number.</p>
               </div>
               <button
                 onClick={handleToggleWithdrawSource}

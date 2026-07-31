@@ -1,6 +1,6 @@
-// LivePay API mock data — https://livepay.me/api
+// MarzPay API mock data — https://wallet.wearemarz.com/api/v1
 
-export const mockLivePayCredentials = {
+export const mockMarzPayCredentials = {
   api_key: "lp_live_abc123def456ghi789",
   account_number: "LP2305443309",
   environment: "live" as "sandbox" | "live",
@@ -8,7 +8,7 @@ export const mockLivePayCredentials = {
   last_tested: "2026-07-15T14:30:00Z",
 };
 
-export const mockLivePayBalance = {
+export const mockMarzPayBalance = {
   success: true,
   account_number: "LP2305443309",
   currency: "UGX",
@@ -16,8 +16,8 @@ export const mockLivePayBalance = {
   status: "active",
 };
 
-// LivePay transaction status response
-export const mockLivePayTransaction = {
+// MarzPay transaction status response
+export const mockMarzPayTransaction = {
   success: true,
   status: "Pending",
   message: "N/A",
@@ -34,8 +34,8 @@ export const mockLivePayTransaction = {
   completed_at: "N/A",
 };
 
-// LivePay collect money response (POST /collect-money)
-export const mockLivePayCollectResponse = {
+// MarzPay collect money response (POST /collect-money)
+export const mockMarzPayCollectResponse = {
   success: true,
   message: "Collection request sent successfully",
   reference: "INVOICE123456789",
@@ -43,16 +43,16 @@ export const mockLivePayCollectResponse = {
   network: "MTN",
 };
 
-// LivePay send money response (POST /send-money)
-export const mockLivePaySendResponse = {
+// MarzPay send money response (POST /send-money)
+export const mockMarzPaySendResponse = {
   success: true,
   message: "Payment request in progress.",
   reference: "WITHDRAW123456789",
   internal_reference: "550e8400-e29b-41d4-a716-446655440000",
 };
 
-// LivePay webhook payload
-export const mockLivePayWebhookPayload = {
+// MarzPay webhook payload
+export const mockMarzPayWebhookPayload = {
   status: "Success",
   message: "Payment completed successfully",
   customer_reference: "INV-123456789",
@@ -65,7 +65,7 @@ export const mockLivePayWebhookPayload = {
   completed_at: "2024-01-15 10:35:00",
 };
 
-// LivePay supported networks per country
+// MarzPay supported networks per country
 export const supportedNetworks = [
   { country: "Uganda", flag: "🇺🇬", currency: "UGX", networks: ["AIRTEL", "MTN"], minAmount: 500, maxAmount: 10000000 },
   { country: "Kenya", flag: "🇰🇪", currency: "KES", networks: ["SAFARICOM", "AIRTEL"], minAmount: 10, maxAmount: 150000 },
@@ -73,7 +73,7 @@ export const supportedNetworks = [
   { country: "Cameroon", flag: "🇨🇲", currency: "XAF", networks: ["MTN", "ORANGE"], minAmount: 100, maxAmount: 1000000 },
 ];
 
-// ObPay charges (applied on top of LivePay fees)
+// ObPay charges (applied on top of MarzPay fees)
 export const obpayCharges = {
   collection_fee_percent: 5,        // 5% of collected amount
   // Payouts & Withdrawals use tiered pricing:
