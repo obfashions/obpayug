@@ -1,6 +1,6 @@
 import { supabase, safeGetSession } from "@/lib/supabase";
 
-// OBPay Payment Service — connects to LivePay (livepay.me) as the payment provider.
+// OBPay Payment Service — connects to MarzPay (wallet.wearemarz.com) as the payment provider.
 // All calls go through the obpay-api Supabase Edge Function for security.
 
 export interface ProviderCredentials {
@@ -69,7 +69,7 @@ async function callEdgeFunction(body: Record<string, unknown>): Promise<any> {
 // ─── Connection Status ────────────────────────────────────────
 
 export async function getProviderConnectionStatus(): Promise<ProviderConnectionStatus> {
-  // PRIMARY: Check platform-wide LivePay API key — this is what ALL APIs use
+  // PRIMARY: Check platform-wide MarzPay API key — this is what ALL APIs use
   const { data: psData } = await supabase
     .from("platform_settings")
     .select("livepay_api_key, livepay_account_number, julypay_api_key, updated_at")
@@ -117,8 +117,8 @@ export async function getProviderConnectionStatus(): Promise<ProviderConnectionS
 }
 
 // Legacy alias — keep existing code working
-export const getLivePayConnectionStatus = getProviderConnectionStatus;
-export type LivePayConnectionStatus = ProviderConnectionStatus;
+export const getMarzConnectionStatus = getProviderConnectionStatus;
+export type MarzConnectionStatus = ProviderConnectionStatus;
 
 // ─── Test Connection (via Edge Function) ──────────────────────
 
@@ -131,7 +131,7 @@ export async function testProviderConnection(): Promise<TestConnectionResult> {
     if (data?.data?.status === "connected") {
       return {
         ok: true,
-        message: `Connected to LivePay as ${data.data.accountNumber || "unknown"}. Balance: ${JSON.stringify(data.data.balance)}`,
+        message: `Connected to MarzPay as ${data.data.accountNumber || "unknown"}. Balance: ${JSON.stringify(data.data.balance)}`,
         data: data.data,
       };
     }
@@ -147,17 +147,17 @@ export async function testProviderConnection(): Promise<TestConnectionResult> {
     if (data?.data?.status === "disconnected") {
       return {
         ok: false,
-        message: data.data.error || "No LivePay API key configured. Enter one in the field above.",
+        message: data.data.error || "No MarzPay API key configured. Enter one in the field above.",
         data: data.data,
       };
     }
 
-    // status === "error" or anything else — LivePay rejected the key
+    // status === "error" or anything else — MarzPay rejected the key
     const livePayError = data?.data?.error || data?.error || "";
     return {
       ok: false,
       message: livePayError
-        ? `LivePay says: "${livePayError}". Double-check your API key and account number, then save and test again.`
+        ? `MarzPay says: "${livePayError}". Double-check your API key and account number, then save and test again.`
         : "Connection test failed — provider may be unreachable.",
       data: data?.data,
     };
@@ -170,7 +170,7 @@ export async function testProviderConnection(): Promise<TestConnectionResult> {
 }
 
 // Legacy alias
-export const testLivePayConnection = testProviderConnection;
+export const testMarzConnection = testProviderConnection;
 
 // ─── Save Credentials to Database ─────────────────────────────
 
@@ -193,7 +193,7 @@ export async function saveProviderCredentials(
 
     if (creds.apiKey) {
       upsertData.api_key = creds.apiKey;
-      // Also update the platform-wide LivePay key so ALL users can use it
+      // Also update the platform-wide MarzPay key so ALL users can use it
       const { data: psRow } = await supabase.from("platform_settings").select("id").limit(1).maybeSingle();
       await supabase.from("platform_settings").update({
         livepay_api_key: creds.apiKey,
@@ -217,7 +217,7 @@ export async function saveProviderCredentials(
 }
 
 // Legacy alias
-export const saveLivePayCredentialsToDB = saveProviderCredentials;
+export const saveMarzCredentialsToDB = saveProviderCredentials;
 
 // ─── Collect Money (via Edge Function) ────────────────────────
 

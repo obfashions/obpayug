@@ -46,7 +46,7 @@ export default function CollectionsPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
 
-  // Network options per currency (per LivePay docs)
+  // Network options per currency (per MarzPay docs)
   const networkOptions: Record<string, { value: string; label: string }[]> = {
     UGX: [
       { value: "mtn", label: "MTN Mobile Money" },

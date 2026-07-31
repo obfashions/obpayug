@@ -361,7 +361,7 @@ export default function DocsPage() {
                 </p>
               </div>
 
-              <h2 className="text-lg font-semibold text-foreground-900 mt-6">Supported Countries &amp; Networks (LivePay)</h2>
+              <h2 className="text-lg font-semibold text-foreground-900 mt-6">Supported Countries &amp; Networks (MarzPay)</h2>
               <div className="overflow-x-auto rounded-xl border border-background-200/70">
                 <table className="w-full text-sm">
                   <thead className="bg-background-100">
@@ -688,7 +688,7 @@ export default function DocsPage() {
                   <div className="bg-background-50 rounded-lg p-3 mb-3 border border-background-200/70">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-foreground-400 mb-1">Webhook URL</p>
                     <code className="block text-xs font-mono text-accent-800 bg-accent-100 px-3 py-2 rounded-lg break-all select-all">
-                      https://k5nkqygnd0i42zb1n5c3.helloreaddy.com/functions/v1/livepay-webhook
+                      https://k5nkqygnd0i42zb1n5c3.helloreaddy.com/functions/v1/marz-webhook
                     </code>
                   </div>
                   <div className="space-y-1.5 text-xs text-foreground-600">
@@ -1444,7 +1444,7 @@ async function payout(phone, amount) {
   });
 }
 
-// Check transaction status (polls LivePay if still pending)
+// Check transaction status (polls MarzPay if still pending)
 async function status(reference) {
   return obpayRequest({ _action: 'transaction-status', reference });
 }
@@ -1715,16 +1715,16 @@ def wait_for_payment(reference: str, max_seconds: int = 120) -> dict:
             ref={(el) => { if (el) sectionRefs.current.set("livepay-guide", el); }}
             className="py-16 border-b border-background-200/70"
           >
-            <SectionHeader icon="ri-guide-line" label="How ObPay + LivePay Work Together" subtitle="Behind the scenes — how ObPay uses LivePay to reach mobile money networks across East Africa." />
+            <SectionHeader icon="ri-guide-line" label="How ObPay + MarzPay Work Together" subtitle="Behind the scenes — how ObPay uses MarzPay to reach mobile money networks across East Africa." />
             <div className="bg-primary-50 border border-primary-200/60 rounded-xl p-4 flex items-start gap-3 mb-6">
               <i className="ri-information-line text-primary-600 mt-0.5 shrink-0" />
               <div className="text-sm text-foreground-700">
-                <strong>How it works:</strong> ObPay is powered by <a href="https://livepay.me" target="_blank" rel="noopener noreferrer" className="text-primary-600 font-medium underline">LivePay</a> as the underlying payment provider. When you request a collection or payout, ObPay's Edge Functions securely forward the request to LivePay's API, which then routes it to MTN Mobile Money, Airtel Money, and other networks across Uganda, Kenya, Ghana, and Cameroon.
+                <strong>How it works:</strong> ObPay is powered by <a href="https://wallet.wearemarz.com" target="_blank" rel="noopener noreferrer" className="text-primary-600 font-medium underline">MarzPay</a> as the underlying payment provider. When you request a collection or payout, ObPay's Edge Functions securely forward the request to MarzPay's API, which then routes it to MTN Mobile Money, Airtel Money, and other networks across Uganda, Kenya, Ghana, and Cameroon.
               </div>
             </div>
 
             <div className="bg-background-50 border border-background-200/70 rounded-xl p-4 mb-6">
-              <h3 className="text-sm font-semibold text-foreground-900 mb-3">LivePay API Charges (applied by LivePay to the transaction)</h3>
+              <h3 className="text-sm font-semibold text-foreground-900 mb-3">MarzPay API Charges (applied by MarzPay to the transaction)</h3>
               <div className="overflow-x-auto rounded-lg border border-background-200/70">
                 <table className="w-full text-xs">
                   <thead className="bg-background-100"><tr>
@@ -1733,8 +1733,8 @@ def wait_for_payment(reference: str, max_seconds: int = 120) -> dict:
                     <th className="text-left font-semibold text-foreground-600 uppercase px-3 py-2">Applied By</th>
                   </tr></thead>
                   <tbody className="divide-y divide-background-200/70">
-                    <tr><td className="px-3 py-2 text-foreground-700">Collection (receive money)</td><td className="px-3 py-2 font-medium text-foreground-900">Variable charge per transaction</td><td className="px-3 py-2 text-foreground-500">LivePay (see livepay.me dashboard)</td></tr>
-                    <tr><td className="px-3 py-2 text-foreground-700">Send Money (payout to others)</td><td className="px-3 py-2 font-medium text-foreground-900">Variable charge per transaction</td><td className="px-3 py-2 text-foreground-500">LivePay (see livepay.me dashboard)</td></tr>
+                    <tr><td className="px-3 py-2 text-foreground-700">Collection (receive money)</td><td className="px-3 py-2 font-medium text-foreground-900">Variable charge per transaction</td><td className="px-3 py-2 text-foreground-500">MarzPay (see wallet.wearemarz.com dashboard)</td></tr>
+                    <tr><td className="px-3 py-2 text-foreground-700">Send Money (payout to others)</td><td className="px-3 py-2 font-medium text-foreground-900">Variable charge per transaction</td><td className="px-3 py-2 text-foreground-500">MarzPay (see wallet.wearemarz.com dashboard)</td></tr>
                     <tr className="bg-accent-50"><td className="px-3 py-2 text-accent-700 font-medium">ObPay Platform Fee (collections)</td><td className="px-3 py-2 font-medium text-accent-700">5% of collected amount</td><td className="px-3 py-2 text-foreground-500">ObPay (before crediting your wallet)</td></tr>
                     <tr className="bg-accent-50"><td className="px-3 py-2 text-accent-700 font-medium">ObPay Payout Fee</td><td className="px-3 py-2 font-medium text-accent-700">500–70K: 2,000 UGX flat / 70K+–5M: 3%</td><td className="px-3 py-2 text-foreground-500">ObPay (deducted from your wallet)</td></tr>
                     <tr className="bg-accent-50"><td className="px-3 py-2 text-accent-700 font-medium">ObPay Withdrawal Fee</td><td className="px-3 py-2 font-medium text-accent-700">Same tiered pricing as payouts</td><td className="px-3 py-2 text-foreground-500">ObPay (deducted from your wallet)</td></tr>
