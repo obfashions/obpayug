@@ -68,6 +68,31 @@ export async function marzFetch(
   }
 }
 
+/** MarzPay only accepts E.164 numbers (e.g. +256771234567). */
+export function normalizePhone(raw: unknown, currency?: string): string {
+  const dial: Record<string, string> = { UGX: "256", KES: "254", GHS: "233", XAF: "237", TZS: "255" };
+  const cc = dial[(currency || "UGX").toUpperCase()] || "256";
+  let digits = String(raw ?? "").replace(/[^\d]/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = cc + digits.slice(1);
+  else if (!digits.startsWith(cc)) digits = cc + digits;
+  return `+${digits}`;
+}
+
+/** Flattens MarzPay validation errors into one readable sentence. */
+export function providerErrorMessage(data: any, fallback?: string): string {
+  const fields = data?.errors && typeof data.errors === "object" ? data.errors : null;
+  if (fields) {
+    const parts = Object.values(fields)
+      .flat()
+      .filter(Boolean)
+      .map((m) => String(m));
+    if (parts.length) return parts.join(" ");
+  }
+  return data?.message || data?.error || fallback || "";
+}
+
 export function isIpWhitelistError(res: { error?: string; data?: any }): boolean {
   const code = (res?.data?.error_code || "").toString().toUpperCase();
   return code === "IP_WHITELIST_REQUIRED" || /ip whitelist/i.test(res?.error || "");
