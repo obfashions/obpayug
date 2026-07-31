@@ -34,7 +34,7 @@ export default function WebhooksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [urlInput, setUrlInput] = useState("");
-  const [livepayWebhookUrl, setLivepayWebhookUrl] = useState("");
+  const [marzWebhookUrl, setMarzWebhookUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -65,7 +65,7 @@ export default function WebhooksPage() {
       const baseUrl = supabaseUrl.replace(/\/$/, "");
       const defaultWebhookUrl = `${baseUrl}/functions/v1/obpay-webhook-receiver`;
       const configuredUrl = settingsRes.data?.webhook_url || "";
-      setLivepayWebhookUrl(configuredUrl || defaultWebhookUrl);
+      setMarzWebhookUrl(configuredUrl || defaultWebhookUrl);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -99,7 +99,7 @@ export default function WebhooksPage() {
   };
 
   const handleCopyUrl = () => {
-    navigator.clipboard.writeText(livepayWebhookUrl);
+    navigator.clipboard.writeText(marzWebhookUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -156,23 +156,23 @@ export default function WebhooksPage() {
           <p className="text-sm text-foreground-600 mt-1">Configure how ObPay notifies your server about payment events in real time</p>
         </div>
 
-        {/* LivePay Webhook URL Card */}
+        {/* MarzPay Webhook URL Card */}
         <div className="bg-background-50 rounded-xl border border-background-200/70 p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-lg bg-accent-100 flex items-center justify-center">
               <i className="ri-link-m text-accent-600 text-lg" />
             </div>
             <div>
-              <h3 className="font-heading font-semibold text-foreground-900 text-sm">LivePay Webhook URL</h3>
-              <p className="text-xs text-foreground-600 mt-0.5">Paste this URL into your LivePay dashboard so they can send us payment updates</p>
+              <h3 className="font-heading font-semibold text-foreground-900 text-sm">MarzPay Webhook URL</h3>
+              <p className="text-xs text-foreground-600 mt-0.5">Paste this URL into your MarzPay dashboard so they can send us payment updates</p>
             </div>
           </div>
 
           <div className="bg-foreground-900 rounded-lg p-4 mb-3">
-            <p className="text-[11px] text-foreground-400 mb-2 font-medium">Copy this URL and paste it into LivePay Settings → Webhooks:</p>
+            <p className="text-[11px] text-foreground-400 mb-2 font-medium">Copy this URL and paste it into MarzPay Settings → Webhooks:</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-xs text-primary-300 font-mono bg-foreground-800 px-3 py-2 rounded-lg break-all select-all">
-                {livepayWebhookUrl}
+                {marzWebhookUrl}
               </code>
               <button
                 onClick={handleCopyUrl}
@@ -184,13 +184,13 @@ export default function WebhooksPage() {
           </div>
 
           <div className="bg-accent-50 rounded-lg p-4 border border-accent-200/50">
-            <h4 className="text-xs font-semibold text-accent-800 mb-2">How to configure in LivePay:</h4>
+            <h4 className="text-xs font-semibold text-accent-800 mb-2">How to configure in MarzPay:</h4>
             <ol className="text-xs text-accent-700 space-y-1.5 list-decimal list-inside">
-              <li>Log in to your <strong>LivePay dashboard</strong></li>
+              <li>Log in to your <strong>MarzPay dashboard</strong></li>
               <li>Go to <strong>Settings → Webhooks</strong></li>
               <li>Paste the URL above into the <strong>Webhook URL</strong> field</li>
               <li>Set the webhook events to: <strong>Payment Received</strong> and <strong>Payout / Withdrawal</strong></li>
-              <li>Save — LivePay will now instantly notify ObPay when payments succeed or fail</li>
+              <li>Save — MarzPay will now instantly notify ObPay when payments succeed or fail</li>
             </ol>
           </div>
         </div>
