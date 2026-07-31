@@ -471,38 +471,37 @@ serve(async (req: Request) => {
     // ═══ Public / no-auth endpoints ═══
     if (action === "health") {
       const { key, secret, source, auth } = await getMarzCreds(supabase);
-      let ps: any = { configured: !!key, keySource: source, keyRedacted: key ? redactKey(key) : "none", accountNumber: accountNumber || "not_set", keyVariants: variants.map(v => ({ label: v.label, length: v.length, hasDot: v.hasDot })) };
+      let ps: any = { configured: !!(key && secret), keySource: source, keyRedacted: key ? redactKey(key) : "none", secretConfigured: !!secret };
       if (key && secret) {
         const balRes = await marzBalance(auth!);
         ps.connected = balRes.ok;
         ps.balance = balRes.data || null;
         ps.balanceError = balRes.error || null;
-        ps.usedVariant = balRes.usedVariant || null;
-        ps.usedAuthFormat = balRes.usedAuthFormat || null;
       }
-      return apiSuccess({ version: "5.6.0-email-notifications", requestId, timestamp: new Date().toISOString(), provider: "livepay", provider_base: LIVEPAY_BASE, provider_status: ps, sync_mechanism: "aggressive_5_pass_polling", sync_intervals: ["2s", "5s", "10s", "20s", "35s"] });
+      return apiSuccess({ version: "6.0.0-marzpay", requestId, timestamp: new Date().toISOString(), provider: "marzpay", provider_base: MARZ_BASE, provider_status: ps, sync_mechanism: "aggressive_5_pass_polling", sync_intervals: ["2s", "5s", "10s", "20s", "35s"] });
     }
 
     if (action === "auth-check") {
-      return apiSuccess({ version: "5.6.0-email-notifications", requestId, received: { method: req.method, bodyKeys: Object.keys(body) } });
+      return apiSuccess({ version: "6.0.0-marzpay", requestId, received: { method: req.method, bodyKeys: Object.keys(body) } });
     }
 
-    if (action === "diagnostic" || action === "test-livepay") {
+    if (action === "diagnostic" || action === "test-marz" || action === "test-livepay") {
       const { key, secret, source, auth } = await getMarzCreds(supabase, body.userId || null);
-      const diag: any = { version: "5.6.0", key_source: source, key_redacted: redactKey(key), key_length: key?.length || 0, key_has_dot: key?.includes(".") || false, key_variants: variants.map(v => ({ label: v.label, length: v.length, hasDot: v.hasDot, keyHint: redactKey(v.key) })), account_number: accountNumber || "not_set", has_key: !!key, has_account: !!accountNumber, timestamp: new Date().toISOString() };
+      const diag: any = { version: "6.0.0-marzpay", provider: "marzpay", key_source: source, key_redacted: redactKey(key), key_length: key?.length || 0, has_key: !!key, has_secret: !!secret, timestamp: new Date().toISOString() };
       if (key && secret) {
         const balRes = await marzBalance(auth!);
-        diag.livepay_test = { endpoint: "/check-balance", ok: balRes.ok, http_status: balRes.httpStatus || null, error: balRes.error || null, balance_data: balRes.data || null, used_variant: balRes.usedVariant || null, used_auth_format: balRes.usedAuthFormat || null, all_attempts: balRes.allAttempts.map((a: any) => ({ variant: a.variant, authFormat: a.authFormat, keyHint: a.keyHint, ok: a.ok, httpStatus: a.httpStatus, error: a.error, raw: a.raw?.slice(0, 200) })) };
+        diag.marz_test = { endpoint: "/balance", ok: balRes.ok, http_status: balRes.httpStatus || null, error: balRes.error || null, balance_data: balRes.data || null };
         if (!balRes.ok) {
           const errMsg = (balRes.error || "").toLowerCase();
-          if (errMsg.includes("invalid api key") || errMsg.includes("unauthorized") || errMsg.includes("authorization required")) diag.recommendation = "LivePay rejected ALL key+auth combinations. The API key may be incorrect or revoked, API access may be disabled in your LivePay dashboard, or your account isn't fully verified.";
-          else if (errMsg.includes("account number")) diag.recommendation = "Account number mismatch. Make sure the account number matches the one in your LivePay dashboard.";
-          else if (errMsg.includes("ip") && errMsg.includes("not allowed")) diag.recommendation = "IP address blocked by LivePay. Contact LivePay support to whitelist Supabase edge function IP ranges.";
-          else diag.recommendation = `LivePay error: ${balRes.error}`;
+          if (errMsg.includes("unauthenticated") || errMsg.includes("unauthorized") || errMsg.includes("invalid credentials") || balRes.httpStatus === 401) diag.recommendation = "MarzPay rejected the credentials. Check the API key and API secret in your MarzPay dashboard, and make sure the key is active.";
+          else if (balRes.httpStatus === 403) diag.recommendation = "MarzPay denied access. Your account may not be approved for API access, or this IP is not allowed.";
+          else if (errMsg.includes("frozen")) diag.recommendation = "Your MarzPay account is frozen. Contact MarzPay support.";
+          else diag.recommendation = `MarzPay error: ${balRes.error}`;
         }
-      } else { diag.recommendation = key && !accountNumber ? "API key is set but account number is missing." : "No LivePay API key found."; }
+      } else { diag.recommendation = key && !secret ? "API key is set but the API secret is missing." : "No MarzPay credentials found. Set MARZ_API_KEY and MARZ_API_SECRET."; }
       return apiSuccess(diag);
     }
+
 
     if (action === "verify-phone" || action === "verify-number") {
       const phoneNumber = (body.phoneNumber || body.phone || "").trim();
