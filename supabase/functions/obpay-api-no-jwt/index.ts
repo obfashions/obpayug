@@ -89,6 +89,21 @@ async function getMarzCreds(
   const envHit = pack(Deno.env.get("MARZ_API_KEY") || "", Deno.env.get("MARZ_API_SECRET") || "", "supabase_secret");
   if (envHit) return envHit;
 
+  // Optional: a ready-made base64 "key:secret" value for the Authorization header.
+  const basicEnv = (Deno.env.get("MARZ_API_BASIC") || "").trim();
+  if (basicEnv) {
+    try {
+      const decoded = atob(basicEnv);
+      const idx = decoded.indexOf(":");
+      if (idx > 0) {
+        const k = decoded.slice(0, idx).trim();
+        const s = decoded.slice(idx + 1).trim();
+        if (k && s) return { key: k, secret: s, source: "supabase_secret_basic", auth: { basic: basicEnv, key: k, secret: s } };
+      }
+    } catch (_) { /* not valid base64 — ignore */ }
+  }
+
+
   try {
     const { data: ps } = await supabase.from("platform_settings")
       .select("marz_api_key, marz_api_secret").limit(1).maybeSingle();
