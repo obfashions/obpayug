@@ -325,8 +325,21 @@ export async function checkBalance(
     if (secretKey) body._api_key = secretKey;
 
     const data = await callEdgeFunction(body);
+    const wallet = data?.data ?? data;
 
-    return { ok: true, data: data?.data ?? data, error: data?.error };
+    // Top up the provider balance from the ObPay server when the backend
+    // could not read it (its own key is missing or IP-restricted).
+    if (wallet && !wallet.provider_balance) {
+      try {
+        const live = await marzFallback("balance", {});
+        if (live.ok) wallet.provider_balance = (live.data as any)?.balance ?? null;
+      } catch {
+        /* ignore — wallet balance is still valid */
+      }
+    }
+
+    return { ok: true, data: wallet, error: data?.error };
+
   } catch (err: any) {
     return { ok: false, data: null, error: err?.message || "Request failed" };
   }
