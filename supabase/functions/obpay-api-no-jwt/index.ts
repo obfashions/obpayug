@@ -758,8 +758,22 @@ serve(async (req: Request) => {
       if (!key) return apiSuccess({ status: "disconnected", error: "No MarzPay API key configured.", keySource: source });
       if (!secret) return apiSuccess({ status: "partial", error: "MarzPay API secret not configured.", keySource: source });
       const res = await marzBalance(auth!);
+      if (!res.ok && isIpWhitelistError(res)) {
+        // Balance is IP-restricted on MarzPay's side; prove the credentials with an
+        // endpoint that is not IP-restricted so the merchant is not shown as offline.
+        const probe = await marzVerifyPhone(auth!, "+256777123456");
+        if (probe.ok) {
+          return apiSuccess({
+            status: "connected", provider: "marzpay", keySource: source, balance: null,
+            error: null, balance_restricted: true,
+            note: "Connected. MarzPay restricts the balance endpoint to whitelisted IPs, so live balance is hidden — collections, payouts and transaction status work normally.",
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
       return apiSuccess({ status: res.ok ? "connected" : "error", provider: "marzpay", keySource: source, balance: res.data || null, error: res.error || null, timestamp: new Date().toISOString() });
     }
+
 
     if (action === "test-webhook") {
       const testPayload = { transaction_id: `test_${crypto.randomUUID().slice(0, 8)}`, reference: `TEST_${Date.now().toString(36).toUpperCase()}`, status: "success", amount: 5000, currency: "UGX", type: "collection", fee_amount: 250, net_amount: 4750, customer_phone: "256700000001", customer_name: "Test Customer", description: "OBPay Webhook Test", completed_at: new Date().toISOString(), is_test: true };
