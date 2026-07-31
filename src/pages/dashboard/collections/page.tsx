@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { supabase, safeGetSession } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate } from "@/lib/currency";
 
 interface Transaction {
@@ -37,7 +38,7 @@ function formatCompact(num: number): string {
 }
 
 export default function CollectionsPage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { activeCurrency } = useCurrency();
   const [collections, setCollections] = useState<Transaction[]>([]);
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -86,34 +87,9 @@ export default function CollectionsPage() {
   useEffect(() => { lastStatusRef.current = lastStatus; }, [lastStatus]);
   useEffect(() => { submitStatusRef.current = submitStatus; }, [submitStatus]);
 
-  const isVerified = profile?.status === "active";
-
   const callObpay = async (body: Record<string, any>): Promise<{ success: boolean; data?: any; error?: string; [key: string]: any }> => {
     try {
-      const { data: sessionData } = await safeGetSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) {
-        return { success: false, error: "Session expired. Please log in again." };
-      }
-      const baseUrl = (import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
-      const url = `${baseUrl}/functions/v1/obpay-api-no-jwt`;
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "apikey": import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || "",
-        },
-        body: JSON.stringify(body),
-      });
-      const text = await resp.text();
-      let parsed: any;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = { success: false, error: text || `Server error (HTTP ${resp.status})` };
-      }
-      return parsed;
+      return await invokeObpay(body);
     } catch (err: any) {
       return { success: false, error: err.message || "Network error. Check your connection." };
     }
@@ -292,10 +268,10 @@ export default function CollectionsPage() {
         setSubmitting(false); return;
       }
       const apiData = result.data;
-      if (apiData?.success) {
-        const livepayMsg = apiData.data?.message || "";
-        const refNum = apiData.data?.reference || ref;
-        const immediateSuccess = apiData.data?.immediate_success === true;
+      if (apiData) {
+        const providerMsg = apiData.message || "";
+        const refNum = apiData.reference || ref;
+        const immediateSuccess = apiData.immediate_success === true || apiData.status === "success";
         setLastRef(refNum);
         setLastStatus(immediateSuccess ? "success" : "pending");
         setLastAmount(amount);
@@ -303,8 +279,8 @@ export default function CollectionsPage() {
           ok: true,
           message: immediateSuccess
             ? `Collection successful! ${formatCurrency(amount, form.currency)} credited to your wallet.`
-            : (livepayMsg || "Collection request sent. Awaiting customer confirmation."),
-          livepayResponse: `Ref: ${refNum} | Status: ${apiData.data?.status || "pending"}${immediateSuccess ? " | Paid immediately" : ""}`,
+            : (providerMsg || "Collection request sent. Awaiting customer confirmation."),
+          livepayResponse: `MarzPay · Ref: ${refNum} | Status: ${apiData.status || "pending"}${immediateSuccess ? " | Paid immediately" : ""}`,
         });
         setForm({ phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
         setVerifiedName(null); setVerifyError("");
@@ -380,7 +356,7 @@ export default function CollectionsPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div><h1 className="font-heading font-bold text-2xl text-foreground-900">Collections</h1><p className="text-sm text-foreground-600 mt-1">Initiate and track payment collections from customers</p></div>
-          <button onClick={() => setShowModal(true)} disabled={!isVerified} className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-colors ${isVerified ? "bg-primary-500 hover:bg-primary-600 text-background-50" : "bg-background-200 text-foreground-400 cursor-not-allowed"}`}>
+          <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-colors bg-primary-500 hover:bg-primary-600 text-background-50">
             <i className="ri-add-line" />New Collection
           </button>
         </div>
@@ -407,12 +383,6 @@ export default function CollectionsPage() {
             <p className="font-heading font-bold text-xl text-primary-600">{formatCompact(monthlyNet)}</p>
           </div>
         </div>
-
-        {!isVerified && (
-          <div className="bg-accent-100 rounded-xl p-4 text-sm text-accent-700 flex items-center gap-3">
-            <i className="ri-lock-line text-lg" /><span>Complete KYC verification to unlock collections. <a href="/dashboard/kyc" className="font-medium underline">Verify now →</a></span>
-          </div>
-        )}
 
         {submitStatus && (
           <div className={`rounded-lg px-4 py-3 text-sm ${submitStatus.ok ? "bg-primary-100 text-primary-700 border border-primary-200/70" : "bg-accent-100 text-accent-700 border border-accent-200/70"}`}>
@@ -454,7 +424,7 @@ export default function CollectionsPage() {
             <div className="w-16 h-16 rounded-full bg-background-200/70 flex items-center justify-center mx-auto mb-4"><i className="ri-download-cloud-line text-foreground-400 text-2xl" /></div>
             <h3 className="font-heading font-semibold text-lg text-foreground-900 mb-2">No collections yet</h3>
             <p className="text-sm text-foreground-600 mb-4">Start collecting payments from your customers</p>
-            {isVerified && <button onClick={() => setShowModal(true)} className="bg-primary-500 hover:bg-primary-600 text-background-50 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap">Create First Collection</button>}
+            <button onClick={() => setShowModal(true)} className="bg-primary-500 hover:bg-primary-600 text-background-50 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap">Create First Collection</button>
           </div>
         ) : (
           <div className="bg-background-50 rounded-xl border border-background-200/70 overflow-hidden">

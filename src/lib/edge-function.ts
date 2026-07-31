@@ -36,9 +36,9 @@ export async function invokeEdgeFunction(
   }
 }
 
-// Payment actions run on the ObPay server (this project), because it holds the
-// working MarzPay credentials. The Supabase edge function is kept as a fallback
-// for everything else and for actions the local engine does not implement.
+// Payment actions run only on this project's server, which holds the MarzPay
+// credentials. Never fall back to the uploaded backend for these actions: that
+// endpoint still contains the retired provider integration.
 const LOCAL_ACTIONS = new Set([
   "collect",
   "payout",
@@ -62,10 +62,12 @@ export async function invokeObpay(
       const { obpayServerCall } = await import("@/lib/obpay.functions");
       const { data: sessionData } = await safeGetSession();
       const accessToken = sessionData?.session?.access_token || "";
-      const res: any = await obpayServerCall({ data: { action, accessToken, body } });
-      if (res && (res.success || res.error)) return res;
-    } catch {
-      /* fall through to the edge function */
+      return await obpayServerCall({ data: { action, accessToken, body } });
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error?.message || "The MarzPay service is temporarily unavailable. Please try again.",
+      };
     }
   }
 

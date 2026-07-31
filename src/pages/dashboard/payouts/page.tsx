@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { supabase, safeGetSession } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { invokeObpay } from "@/lib/edge-function";
@@ -44,31 +44,8 @@ function simplifyError(msg: string): string {
 }
 
 async function callObPayAPI(body: Record<string, any>): Promise<{ success: boolean; data?: any; error?: string; [key: string]: any }> {
-  const { data: sessionData } = await safeGetSession();
-  const token = sessionData?.session?.access_token;
-  if (!token) {
-    return { success: false, error: "Session expired. Please log in again." };
-  }
-  const baseUrl = (import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
-  const url = `${baseUrl}/functions/v1/obpay-api-no-jwt`;
   try {
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-        "apikey": import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || "",
-      },
-      body: JSON.stringify(body),
-    });
-    const text = await resp.text();
-    let parsed: any;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = { success: false, error: text || `Server error (HTTP ${resp.status})` };
-    }
-    return parsed;
+    return await invokeObpay(body);
   } catch (err: any) {
     return { success: false, error: err.message || "Network error. Check your connection." };
   }
@@ -122,8 +99,6 @@ export default function PayoutsPage() {
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
-
-  const isVerified = profile?.status === "active";
 
   // Update form currency when activeCurrency changes
   useEffect(() => {
@@ -256,6 +231,7 @@ export default function PayoutsPage() {
       if (totalDeduction > wallet.available_balance) {
         const feeLabel = amount <= 70000 ? `${formatCurrency(fee, form.currency)} flat fee` : `${formatCurrency(fee, form.currency)} (3%)`;
         setSubmitStatus({ ok: false, message: `You need ${formatCurrency(totalDeduction, form.currency)} (includes ${feeLabel}). Your balance is ${formatCurrency(activeBalance, form.currency)}.` });
+        setSubmitting(false); return;
       }
 
       if (minPayout > 0 && amount < minPayout) {
@@ -264,12 +240,6 @@ export default function PayoutsPage() {
       }
       if (maxPayout > 0 && amount > maxPayout) {
         setSubmitStatus({ ok: false, message: `Maximum payout is ${formatCurrency(maxPayout, form.currency)}.` });
-        setSubmitting(false); return;
-      }
-
-      const { data: sessionData, error: sessionErr } = await safeGetSession();
-      if (sessionErr || !sessionData.session) {
-        setSubmitStatus({ ok: false, message: "Session expired. Please log in again." });
         setSubmitting(false); return;
       }
 
@@ -496,18 +466,11 @@ export default function PayoutsPage() {
                 <i className="ri-arrow-down-s-line" />
               </div>
             </div>
-            <button onClick={() => setShowModal(true)} disabled={!isVerified} className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-all ${isVerified ? "bg-accent-500 hover:bg-accent-600 text-background-50 shadow-sm hover:shadow-md" : "bg-background-200 text-foreground-400 cursor-not-allowed"}`}>
+            <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-all bg-accent-500 hover:bg-accent-600 text-background-50 shadow-sm hover:shadow-md">
               <i className="ri-send-plane-line" />New Payout
             </button>
           </div>
         </div>
-
-        {!isVerified && (
-          <div className="bg-accent-100 rounded-xl p-4 text-sm text-accent-700 flex items-center gap-3">
-            <i className="ri-lock-line text-lg" />
-            <span>Complete KYC verification to unlock payouts. <a href="/dashboard/kyc" className="font-medium underline">Verify now →</a></span>
-          </div>
-        )}
 
 
         {/* Wallet summary - enhanced */}
@@ -600,7 +563,7 @@ export default function PayoutsPage() {
         )}
 
         {/* ─── WITHDRAW TO MY MOBILE ────────────────────────── */}
-        {isVerified && profile?.phone_number ? (
+        {profile?.phone_number ? (
           <div className="bg-background-50 rounded-xl border border-accent-200/70 overflow-hidden">
             <button
               onClick={() => setShowWithdrawForm(!showWithdrawForm)}
@@ -726,7 +689,7 @@ export default function PayoutsPage() {
               </div>
             )}
           </div>
-        ) : isVerified && !profile?.phone_number ? (
+        ) : !profile?.phone_number ? (
           <div className="bg-accent-100 rounded-xl p-4 text-sm text-accent-700 flex items-center gap-3">
             <i className="ri-smartphone-line text-lg" />
             <span>Add your mobile money number in{" "}
@@ -736,7 +699,7 @@ export default function PayoutsPage() {
         ) : null}
 
         {/* Merchant Funding Link */}
-        {merchantSlug && isVerified && (
+        {merchantSlug && (
           <div className="bg-background-50 rounded-xl border border-background-200/70 p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -814,7 +777,7 @@ export default function PayoutsPage() {
             <div className="w-16 h-16 rounded-full bg-background-200/70 flex items-center justify-center mx-auto mb-4"><i className="ri-send-plane-line text-foreground-400 text-2xl" /></div>
             <h3 className="font-heading font-semibold text-lg text-foreground-900 mb-2">No payouts yet</h3>
             <p className="text-sm text-foreground-600 mb-4">Send money to suppliers, staff, or customers</p>
-            {isVerified && <button onClick={() => setShowModal(true)} className="bg-accent-500 hover:bg-accent-600 text-background-50 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap">Create First Payout</button>}
+            <button onClick={() => setShowModal(true)} className="bg-accent-500 hover:bg-accent-600 text-background-50 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap">Create First Payout</button>
           </div>
         ) : (
           <div className="bg-background-50 rounded-xl border border-background-200/70 overflow-hidden">
