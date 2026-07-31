@@ -61,7 +61,7 @@ export async function marzFetch(
       ok: resp.ok,
       httpStatus: resp.status,
       data,
-      error: resp.ok ? undefined : data?.message || data?.error || `HTTP ${resp.status}`,
+      error: resp.ok ? undefined : providerErrorMessage(data, `HTTP ${resp.status}`),
     };
   } catch (err: any) {
     return { ok: false, httpStatus: 0, data: null, error: err?.message || "Network error" };
