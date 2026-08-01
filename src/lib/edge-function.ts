@@ -1,4 +1,5 @@
-import { supabase, safeGetSession } from "@/lib/supabase";
+import { safeGetSession } from "@/lib/supabase";
+import { getAccessToken } from "@/lib/session-token";
 
 const baseUrl = (import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
 
@@ -60,8 +61,7 @@ export async function invokeObpay(
   if (LOCAL_ACTIONS.has(action)) {
     try {
       const { obpayServerCall } = await import("@/lib/obpay.functions");
-      const { data: sessionData } = await safeGetSession();
-      const accessToken = sessionData?.session?.access_token || "";
+      const accessToken = await getAccessToken();
       return await obpayServerCall({ data: { action, accessToken, body } });
     } catch (error: any) {
       return {
