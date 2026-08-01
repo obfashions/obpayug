@@ -50,6 +50,8 @@ const LOCAL_ACTIONS = new Set([
   "verify-phone",
   "verify-number",
   "test-connection",
+  "server-ip",
+  "payout-preflight",
 ]);
 
 export async function invokeObpay(
