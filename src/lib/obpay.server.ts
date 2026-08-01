@@ -65,9 +65,12 @@ function normalizeStatus(raw: string): "pending" | "success" | "failed" | null {
 async function friendlyProviderError(res: { error?: string; data?: any }, kind: "collection" | "payout"): Promise<string> {
   if (isIpWhitelistError(res)) {
     const ip = (await getEgressIp()) || "the IP shown in your MarzPay API logs";
+    if (!proxyConfig()) {
+      return `MarzPay blocked this ${kind} because it only accepts calls from whitelisted IP addresses, and this hosting platform sends each request from a different address (this one came from ${ip}). Connect the ObPay static-egress relay so every payout leaves from one fixed IP, then whitelist that single address in MarzPay → Security → IP Whitelist.`;
+    }
     return kind === "payout"
-      ? `MarzPay refused this payout because its disbursement endpoint only accepts calls from whitelisted IP addresses. Open your MarzPay dashboard → Security → IP Whitelist, add ${ip}, save, then retry. Collections keep working either way.`
-      : `MarzPay refused this request because the endpoint only accepts whitelisted IP addresses. Add ${ip} to Security → IP Whitelist in your MarzPay dashboard, then try again.`;
+      ? `MarzPay refused this payout because ${ip} is not on its IP whitelist. Open your MarzPay dashboard → Security → IP Whitelist, add ${ip}, save, then retry.`
+      : `MarzPay refused this request because ${ip} is not whitelisted. Add it in MarzPay → Security → IP Whitelist, then try again.`;
   }
   const raw = (res?.error || "").toString();
   if (/insufficient/i.test(raw)) return "Your MarzPay float is too low for this transfer. Top it up and try again.";
