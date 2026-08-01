@@ -35,21 +35,64 @@ export function readMarzCreds(): MarzCreds | null {
   return null;
 }
 
+/* ---------------------------------------------------------------------------
+ * Static egress
+ * -------------------------------------------------------------------------
+ * The app runs on a serverless edge runtime whose outbound IP rotates, so a
+ * provider IP whitelist can never be satisfied directly. When EGRESS_PROXY_URL
+ * is configured, every MarzPay call is tunnelled through that fixed-IP relay
+ * (any HTTP forward proxy that accepts `?url=` or a JSON body works — see
+ * src/routes/api/public/egress-ip.ts for the diagnostic).
+ * ------------------------------------------------------------------------- */
+
+export function proxyConfig(): { url: string; token: string } | null {
+  const url = (process.env["EGRESS_PROXY_URL"] || "").trim().replace(/\/+$/, "");
+  if (!url) return null;
+  return { url, token: (process.env["EGRESS_PROXY_TOKEN"] || "").trim() };
+}
+
+async function proxiedFetch(
+  target: string,
+  init: { method: string; headers: Record<string, string>; body?: string },
+): Promise<Response> {
+  const proxy = proxyConfig();
+  if (!proxy) return fetch(target, init);
+
+  // Generic relay contract: POST {url, method, headers, body} → upstream response.
+  return fetch(proxy.url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(proxy.token ? { Authorization: `Bearer ${proxy.token}` } : {}),
+    },
+    body: JSON.stringify({
+      url: target,
+      method: init.method,
+      headers: init.headers,
+      body: init.body ?? null,
+    }),
+  });
+}
+
 export async function marzFetch(
   creds: MarzCreds,
   path: string,
   init?: { method?: string; body?: unknown },
 ): Promise<{ ok: boolean; httpStatus: number; data: any; error?: string }> {
-  try {
-    const resp = await fetch(`${MARZ_BASE}${path}`, {
-      method: init?.method || "GET",
-      headers: {
-        Authorization: `Basic ${creds.basic}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      ...(init?.body ? { body: JSON.stringify(init.body) } : {}),
-    });
+  const request = {
+    method: init?.method || "GET",
+    headers: {
+      Authorization: `Basic ${creds.basic}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    } as Record<string, string>,
+    ...(init?.body ? { body: JSON.stringify(init.body) } : {}),
+  };
+
+  const run = async (useProxy: boolean) => {
+    const resp = useProxy
+      ? await proxiedFetch(`${MARZ_BASE}${path}`, request)
+      : await fetch(`${MARZ_BASE}${path}`, request);
     const text = await resp.text();
     let data: any;
     try {
@@ -63,7 +106,23 @@ export async function marzFetch(
       data,
       error: resp.ok ? undefined : providerErrorMessage(data, `HTTP ${resp.status}`),
     };
+  };
+
+  try {
+    const hasProxy = !!proxyConfig();
+    const res = await run(hasProxy);
+    // If the relay itself is down, fall back to a direct call so collections
+    // (which do not need whitelisting) never break because of the proxy.
+    if (hasProxy && !res.ok && (res.httpStatus === 0 || res.httpStatus >= 500)) {
+      return await run(false);
+    }
+    return res;
   } catch (err: any) {
+    try {
+      if (proxyConfig()) return await run(false);
+    } catch {
+      /* ignore */
+    }
     return { ok: false, httpStatus: 0, data: null, error: err?.message || "Network error" };
   }
 }
