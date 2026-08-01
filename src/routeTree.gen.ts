@@ -48,6 +48,7 @@ import { Route as DashboardTransactionsRouteImport } from './routes/dashboard.tr
 import { Route as DashboardWebhookTestRouteImport } from './routes/dashboard.webhook-test'
 import { Route as DashboardWebhooksRouteImport } from './routes/dashboard.webhooks'
 import { Route as PaySlugRouteImport } from './routes/pay.$slug'
+import { Route as ApiPublicEgressIpRouteImport } from './routes/api/public/egress-ip'
 import { Route as FunctionsV1SplatRouteImport } from './routes/functions.v1.$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -246,6 +247,11 @@ const PaySlugRoute = PaySlugRouteImport.update({
   path: '/pay/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEgressIpRoute = ApiPublicEgressIpRouteImport.update({
+  id: '/api/public/egress-ip',
+  path: '/api/public/egress-ip',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FunctionsV1SplatRoute = FunctionsV1SplatRouteImport.update({
   id: '/functions/v1/$',
   path: '/functions/v1/$',
@@ -292,6 +298,7 @@ export interface FileRoutesByFullPath {
   '/pay/$slug': typeof PaySlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRoutesByTo {
@@ -334,6 +341,7 @@ export interface FileRoutesByTo {
   '/pay/$slug': typeof PaySlugRoute
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRoutesById {
@@ -377,6 +385,7 @@ export interface FileRoutesById {
   '/pay/$slug': typeof PaySlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRouteTypes {
@@ -421,6 +430,7 @@ export interface FileRouteTypes {
     | '/pay/$slug'
     | '/admin/'
     | '/dashboard/'
+    | '/api/public/egress-ip'
     | '/functions/v1/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -463,6 +473,7 @@ export interface FileRouteTypes {
     | '/pay/$slug'
     | '/admin'
     | '/dashboard'
+    | '/api/public/egress-ip'
     | '/functions/v1/$'
   id:
     | '__root__'
@@ -505,6 +516,7 @@ export interface FileRouteTypes {
     | '/pay/$slug'
     | '/admin/'
     | '/dashboard/'
+    | '/api/public/egress-ip'
     | '/functions/v1/$'
   fileRoutesById: FileRoutesById
 }
@@ -548,6 +560,7 @@ export interface RootRouteChildren {
   PaySlugRoute: typeof PaySlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  ApiPublicEgressIpRoute: typeof ApiPublicEgressIpRoute
   FunctionsV1SplatRoute: typeof FunctionsV1SplatRoute
 }
 
@@ -826,6 +839,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PaySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/egress-ip': {
+      id: '/api/public/egress-ip'
+      path: '/api/public/egress-ip'
+      fullPath: '/api/public/egress-ip'
+      preLoaderRoute: typeof ApiPublicEgressIpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/functions/v1/$': {
       id: '/functions/v1/$'
       path: '/functions/v1/$'
@@ -876,6 +896,7 @@ const rootRouteChildren: RootRouteChildren = {
   PaySlugRoute: PaySlugRoute,
   AdminIndexRoute: AdminIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  ApiPublicEgressIpRoute: ApiPublicEgressIpRoute,
   FunctionsV1SplatRoute: FunctionsV1SplatRoute,
 }
 export const routeTree = rootRouteImport

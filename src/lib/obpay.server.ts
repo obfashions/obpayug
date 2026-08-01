@@ -6,7 +6,7 @@
 // Database writes go through Supabase REST with the CALLER's access token, so
 // row level security still applies exactly as it would in the browser.
 
-import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp } from "./marz.server";
+import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp, proxyConfig } from "./marz.server";
 
 const SUPA_URL = () =>
   (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -65,9 +65,12 @@ function normalizeStatus(raw: string): "pending" | "success" | "failed" | null {
 async function friendlyProviderError(res: { error?: string; data?: any }, kind: "collection" | "payout"): Promise<string> {
   if (isIpWhitelistError(res)) {
     const ip = (await getEgressIp()) || "the IP shown in your MarzPay API logs";
+    if (!proxyConfig()) {
+      return `MarzPay blocked this ${kind} because it only accepts calls from whitelisted IP addresses, and this hosting platform sends each request from a different address (this one came from ${ip}). Connect the ObPay static-egress relay so every payout leaves from one fixed IP, then whitelist that single address in MarzPay → Security → IP Whitelist.`;
+    }
     return kind === "payout"
-      ? `MarzPay refused this payout because its disbursement endpoint only accepts calls from whitelisted IP addresses. Open your MarzPay dashboard → Security → IP Whitelist, add ${ip}, save, then retry. Collections keep working either way.`
-      : `MarzPay refused this request because the endpoint only accepts whitelisted IP addresses. Add ${ip} to Security → IP Whitelist in your MarzPay dashboard, then try again.`;
+      ? `MarzPay refused this payout because ${ip} is not on its IP whitelist. Open your MarzPay dashboard → Security → IP Whitelist, add ${ip}, save, then retry.`
+      : `MarzPay refused this request because ${ip} is not whitelisted. Add it in MarzPay → Security → IP Whitelist, then try again.`;
   }
   const raw = (res?.error || "").toString();
   if (/insufficient/i.test(raw)) return "Your MarzPay float is too low for this transfer. Top it up and try again.";
@@ -213,7 +216,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
 
   // The public IP MarzPay sees — this is what must be whitelisted for payouts.
   if (action === "server-ip") {
-    return { success: true, data: { ip: await getEgressIp() } };
+    return { success: true, data: { ip: await getEgressIp(), static_egress: !!proxyConfig() } };
   }
 
   // Checks whether disbursements are currently allowed from this server.
@@ -221,13 +224,15 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     const svc = await marzFetch(creds, "/send-money/services");
     const bal = await marzFetch(creds, "/balance");
     const ip = await getEgressIp();
+    const staticEgress = !!proxyConfig();
     if (bal.ok) {
-      return { success: true, data: { ip, disbursement_ready: true, subscribed: svc.ok, balance: bal.data?.data ?? null } };
+      return { success: true, data: { ip, static_egress: staticEgress, disbursement_ready: true, subscribed: svc.ok, balance: bal.data?.data ?? null } };
     }
     return {
       success: true,
       data: {
         ip,
+        static_egress: staticEgress,
         disbursement_ready: false,
         subscribed: svc.ok,
         blocked_by_ip_whitelist: isIpWhitelistError(bal),
