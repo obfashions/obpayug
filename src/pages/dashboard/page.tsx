@@ -491,289 +491,274 @@ export default function DashboardPage() {
       </div>
 
       <div className="space-y-6">
-        {/* ─── HEADER ──────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 className="font-heading font-bold text-xl md:text-2xl text-foreground-900 mb-1">
-              Welcome back, {profile?.full_name?.split(" ")[0] || "Merchant"}
-            </h2>
-            <p className="text-sm text-foreground-600">Here's what's happening with your account today.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Currency Selector */}
-            <div className="relative">
-              <select
-                value={activeCurrency}
-                onChange={(e) => setActiveCurrency(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm font-medium text-foreground-700 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
-              >
-                {SUPPORTED_CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.flag} {c.code} — {c.name}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-foreground-500">
-                <i className="ri-arrow-down-s-line" />
+        {/* ─── ACCOUNT HERO ────────────────────────────────── */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 text-background-50">
+          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-background-50/10" />
+          <div className="absolute -right-4 bottom-[-70px] w-52 h-52 rounded-full bg-background-50/5" />
+          <div className="relative p-5 md:p-7">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-widest text-background-50/70">Available balance</p>
+                <p className="font-heading font-bold text-3xl md:text-4xl mt-1 break-words">
+                  {formatCurrency(activeBalance, activeCurrency)}
+                </p>
+                <p className="text-xs text-background-50/70 mt-2">
+                  Welcome back, {profile?.full_name?.split(" ")[0] || "Merchant"} · Account {(user?.id || "").slice(0, 8).toUpperCase()}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <select
+                  value={activeCurrency}
+                  onChange={(e) => setActiveCurrency(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-2 rounded-lg bg-background-50/15 border border-background-50/25 text-sm font-medium text-background-50 focus:outline-none cursor-pointer"
+                >
+                  {SUPPORTED_CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code} className="text-foreground-900">
+                      {c.flag} {c.code}
+                    </option>
+                  ))}
+                </select>
+                {profile?.role === "admin" && (
+                  <button
+                    onClick={() => navigate("/admin")}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background-50/15 hover:bg-background-50/25 border border-background-50/25 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    <i className="ri-admin-line" />Admin
+                  </button>
+                )}
               </div>
             </div>
-            {profile?.role === "admin" && (
-              <button
-                onClick={() => navigate("/admin")}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-foreground-900 hover:bg-foreground-800 text-background-50 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <i className="ri-admin-line" />
-                Admin Panel
-                <i className="ri-arrow-right-up-line text-xs" />
-              </button>
-            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-background-50/15">
+              {[
+                { label: "Pending", value: formatCurrency(wallet?.pending_balance || 0, activeCurrency), sub: `${pendingTxns.length} in progress` },
+                { label: "Today In", value: formatCurrency(todayCollections, activeCurrency), sub: "Collections today" },
+                { label: "This Month", value: formatCurrency(monthlyCollections, activeCurrency), sub: `${successTxns.length} settled` },
+                { label: "Total Fees", value: formatCurrency(totalFees, activeCurrency), sub: "Lifetime charges" },
+              ].map((s) => (
+                <div key={s.label} className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-background-50/60">{s.label}</p>
+                  <p className="font-heading font-semibold text-sm md:text-base mt-0.5 break-words">{s.value}</p>
+                  <p className="text-[10px] text-background-50/50 mt-0.5 truncate">{s.sub}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* ─── TRUST & COMPLIANCE BAR ──────────────────────── */}
-        <div className="bg-background-50 rounded-xl border border-background-200/70 p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* ─── PRIMARY BANKING ACTIONS ─────────────────────── */}
+        <div>
+          <h3 className="font-heading font-semibold text-sm text-foreground-900 mb-3">Banking actions</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { icon: "ri-lock-line", label: "SSL/TLS Encrypted", sub: "256-bit encryption", color: "text-emerald-600" },
-              { icon: "ri-shield-check-line", label: "PCI DSS Level 1", sub: "Compliant", color: "text-primary-600" },
-              { icon: "ri-timer-flash-line", label: "99.9% Uptime SLA", sub: "Enterprise-grade", color: "text-accent-600" },
-              { icon: "ri-government-line", label: "Regulated Entity", sub: "Licensed & Audited", color: "text-secondary-600" },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2.5">
-                <div className={`w-9 h-9 rounded-lg bg-background-100 flex items-center justify-center shrink-0`}>
-                  <i className={`${item.icon} ${item.color} text-base`} />
+              { label: "Collect Money", sub: "Request payment", icon: "ri-arrow-down-circle-line", href: "/dashboard/collections", tone: "bg-primary-500 hover:bg-primary-600" },
+              { label: "Send Payout", sub: "Pay anyone", icon: "ri-arrow-up-circle-line", href: "/dashboard/payouts", tone: "bg-accent-500 hover:bg-accent-600" },
+              { label: "Payment Link", sub: "Share & get paid", icon: "ri-link", href: "/dashboard/payment-links", tone: "bg-secondary-500 hover:bg-secondary-600" },
+            ].map((a) => (
+              <a
+                key={a.label}
+                href={a.href}
+                className={`${a.tone} text-background-50 rounded-xl p-4 flex flex-col gap-3 transition-all cursor-pointer group`}
+              >
+                <div className="w-9 h-9 rounded-lg bg-background-50/20 flex items-center justify-center">
+                  <i className={`${a.icon} text-lg group-hover:scale-110 transition-transform`} />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground-900 whitespace-nowrap">{item.label}</p>
-                  <p className="text-[10px] text-foreground-500">{item.sub}</p>
+                <div>
+                  <p className="font-semibold text-sm leading-tight">{a.label}</p>
+                  <p className="text-[11px] opacity-75">{a.sub}</p>
                 </div>
+              </a>
+            ))}
+            <button
+              onClick={() => setShowWithdrawModal(true)}
+              className="bg-foreground-900 hover:bg-foreground-800 text-background-50 rounded-xl p-4 flex flex-col gap-3 text-left transition-all cursor-pointer group"
+            >
+              <div className="w-9 h-9 rounded-lg bg-background-50/20 flex items-center justify-center">
+                <i className="ri-smartphone-line text-lg group-hover:scale-110 transition-transform" />
               </div>
+              <div>
+                <p className="font-semibold text-sm leading-tight">Withdraw</p>
+                <p className="text-[11px] opacity-75">To my mobile money</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* ─── SERVICE SHORTCUTS ───────────────────────────── */}
+        <div>
+          <h3 className="font-heading font-semibold text-sm text-foreground-900 mb-3">Manage your account</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { label: "Transactions", icon: "ri-exchange-line", href: "/dashboard/transactions", color: "text-primary-600 bg-primary-100" },
+              { label: "Statements", icon: "ri-file-chart-line", href: "/dashboard/reports", color: "text-secondary-600 bg-secondary-100" },
+              { label: "API Keys", icon: "ri-key-2-line", href: "/dashboard/api-keys", color: "text-accent-600 bg-accent-100" },
+              { label: "Webhooks", icon: "ri-broadcast-line", href: "/dashboard/webhooks", color: "text-emerald-600 bg-emerald-100" },
+              { label: "Verification", icon: "ri-shield-user-line", href: "/dashboard/kyc", color: "text-indigo-600 bg-indigo-100" },
+              { label: "Settings", icon: "ri-settings-3-line", href: "/dashboard/settings", color: "text-foreground-700 bg-background-200" },
+            ].map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                className="bg-background-50 rounded-xl border border-background-200/70 p-4 flex flex-col items-center text-center gap-2 hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer group"
+              >
+                <div className={`w-11 h-11 rounded-xl ${s.color} flex items-center justify-center group-hover:scale-105 transition-transform`}>
+                  <i className={`${s.icon} text-lg`} />
+                </div>
+                <p className="text-xs font-medium text-foreground-800">{s.label}</p>
+              </a>
             ))}
           </div>
-        </div>
-
-        {/* ─── BALANCE CARDS (Active Currency) ───────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {balanceCards.map((card) => (
-            <div
-              key={card.label}
-              className="bg-background-50 rounded-xl p-3 md:p-5 border border-background-200/70 hover:border-background-300/60 transition-all group"
-            >
-              <div className="flex items-start justify-between mb-2 md:mb-3">
-                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg ${card.color} flex items-center justify-center shrink-0`}>
-                  <i className={`${card.icon} text-sm md:text-lg`} />
-                </div>
-                <span className="text-[10px] md:text-xs text-foreground-400 group-hover:text-foreground-500 transition-colors whitespace-nowrap">
-                  {card.trend}
-                </span>
-              </div>
-              <p className="text-xs md:text-sm text-foreground-600 mb-0.5 md:mb-1">{card.label}</p>
-              <p className="font-heading font-bold text-sm md:text-lg lg:text-xl text-foreground-900">{card.value}</p>
-            </div>
-          ))}
         </div>
 
         {/* ─── PER-CURRENCY BALANCES ───────────────────────── */}
         {perCurrencyCards.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <i className="ri-coins-line text-primary-600 text-lg" />
-              <h3 className="font-heading font-semibold text-sm text-foreground-900">All Currency Balances</h3>
-            </div>
+            <h3 className="font-heading font-semibold text-sm text-foreground-900 mb-3">Your accounts</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {perCurrencyCards.map((card) => (
                 <button
                   key={card.currency}
                   onClick={() => setActiveCurrency(card.currency)}
-                  className={`bg-background-50 rounded-xl p-4 border text-left transition-all cursor-pointer whitespace-nowrap ${
+                  className={`bg-background-50 rounded-xl p-4 border text-left transition-all cursor-pointer ${
                     card.currency === activeCurrency
                       ? "border-primary-400 ring-1 ring-primary-300"
                       : "border-background-200/70 hover:border-background-300/60"
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`w-8 h-8 rounded-lg ${card.color} flex items-center justify-center shrink-0`}>
-                      <i className={`${card.icon} text-sm`} />
-                    </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-foreground-700">{card.currency}</span>
                     <span className="text-[10px] font-medium text-foreground-500">{card.trend}</span>
                   </div>
-                  <p className="text-[11px] text-foreground-500 mb-0.5">{card.label}</p>
-                  <p className="font-heading font-bold text-base text-foreground-900">{card.value}</p>
+                  <p className="font-heading font-bold text-base text-foreground-900 break-words">{card.value}</p>
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* ─── QUICK ACTION BUTTONS ────────────────────────── */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
-          <a
-            href="/dashboard/collections"
-            className="flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-background-50 font-medium px-4 py-3 rounded-xl transition-all cursor-pointer group whitespace-nowrap"
-          >
-            <div className="w-8 h-8 rounded-lg bg-background-50/20 flex items-center justify-center shrink-0">
-              <i className="ri-arrow-down-circle-line text-base group-hover:scale-110 transition-transform" />
-            </div>
-            <span className="text-sm md:text-base">Collect Money</span>
-          </a>
-          <a
-            href="/dashboard/payouts"
-            className="flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-background-50 font-medium px-4 py-3 rounded-xl transition-all cursor-pointer group whitespace-nowrap"
-          >
-            <div className="w-8 h-8 rounded-lg bg-background-50/20 flex items-center justify-center shrink-0">
-              <i className="ri-arrow-up-circle-line text-base group-hover:scale-110 transition-transform" />
-            </div>
-            <span className="text-sm md:text-base">Send Payout</span>
-          </a>
-          <button
-            onClick={() => setShowWithdrawModal(true)}
-            className="flex items-center justify-center gap-2 bg-secondary-500 hover:bg-secondary-600 text-background-50 font-medium px-4 py-3 rounded-xl transition-all cursor-pointer group whitespace-nowrap"
-          >
-            <div className="w-8 h-8 rounded-lg bg-background-50/20 flex items-center justify-center shrink-0">
-              <i className="ri-smartphone-line text-base group-hover:scale-110 transition-transform" />
-            </div>
-            <span className="text-sm md:text-base">Withdraw to Mobile</span>
-          </button>
-        </div>
-
-        {/* ─── BANK BUILDING BANNERS ───────────────────────── */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <i className="ri-building-2-line text-accent-600 text-lg" />
-            <h3 className="font-heading font-semibold text-base text-foreground-900">Our Banking Network</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {bankBanners.map((bank) => (
-              <div
-                key={bank.name}
-                className="relative overflow-hidden rounded-xl h-48 group cursor-default transition-all hover:shadow-sm"
-              >
-                <img loading="lazy" decoding="async"
-                  src={bank.image}
-                  alt={bank.name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-t ${bank.bgOverlay}`} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                <div className="relative z-10 p-5 h-full flex flex-col justify-between">
-                  <div>
-                    <span className={`text-[10px] font-medium uppercase tracking-wider ${bank.accentColor} bg-black/20 px-2 py-0.5 rounded-full`}>
-                      {bank.city}
-                    </span>
-                    <h4 className={`font-heading font-bold text-base mt-2 ${bank.textColor}`}>{bank.name}</h4>
-                    <p className={`text-xs ${bank.accentColor} mt-1`}>{bank.tagline}</p>
-                  </div>
-                  <p className={`text-[11px] ${bank.textColor} opacity-75 border-t border-white/10 pt-2.5`}>{bank.stats}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* ─── COLLECTION BREAKDOWN ────────────────────────── */}
         <CollectionBreakdown transactions={transactions} activeCurrency={activeCurrency} />
 
-        {/* ─── MAIN CONTENT GRID ───────────────────────────── */}
+        {/* ─── RECENT ACTIVITY + SIDE PANEL ────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Live Transaction Feed (2/3 width) */}
-          <div className="lg:col-span-2">
-            <LiveTransactionFeed transactions={transactions} activeCurrency={activeCurrency} />
+          <div className="lg:col-span-2 bg-background-50 rounded-xl border border-background-200/70">
+            <div className="p-5 border-b border-background-200/70 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <i className="ri-exchange-line text-accent-600" />
+                <h3 className="font-heading font-semibold text-base text-foreground-900">Recent Transactions</h3>
+              </div>
+              <a href="/dashboard/transactions" className="text-sm font-medium text-primary-500 hover:text-primary-600">
+                View All
+              </a>
+            </div>
+            {transactions.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 rounded-full bg-background-200/70 flex items-center justify-center mx-auto mb-3">
+                  <i className="ri-exchange-line text-foreground-400 text-xl" />
+                </div>
+                <p className="text-sm text-foreground-500">No transactions yet</p>
+                <p className="text-xs text-foreground-400 mt-1">Your collections and payouts will appear here</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-background-200/70">
+                {transactions.slice(0, 8).map((txn) => (
+                  <div key={txn.id} className="flex items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-background-100/50 transition-colors">
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                        txn.type === "collection" ? "bg-emerald-100" : "bg-accent-100"
+                      }`}
+                    >
+                      <i
+                        className={`${
+                          txn.type === "collection" ? "ri-arrow-down-line text-emerald-600" : "ri-arrow-up-line text-accent-600"
+                        } text-sm`}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground-900 truncate">
+                        {txn.customer_name || (txn.type === "collection" ? "Collection" : "Payout")}
+                      </p>
+                      <p className="text-[11px] text-foreground-500 font-mono truncate">
+                        {txn.reference} · {formatDate(txn.created_at)}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-sm font-semibold ${txn.type === "collection" ? "text-emerald-600" : "text-foreground-900"}`}>
+                        {txn.type === "collection" ? "+" : "−"}
+                        {formatCurrency(txn.amount, txn.currency || activeCurrency)}
+                      </p>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium mt-0.5 ${
+                          txn.status === "success"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : txn.status === "pending"
+                            ? "bg-accent-100 text-accent-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {txn.status.charAt(0).toUpperCase() + txn.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Savings Calculator + Quick Actions (1/3 width) */}
           <div className="space-y-4">
-            {/* Savings Calculator */}
+            {/* Money movement summary */}
+            <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
+              <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-4">Money movement</h4>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                    <i className="ri-download-cloud-line text-emerald-600 text-lg" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-foreground-500">Total Collections</p>
+                    <p className="font-heading font-bold text-lg text-foreground-900 break-words">
+                      {formatCurrency(wallet?.total_collections || 0, activeCurrency)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-accent-100 flex items-center justify-center shrink-0">
+                    <i className="ri-upload-cloud-line text-accent-600 text-lg" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-foreground-500">Total Payouts</p>
+                    <p className="font-heading font-bold text-lg text-foreground-900 break-words">
+                      {formatCurrency(wallet?.total_payouts || 0, activeCurrency)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                    <i className="ri-subtract-line text-red-600 text-lg" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-foreground-500">Total Fees</p>
+                    <p className="font-heading font-bold text-lg text-red-600 break-words">{formatCurrency(totalFees, activeCurrency)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <SavingsCalculator />
 
-            {/* Quick Actions */}
+            {/* System status */}
             <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
-              <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-3">Quick Actions</h4>
-              <div className="space-y-1.5">
-                <a
-                  href="/dashboard/payment-links"
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-background-100 hover:bg-primary-50 text-sm text-foreground-700 hover:text-primary-600 transition-colors cursor-pointer group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center shrink-0">
-                    <i className="ri-add-circle-line text-primary-500 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <span>Create Payment Link</span>
-                </a>
-                <a
-                  href="/dashboard/collections"
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-background-100 hover:bg-emerald-50 text-sm text-foreground-700 hover:text-emerald-600 transition-colors cursor-pointer group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                    <i className="ri-download-cloud-line text-emerald-500 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <span>Initiate Collection</span>
-                </a>
-                <a
-                  href="/dashboard/payouts"
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-background-100 hover:bg-accent-50 text-sm text-foreground-700 hover:text-accent-600 transition-colors cursor-pointer group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-accent-100 flex items-center justify-center shrink-0">
-                    <i className="ri-upload-cloud-line text-accent-500 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <span>Send Payout</span>
-                </a>
-                <a
-                  href="/dashboard/payouts#withdraw"
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-background-100 hover:bg-accent-50 text-sm text-foreground-700 hover:text-accent-600 transition-colors cursor-pointer group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-accent-100 flex items-center justify-center shrink-0">
-                    <i className="ri-smartphone-line text-accent-500 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <span>Withdraw to Mobile</span>
-                </a>
-                <a
-                  href="/dashboard/reports"
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-background-100 hover:bg-secondary-50 text-sm text-foreground-700 hover:text-secondary-600 transition-colors cursor-pointer group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-secondary-100 flex items-center justify-center shrink-0">
-                    <i className="ri-file-download-line text-secondary-500 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <span>Download Report</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Payout Summary */}
-            <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-accent-100 flex items-center justify-center">
-                  <i className="ri-upload-cloud-line text-accent-600 text-lg" />
-                </div>
-                <div>
-                  <p className="text-xs text-foreground-500">Total Payouts</p>
-                  <p className="font-heading font-bold text-xl text-foreground-900">
-                    {formatCurrency(wallet?.total_payouts || 0, activeCurrency)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                  <i className="ri-subtract-line text-red-600 text-lg" />
-                </div>
-                <div>
-                  <p className="text-xs text-foreground-500">Total Fees</p>
-                  <p className="font-heading font-bold text-xl text-red-600">{formatCurrency(totalFees, activeCurrency)}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* API Status */}
-            <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
-              <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-3">API Status</h4>
+              <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-3">System status</h4>
               <div className="space-y-3">
                 {[
-                  { name: "API", status: "Operational", color: "bg-emerald-500" },
-                  { name: "Collections", status: "Operational", color: "bg-emerald-500" },
-                  { name: "Payouts", status: "Operational", color: "bg-emerald-500" },
-                  { name: "Auto-Sync", status: "Every 5s", color: "bg-emerald-500" },
+                  { name: "Payments API", status: "Operational" },
+                  { name: "Collections", status: "Operational" },
+                  { name: "Payouts", status: "Operational" },
+                  { name: "Auto-Sync", status: "Every 5s" },
                 ].map((svc) => (
                   <div key={svc.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2.5 h-2.5 rounded-full ${svc.color} animate-pulse`} />
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                       <span className="text-sm text-foreground-700">{svc.name}</span>
                     </div>
                     <span className="text-xs text-emerald-600 font-medium">{svc.status}</span>
@@ -784,159 +769,29 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ─── PAYMENT METHODS ─────────────────────────────── */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <i className="ri-bank-card-line text-accent-600 text-lg" />
-            <h3 className="font-heading font-semibold text-base text-foreground-900">Supported Payment Methods</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {paymentMethodBanners.map((bank) => (
-              <div
-                key={bank.name}
-                className={`relative overflow-hidden rounded-xl border ${bank.borderColor} ${bank.bgLight} h-44 group cursor-default transition-all hover:shadow-sm`}
-              >
-                <img loading="lazy" decoding="async"
-                  src={bank.image}
-                  alt={bank.name}
-                  className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
-                <div className="relative z-10 p-5 h-full flex flex-col justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-background-50/90 flex items-center justify-center shadow-sm backdrop-blur-sm">
-                      <i className={`${bank.icon} ${bank.textColor} text-xl`} />
-                    </div>
-                    <div>
-                      <h4 className={`font-heading font-semibold text-sm ${bank.textColor}`}>{bank.name}</h4>
-                      <p className="text-[11px] text-foreground-600">{bank.tagline}</p>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-foreground-500 border-t border-background-200/40 pt-2.5">{bank.stats}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ─── STRATEGIC PARTNERS ──────────────────────────── */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <i className="ri-briefcase-line text-accent-600 text-lg" />
-            <h3 className="font-heading font-semibold text-base text-foreground-900">Strategic Partners &amp; Integrations</h3>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* ─── TRUST & COMPLIANCE ──────────────────────────── */}
+        <div className="bg-background-50 rounded-xl border border-background-200/70 p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { name: "MTN Uganda", sub: "Mobile Money", icon: "ri-smartphone-line", logoBg: "bg-amber-50", iconColor: "text-amber-600" },
-              { name: "Airtel Uganda", sub: "Mobile Money", icon: "ri-signal-wifi-line", logoBg: "bg-red-50", iconColor: "text-red-600" },
-              { name: "Stanbic Bank", sub: "Banking Partner", icon: "ri-bank-line", logoBg: "bg-blue-50", iconColor: "text-blue-600" },
-              { name: "Centenary Bank", sub: "Banking Partner", icon: "ri-building-2-line", logoBg: "bg-emerald-50", iconColor: "text-emerald-600" },
-              { name: "Payment Processor", sub: "Payment Processor", icon: "ri-exchange-dollar-line", logoBg: "bg-primary-50", iconColor: "text-primary-600" },
-              { name: "URSB", sub: "Govt Registry", icon: "ri-government-line", logoBg: "bg-secondary-50", iconColor: "text-secondary-600" },
-            ].map((partner) => (
-              <div
-                key={partner.name}
-                className="bg-background-50 rounded-xl border border-background-200/70 p-4 flex flex-col items-center text-center gap-2 hover:border-background-300/60 transition-all cursor-default group"
-              >
-                <div className={`w-12 h-12 rounded-xl ${partner.logoBg} flex items-center justify-center group-hover:scale-105 transition-transform`}>
-                  <i className={`${partner.icon} ${partner.iconColor} text-xl`} />
+              { icon: "ri-lock-line", label: "SSL/TLS Encrypted", sub: "256-bit encryption", color: "text-emerald-600" },
+              { icon: "ri-shield-check-line", label: "PCI DSS Level 1", sub: "Compliant", color: "text-primary-600" },
+              { icon: "ri-timer-flash-line", label: "99.9% Uptime SLA", sub: "Enterprise-grade", color: "text-accent-600" },
+              { icon: "ri-government-line", label: "Regulated Entity", sub: "Licensed & Audited", color: "text-secondary-600" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-background-100 flex items-center justify-center shrink-0">
+                  <i className={`${item.icon} ${item.color} text-base`} />
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-foreground-900">{partner.name}</p>
-                  <p className="text-[10px] text-foreground-500">{partner.sub}</p>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground-900">{item.label}</p>
+                  <p className="text-[10px] text-foreground-500">{item.sub}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* ─── RECENT TRANSACTIONS ─────────────────────────── */}
-        <div className="bg-background-50 rounded-xl border border-background-200/70">
-          <div className="p-5 border-b border-background-200/70 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <i className="ri-exchange-line text-accent-600" />
-              <h3 className="font-heading font-semibold text-base text-foreground-900">Recent Transactions</h3>
-            </div>
-            <a href="/dashboard/transactions" className="text-sm font-medium text-primary-500 hover:text-primary-600">
-              View All
-            </a>
-          </div>
-          {transactions.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 rounded-full bg-background-200/70 flex items-center justify-center mx-auto mb-3">
-                <i className="ri-exchange-line text-foreground-400 text-xl" />
-              </div>
-              <p className="text-sm text-foreground-500">No transactions yet</p>
-              <p className="text-xs text-foreground-400 mt-1">Your collections and payouts will appear here</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-background-200/70">
-                    <th className="text-left text-xs font-medium text-foreground-500 uppercase px-5 py-3">Reference</th>
-                    <th className="text-left text-xs font-medium text-foreground-500 uppercase px-5 py-3">Amount</th>
-                    <th className="text-left text-xs font-medium text-foreground-500 uppercase px-5 py-3 hidden sm:table-cell">Fee</th>
-                    <th className="text-left text-xs font-medium text-foreground-500 uppercase px-5 py-3">Status</th>
-                    <th className="text-left text-xs font-medium text-foreground-500 uppercase px-5 py-3 hidden md:table-cell">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.slice(0, 8).map((txn) => (
-                    <tr
-                      key={txn.id}
-                      className="border-b border-background-200/70 last:border-0 hover:bg-background-100/50 transition-colors"
-                    >
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
-                              txn.type === "collection" ? "bg-emerald-100" : "bg-accent-100"
-                            }`}
-                          >
-                            <i
-                              className={`${
-                                txn.type === "collection"
-                                  ? "ri-arrow-down-line text-emerald-600"
-                                  : "ri-arrow-up-line text-accent-600"
-                              } text-xs`}
-                            />
-                          </div>
-                          <span className="text-sm font-medium text-foreground-900 font-mono">{txn.reference}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-sm font-semibold text-foreground-900">{formatCurrency(txn.amount, txn.currency || activeCurrency)}</span>
-                      </td>
-                      <td className="px-5 py-3.5 hidden sm:table-cell">
-                        <span className="text-xs text-foreground-500">
-                          {txn.fee_amount ? formatCurrency(txn.fee_amount, txn.currency || activeCurrency) : "—"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                            txn.status === "success"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : txn.status === "pending"
-                              ? "bg-accent-100 text-accent-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {txn.status.charAt(0).toUpperCase() + txn.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 hidden md:table-cell">
-                        <span className="text-xs text-foreground-500">{formatDate(txn.created_at)}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </div>
+
 
       {/* ─── WITHDRAW TO MOBILE MODAL ──────────────────── */}
       {showWithdrawModal && (
