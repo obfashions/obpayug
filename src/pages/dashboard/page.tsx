@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useNavigate } from "@/lib/router-compat";
 import CollectionBreakdown from "./components/CollectionBreakdown";
-import LiveTransactionFeed from "./components/LiveTransactionFeed";
 import SavingsCalculator from "./components/SavingsCalculator";
 import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
@@ -39,81 +38,6 @@ interface Toast {
   type: "success" | "error" | "info";
   message: string;
 }
-
-const bankBanners = [
-  {
-    city: "Kampala",
-    name: "ObPay Headquarters",
-    icon: "ri-building-2-line",
-    bgOverlay: "from-emerald-900/40 via-emerald-800/30 to-emerald-900/50",
-    textColor: "text-background-50",
-    accentColor: "text-emerald-300",
-    tagline: "Modern Banking Infrastructure",
-    stats: "Serving 5,000+ merchants across Uganda",
-    image:
-      "https://readdy.ai/api/search-image?query=Modern%20sleek%20African%20bank%20headquarters%20building%20with%20glass%20facade%20reflecting%20golden%20morning%20sunlight%2C%20clean%20architectural%20lines%2C%20professional%20corporate%20aesthetic%2C%20surrounded%20by%20manicured%20greenery%2C%20clear%20blue%20sky%20background%2C%20warm%20earth%20tones%2C%20editorial%20architectural%20photography%20style%2C%20high%20contrast%2C%20crisp%20details%2C%20no%20people%20visible%2C%20no%20text%20or%20logos%2C%20sophisticated%20financial%20institution%20atmosphere&width=800&height=400&seq=obpay-bank-hq-2026&orientation=landscape",
-  },
-  {
-    city: "Nairobi",
-    name: "Financial Center",
-    icon: "ri-building-4-line",
-    bgOverlay: "from-slate-900/40 via-slate-800/30 to-slate-900/50",
-    textColor: "text-background-50",
-    accentColor: "text-amber-300",
-    tagline: "East African Financial Hub",
-    stats: "Connected to 14 African markets",
-    image:
-      "https://readdy.ai/api/search-image?query=Panoramic%20view%20of%20modern%20financial%20district%20skyline%20featuring%20contemporary%20bank%20buildings%20with%20glass%20and%20steel%20architecture%2C%20warm%20sunset%20lighting%20casting%20golden%20reflections%2C%20clean%20urban%20landscape%2C%20professional%20corporate%20atmosphere%2C%20wide%20angle%20perspective%2C%20sharp%20architectural%20details%2C%20dramatic%20sky%20with%20soft%20clouds%2C%20sophisticated%20aesthetic%2C%20no%20text%20or%20logos%2C%20luxurious%20financial%20center%20ambiance%2C%20high%20end%20editorial%20photography%20style&width=800&height=400&seq=obpay-financial-hub-2026&orientation=landscape",
-  },
-  {
-    city: "Regional",
-    name: "Banking Services",
-    icon: "ri-bank-line",
-    bgOverlay: "from-indigo-900/40 via-indigo-800/30 to-indigo-900/50",
-    textColor: "text-background-50",
-    accentColor: "text-indigo-300",
-    tagline: "Full-Service Banking Network",
-    stats: "MTN, Airtel & major banks supported",
-    image:
-      "https://readdy.ai/api/search-image?query=Elegant%20modern%20banking%20hall%20interior%20with%20sleek%20marble%20counters%20and%20warm%20ambient%20lighting%2C%20contemporary%20design%20elements%2C%20professional%20service%20atmosphere%2C%20polished%20surfaces%20reflecting%20soft%20light%2C%20minimalist%20aesthetic%20with%20subtle%20gold%20accents%2C%20clean%20open%20spaces%2C%20sophisticated%20corporate%20environment%2C%20no%20people%20visible%2C%20no%20text%20or%20logos%2C%20high%20end%20architectural%20interior%20photography%2C%20luxurious%20financial%20service%20setting&width=800&height=400&seq=obpay-banking-hall-2026&orientation=landscape",
-  },
-];
-
-const paymentMethodBanners = [
-  {
-    name: "MTN Mobile Money",
-    icon: "ri-smartphone-line",
-    bgLight: "bg-amber-50",
-    textColor: "text-amber-700",
-    borderColor: "border-amber-200/70",
-    tagline: "Instant mobile payments",
-    stats: "76M+ users across Africa",
-    image:
-      "https://readdy.ai/api/search-image?query=Bright%20warm%20yellow%20and%20amber%20abstract%20geometric%20pattern%20background%20with%20soft%20flowing%20curves%20and%20subtle%20texture%2C%20modern%20fintech%20aesthetic%2C%20clean%20minimal%20design%2C%20warm%20golden%20tones%2C%20no%20text%20or%20logos%2C%20smooth%20gradient%20from%20light%20yellow%20to%20warm%20amber%2C%20professional%20banking%20visual%20style&width=800&height=400&seq=mtn-banner-2026-v2&orientation=landscape",
-  },
-  {
-    name: "Airtel Money",
-    icon: "ri-smartphone-line",
-    bgLight: "bg-red-50",
-    textColor: "text-red-700",
-    borderColor: "border-red-200/70",
-    tagline: "Fast and secure transfers",
-    stats: "Active in 14 African countries",
-    image:
-      "https://readdy.ai/api/search-image?query=Warm%20coral%20red%20and%20rose%20abstract%20flowing%20shapes%20background%20with%20smooth%20curves%2C%20modern%20fintech%20design%2C%20clean%20minimal%20aesthetic%2C%20soft%20red%20gradient%20tones%2C%20no%20text%20or%20logos%2C%20professional%20financial%20technology%20visual%20style%2C%20elegant%20subtle%20texture&width=800&height=400&seq=airtel-banner-2026-v2&orientation=landscape",
-  },
-  {
-    name: "Bank Transfer",
-    icon: "ri-bank-line",
-    bgLight: "bg-emerald-50",
-    textColor: "text-emerald-700",
-    borderColor: "border-emerald-200/70",
-    tagline: "Direct to any bank account",
-    stats: "All major Ugandan banks supported",
-    image:
-      "https://readdy.ai/api/search-image?query=Elegant%20emerald%20green%20and%20teal%20abstract%20geometric%20pattern%20background%20with%20soft%20flowing%20shapes%2C%20modern%20banking%20aesthetic%2C%20clean%20minimal%20design%2C%20smooth%20green%20gradient%20tones%2C%20no%20text%20or%20logos%2C%20professional%20corporate%20financial%20visual%20style%2C%20subtle%20texture%20and%20depth&width=800&height=400&seq=bank-banner-2026-v2&orientation=landscape",
-  },
-];
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
@@ -333,38 +257,6 @@ export default function DashboardPage() {
         currency,
       };
     });
-
-  // ─── Main balance cards using active currency ──────────────────
-  const balanceCards = [
-    {
-      label: "Available Balance",
-      value: formatCurrency(activeBalance, activeCurrency),
-      icon: "ri-wallet-3-line",
-      color: "bg-primary-100 text-primary-600",
-      trend: "Ready to use",
-    },
-    {
-      label: "Pending Balance",
-      value: formatCurrency(wallet?.pending_balance || 0, activeCurrency),
-      icon: "ri-time-line",
-      color: "bg-accent-100 text-accent-600",
-      trend: `${pendingTxns.length} pending`,
-    },
-    {
-      label: "Today's Collections",
-      value: formatCurrency(todayCollections, activeCurrency),
-      icon: "ri-arrow-down-circle-line",
-      color: "bg-emerald-100 text-emerald-600",
-      trend: todayCollections > 0 ? "Today's activity" : "No activity yet",
-    },
-    {
-      label: "Monthly Total",
-      value: formatCurrency(monthlyCollections, activeCurrency),
-      icon: "ri-bar-chart-line",
-      color: "bg-secondary-100 text-secondary-600",
-      trend: `${successTxns.length} successful`,
-    },
-  ];
 
   // ── Withdraw to my mobile handler ──
   const handleWithdraw = async (e: React.FormEvent) => {
