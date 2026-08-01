@@ -248,3 +248,20 @@ export async function runMarzAction(action: string, payload: any) {
 
   return { success: false, error: `Unsupported MarzPay action: ${action}` };
 }
+
+/** Public egress IP of this server runtime — what MarzPay sees and what has to
+ *  be added to their IP whitelist. Cached for the lifetime of the isolate. */
+let cachedIp: string | null = null;
+export async function getEgressIp(): Promise<string | null> {
+  if (cachedIp) return cachedIp;
+  try {
+    const resp = await fetch("https://api.ipify.org?format=json");
+    if (!resp.ok) return null;
+    const data: any = await resp.json();
+    const ip = String(data?.ip || "").trim();
+    if (/^[0-9.]+$/.test(ip)) cachedIp = ip;
+    return cachedIp;
+  } catch {
+    return null;
+  }
+}

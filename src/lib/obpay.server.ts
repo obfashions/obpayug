@@ -6,7 +6,7 @@
 // Database writes go through Supabase REST with the CALLER's access token, so
 // row level security still applies exactly as it would in the browser.
 
-import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone } from "./marz.server";
+import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp } from "./marz.server";
 
 const SUPA_URL = () =>
   (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -62,16 +62,18 @@ function normalizeStatus(raw: string): "pending" | "success" | "failed" | null {
 }
 
 /** Turns raw provider errors into something a merchant can act on. */
-function friendlyProviderError(res: { error?: string; data?: any }, kind: "collection" | "payout"): string {
+async function friendlyProviderError(res: { error?: string; data?: any }, kind: "collection" | "payout"): Promise<string> {
   if (isIpWhitelistError(res)) {
+    const ip = (await getEgressIp()) || "the IP shown in your MarzPay API logs";
     return kind === "payout"
-      ? "MarzPay is blocking payouts because IP whitelisting is switched on for your account. In the MarzPay dashboard open Security → IP Whitelist and either turn it off or add this server IP: 34.38.19.178. Then try the payout again."
-      : "MarzPay is blocking this request because IP whitelisting is switched on. Add 34.38.19.178 to the IP Whitelist in your MarzPay dashboard, or turn whitelisting off.";
+      ? `MarzPay refused this payout because its disbursement endpoint only accepts calls from whitelisted IP addresses. Open your MarzPay dashboard → Security → IP Whitelist, add ${ip}, save, then retry. Collections keep working either way.`
+      : `MarzPay refused this request because the endpoint only accepts whitelisted IP addresses. Add ${ip} to Security → IP Whitelist in your MarzPay dashboard, then try again.`;
   }
   const raw = (res?.error || "").toString();
   if (/insufficient/i.test(raw)) return "Your MarzPay float is too low for this transfer. Top it up and try again.";
   if (/invalid api credentials/i.test(raw)) return "MarzPay rejected the API credentials. Update them in Admin → Settings.";
   if (/phone|msisdn/i.test(raw) && /invalid/i.test(raw)) return "That phone number is not valid for mobile money. Use the 2567XXXXXXXX format.";
+  if (/not subscribed|SERVICE_NOT_SUBSCRIBED/i.test(raw)) return "Your MarzPay account is not subscribed to the disbursement service. Enable it in the MarzPay service marketplace.";
   return raw || `The ${kind} could not be processed. Please try again.`;
 }
 
@@ -201,14 +203,42 @@ export const LOCAL_ACTIONS = [
   "verify-phone",
   "verify-number",
   "test-connection",
+  "server-ip",
+  "payout-preflight",
 ];
 
 export async function runObpayAction(action: string, accessToken: string, body: any) {
   const creds = readMarzCreds();
   if (!creds) return { success: false, error: "MarzPay credentials are not configured on the server." };
 
+  // The public IP MarzPay sees — this is what must be whitelisted for payouts.
+  if (action === "server-ip") {
+    return { success: true, data: { ip: await getEgressIp() } };
+  }
+
+  // Checks whether disbursements are currently allowed from this server.
+  if (action === "payout-preflight") {
+    const svc = await marzFetch(creds, "/send-money/services");
+    const bal = await marzFetch(creds, "/balance");
+    const ip = await getEgressIp();
+    if (bal.ok) {
+      return { success: true, data: { ip, disbursement_ready: true, subscribed: svc.ok, balance: bal.data?.data ?? null } };
+    }
+    return {
+      success: true,
+      data: {
+        ip,
+        disbursement_ready: false,
+        subscribed: svc.ok,
+        blocked_by_ip_whitelist: isIpWhitelistError(bal),
+        message: await friendlyProviderError(bal, "payout"),
+      },
+    };
+  }
+
   // Actions that do not need a signed-in merchant.
   if (action === "verify-phone" || action === "verify-number") {
+
     const res = await marzFetch(creds, "/phone-verification/verify", {
       method: "POST",
       body: { phone_number: normalizePhone(body?.phoneNumber, body?.currency) },
@@ -329,7 +359,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
           metadata: { error: res.error, httpStatus: res.httpStatus },
         }),
       });
-      return { success: false, error: friendlyProviderError(res, "collection"), data: { reference: ref, transaction_id: txnId, status: "failed" } };
+      return { success: false, error: await friendlyProviderError(res, "collection"), data: { reference: ref, transaction_id: txnId, status: "failed" } };
     }
 
     const d = res.data?.data || {};
@@ -401,7 +431,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     });
 
     if (!res.ok) {
-      const message = friendlyProviderError(res, "payout");
+      const message = await friendlyProviderError(res, "payout");
       await rest(accessToken, `/payout_requests`, {
         method: "POST",
         body: JSON.stringify({

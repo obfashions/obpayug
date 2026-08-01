@@ -1,4 +1,4 @@
-import { safeGetSession } from "@/lib/supabase";
+import { getAccessToken } from "@/lib/session-token";
 
 export interface PlatformResult<T = any> {
   success: boolean;
@@ -17,8 +17,10 @@ export async function platform<T = any>(
 ): Promise<PlatformResult<T>> {
   try {
     const { platformCall } = await import("@/lib/platform.functions");
-    const { data: sessionData } = await safeGetSession();
-    const accessToken = sessionData?.session?.access_token || "";
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      return { success: false, error: "Your session has expired. Please sign in again to continue." };
+    }
     return (await platformCall({ data: { action, accessToken, body } })) as PlatformResult<T>;
   } catch (err: any) {
     return { success: false, error: err?.message || "Could not reach ObPay. Check your connection." };
