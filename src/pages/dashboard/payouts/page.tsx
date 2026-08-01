@@ -449,12 +449,12 @@ export default function PayoutsPage() {
             <h1 className="font-heading font-bold text-2xl text-foreground-900">Payouts</h1>
             <p className="text-sm text-foreground-600 mt-1">Send money to mobile wallets and bank accounts</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="relative min-w-0 flex-1 sm:flex-none">
               <select
                 value={activeCurrency}
                 onChange={(e) => setActiveCurrency(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm font-medium text-foreground-700 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
+                className="w-full appearance-none pl-3 pr-8 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm font-medium text-foreground-700 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer truncate"
               >
                 {SUPPORTED_CURRENCIES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -466,10 +466,11 @@ export default function PayoutsPage() {
                 <i className="ri-arrow-down-s-line" />
               </div>
             </div>
-            <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-all bg-accent-500 hover:bg-accent-600 text-background-50 shadow-sm hover:shadow-md">
+            <button onClick={() => setShowModal(true)} className="shrink-0 inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-all bg-accent-500 hover:bg-accent-600 text-background-50 shadow-sm hover:shadow-md">
               <i className="ri-send-plane-line" />New Payout
             </button>
           </div>
+
         </div>
 
 
