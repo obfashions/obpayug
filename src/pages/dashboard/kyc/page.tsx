@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "@/lib/router-compat";
 import DashboardLayout from "@/components/feature/DashboardLayout";
-import { invokeEdgeFunction } from "@/lib/edge-function";
+import { platform } from "@/lib/platform";
 import { useAuth } from "@/contexts/AuthContext";
 
 const countries = ["Uganda", "Kenya", "Tanzania", "Rwanda", "Ghana", "Cameroon"];
