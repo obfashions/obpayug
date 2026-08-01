@@ -112,22 +112,38 @@ export default function KYCPage() {
     setSaving(true);
     setError("");
 
-    const res = await invokeEdgeFunction("kyc-submit", {
-      ...formData,
-      frontBase64: docs.front,
-      backBase64: docs.back,
-      frontFileName: names.front || "front.jpg",
-      backFileName: names.back || "back.jpg",
+    const saved = await platform("kyc.save", {
+      business_name: formData.company_name,
+      address: `${formData.business_address}, ${formData.country}`,
+      id_type: "national_id",
+      id_number: formData.national_id,
     });
 
-    setSaving(false);
-
-    if (res?.success) {
-      setSubmitted(true);
+    if (!saved.success) {
+      setSaving(false);
+      setError(saved.error || "Submission failed. Please try again.");
       return;
     }
-    setError(res?.error || "Submission failed. Please try again.");
+
+    for (const side of ["front", "back"] as Side[]) {
+      const fileData = docs[side];
+      if (!fileData) continue;
+      const uploaded = await platform("kyc.upload", {
+        doc_type: `national_id_${side}`,
+        file_data: fileData,
+        file_name: names[side] || `${side}.jpg`,
+      });
+      if (!uploaded.success) {
+        setSaving(false);
+        setError(uploaded.error || "Your details were saved but the photos did not upload. Please try again.");
+        return;
+      }
+    }
+
+    setSaving(false);
+    setSubmitted(true);
   };
+
 
   const handleSkip = () => navigate("/dashboard");
 
