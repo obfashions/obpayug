@@ -6,7 +6,7 @@
 // Database writes go through Supabase REST with the CALLER's access token, so
 // row level security still applies exactly as it would in the browser.
 
-import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp } from "./marz.server";
+import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp, proxyConfig } from "./marz.server";
 
 const SUPA_URL = () =>
   (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
