@@ -216,7 +216,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
 
   // The public IP MarzPay sees — this is what must be whitelisted for payouts.
   if (action === "server-ip") {
-    return { success: true, data: { ip: await getEgressIp() } };
+    return { success: true, data: { ip: await getEgressIp(), static_egress: !!proxyConfig() } };
   }
 
   // Checks whether disbursements are currently allowed from this server.
@@ -224,13 +224,15 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     const svc = await marzFetch(creds, "/send-money/services");
     const bal = await marzFetch(creds, "/balance");
     const ip = await getEgressIp();
+    const staticEgress = !!proxyConfig();
     if (bal.ok) {
-      return { success: true, data: { ip, disbursement_ready: true, subscribed: svc.ok, balance: bal.data?.data ?? null } };
+      return { success: true, data: { ip, static_egress: staticEgress, disbursement_ready: true, subscribed: svc.ok, balance: bal.data?.data ?? null } };
     }
     return {
       success: true,
       data: {
         ip,
+        static_egress: staticEgress,
         disbursement_ready: false,
         subscribed: svc.ok,
         blocked_by_ip_whitelist: isIpWhitelistError(bal),
