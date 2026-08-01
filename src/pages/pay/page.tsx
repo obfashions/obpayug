@@ -3,6 +3,8 @@ import { useParams, useSearchParams } from "@/lib/router-compat";
 import { supabase } from "@/lib/supabase";
 import { JsonLd } from "@/components/base/JsonLd";
 import { invokeObpay, invokePublicLookup } from "@/lib/edge-function";
+import { platform } from "@/lib/platform";
+
 
 interface PaymentLinkData {
   id: string;
