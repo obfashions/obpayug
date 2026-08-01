@@ -65,12 +65,35 @@ export default function PayPage() {
 
     const fetchLink = async () => {
       try {
+        // Links created in ObPay live in ObPay's own storage — check there first.
+        const managed = await platform<any>("public-link", { slug });
+        if (managed.success && managed.data) {
+          const d = managed.data;
+          setLink({
+            id: d.id,
+            amount: Number(d.amount ?? 0),
+            currency: d.currency || "UGX",
+            description: d.description || d.title || "",
+            reference: d.slug,
+            status: d.status,
+            expiry_date: "",
+            user_id: d.merchant_id,
+          });
+          setMerchant({ company_name: d.title, merchant_id: d.merchant_id, user_id: d.merchant_id });
+          const amountParam = searchParams.get("amount");
+          if (amountParam) setAmount(parseFloat(amountParam));
+          else if (Number(d.amount) > 0) setAmount(Number(d.amount));
+          setLoading(false);
+          return;
+        }
+
         // Use dedicated public-lookup function (no JWT required, bypasses RLS)
         const lookupData = await withTimeout(
           invokePublicLookup({ _action: "public-lookup", _merchant_slug: slug }),
           15000,
           "Merchant lookup"
         );
+
 
         if (lookupData?.success && lookupData.data) {
           const d = lookupData.data;
