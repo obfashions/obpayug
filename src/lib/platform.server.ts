@@ -484,7 +484,7 @@ export async function runPlatformAction(
   action: string,
   accessToken: string,
   body: Record<string, any>,
-): Promise<{ success: boolean; data?: unknown; error?: string }> {
+): Promise<any> {
   try {
     // Public actions need no session.
     if (action === "public-link") return await publicPaymentLink(body.slug);
