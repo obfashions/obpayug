@@ -14,7 +14,375 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      api_request_logs: {
+        Row: {
+          action: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          merchant_id: string | null
+          method: string
+          path: string
+          status_code: number
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          merchant_id?: string | null
+          method: string
+          path: string
+          status_code?: number
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          merchant_id?: string | null
+          method?: string
+          path?: string
+          status_code?: number
+        }
+        Relationships: []
+      }
+      kyc_documents: {
+        Row: {
+          created_at: string
+          doc_type: string
+          file_name: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          merchant_id: string
+          status: string
+          submission_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          doc_type: string
+          file_name?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          merchant_id: string
+          status?: string
+          submission_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          doc_type?: string
+          file_name?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          merchant_id?: string
+          status?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_documents_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kyc_submissions: {
+        Row: {
+          address: string | null
+          business_name: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          id_number: string | null
+          id_type: string | null
+          merchant_id: string
+          phone: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          id_number?: string | null
+          id_type?: string | null
+          merchant_id: string
+          phone?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          id_number?: string | null
+          id_type?: string | null
+          merchant_id?: string
+          phone?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      merchant_api_keys: {
+        Row: {
+          created_at: string
+          environment: string
+          id: string
+          last_used_at: string | null
+          merchant_id: string
+          name: string
+          public_key: string
+          secret_hash: string
+          secret_last4: string
+          secret_prefix: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          environment?: string
+          id?: string
+          last_used_at?: string | null
+          merchant_id: string
+          name?: string
+          public_key: string
+          secret_hash: string
+          secret_last4: string
+          secret_prefix: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          id?: string
+          last_used_at?: string | null
+          merchant_id?: string
+          name?: string
+          public_key?: string
+          secret_hash?: string
+          secret_last4?: string
+          secret_prefix?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      payment_links: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string
+          description: string | null
+          fixed_amount: boolean
+          id: string
+          merchant_id: string
+          payments_count: number
+          redirect_url: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          fixed_amount?: boolean
+          id?: string
+          merchant_id: string
+          payments_count?: number
+          redirect_url?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          fixed_amount?: boolean
+          id?: string
+          merchant_id?: string
+          payments_count?: number
+          redirect_url?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: []
+      }
+      payment_records: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          merchant_id: string
+          metadata: Json
+          payment_link_id: string | null
+          phone_number: string | null
+          provider_reference: string | null
+          reference: string
+          source: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          merchant_id: string
+          metadata?: Json
+          payment_link_id?: string | null
+          phone_number?: string | null
+          provider_reference?: string | null
+          reference: string
+          source?: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          merchant_id?: string
+          metadata?: Json
+          payment_link_id?: string | null
+          phone_number?: string | null
+          provider_reference?: string | null
+          reference?: string
+          source?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_records_payment_link_id_fkey"
+            columns: ["payment_link_id"]
+            isOneToOne: false
+            referencedRelation: "payment_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_deliveries: {
+        Row: {
+          attempts: number
+          created_at: string
+          endpoint_id: string | null
+          event: string
+          id: string
+          merchant_id: string
+          payload: Json
+          response_body: string | null
+          response_code: number | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          endpoint_id?: string | null
+          event: string
+          id?: string
+          merchant_id: string
+          payload?: Json
+          response_body?: string | null
+          response_code?: number | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          endpoint_id?: string | null
+          event?: string
+          id?: string
+          merchant_id?: string
+          payload?: Json
+          response_body?: string | null
+          response_code?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_endpoints: {
+        Row: {
+          created_at: string
+          events: string[]
+          id: string
+          merchant_id: string
+          secret: string
+          status: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          events?: string[]
+          id?: string
+          merchant_id: string
+          secret: string
+          status?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          events?: string[]
+          id?: string
+          merchant_id?: string
+          secret?: string
+          status?: string
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
