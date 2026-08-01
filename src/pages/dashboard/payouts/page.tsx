@@ -484,7 +484,7 @@ export default function PayoutsPage() {
                 <span className="text-xs text-foreground-500 font-medium">Ready to Use</span>
               </div>
               <p className="text-xs text-foreground-500 mb-1">Available Balance</p>
-              <p className="text-2xl font-bold text-foreground-900">{formatCurrency(activeBalance, activeCurrency)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground-900 break-words">{formatCurrency(activeBalance, activeCurrency)}</p>
             </div>
           </div>
           <div className="relative overflow-hidden bg-background-50 rounded-xl border border-background-200/70 p-5 hover:border-background-300/60 transition-all">
@@ -495,7 +495,7 @@ export default function PayoutsPage() {
                 <span className="text-xs text-foreground-500 font-medium">Processing</span>
               </div>
               <p className="text-xs text-foreground-500 mb-1">Pending Balance</p>
-              <p className="text-2xl font-bold text-accent-600">{formatCurrency(wallet.pending_balance, activeCurrency)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-accent-600 break-words">{formatCurrency(wallet.pending_balance, activeCurrency)}</p>
             </div>
           </div>
           {withdrawalLimit && (
@@ -507,14 +507,14 @@ export default function PayoutsPage() {
                   <span className="text-xs text-foreground-500 font-medium">Daily Limit</span>
                 </div>
                 <p className="text-xs text-foreground-500 mb-1">Withdrawal Limit ({formatCurrency(withdrawalLimit.daily_limit, activeCurrency)} / 24h)</p>
-                <div className="flex items-end gap-2">
-                  <p className="text-2xl font-bold text-foreground-900">{formatCurrency(withdrawalLimit.remaining, activeCurrency)}</p>
+                <div className="flex flex-wrap items-end gap-2">
+                  <p className="text-xl sm:text-2xl font-bold text-foreground-900 break-words">{formatCurrency(withdrawalLimit.remaining, activeCurrency)}</p>
                   <span className="text-xs text-foreground-500 mb-0.5">remaining</span>
                 </div>
                 <div className="mt-2 bg-background-200/70 rounded-full h-1.5 overflow-hidden">
                   <div className="h-full bg-accent-500 rounded-full transition-all" style={{ width: `${Math.min(100, (withdrawalLimit.used_24h / withdrawalLimit.daily_limit) * 100)}%` }} />
                 </div>
-                <div className="flex justify-between mt-1">
+                <div className="flex flex-wrap justify-between gap-x-2 mt-1">
                   <span className="text-[10px] text-foreground-500">Used: {formatCurrency(withdrawalLimit.used_24h, activeCurrency)}</span>
                   <span className="text-[10px] text-foreground-500">Resets in {Math.floor(withdrawalLimit.resets_in_hours)}h {Math.floor((withdrawalLimit.resets_in_hours % 1) * 60)}m</span>
                 </div>
@@ -540,7 +540,7 @@ export default function PayoutsPage() {
                     <button
                       key={currency}
                       onClick={() => setActiveCurrency(currency)}
-                      className={`bg-background-50 rounded-xl p-4 border text-left transition-all cursor-pointer whitespace-nowrap ${
+                      className={`bg-background-50 rounded-xl p-4 border text-left transition-all cursor-pointer min-w-0 ${
                         currency === activeCurrency
                           ? "border-primary-400 ring-1 ring-primary-300"
                           : "border-background-200/70 hover:border-background-300/60"
@@ -554,8 +554,8 @@ export default function PayoutsPage() {
                           {currency === activeCurrency ? "Active" : "Available"}
                         </span>
                       </div>
-                      <p className="text-[11px] text-foreground-500 mb-0.5">{info ? `${info.name} Balance` : `${currency} Balance`}</p>
-                      <p className="font-heading font-bold text-base text-foreground-900">{formatCurrency(amount, currency)}</p>
+                      <p className="text-[11px] text-foreground-500 mb-0.5 truncate">{info ? `${info.name} Balance` : `${currency} Balance`}</p>
+                      <p className="font-heading font-bold text-sm sm:text-base text-foreground-900 break-words">{formatCurrency(amount, currency)}</p>
                     </button>
                   );
                 })}
@@ -568,27 +568,27 @@ export default function PayoutsPage() {
           <div className="bg-background-50 rounded-xl border border-accent-200/70 overflow-hidden">
             <button
               onClick={() => setShowWithdrawForm(!showWithdrawForm)}
-              className="w-full flex items-center justify-between p-5 hover:bg-background-100/50 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between gap-3 p-4 sm:p-5 hover:bg-background-100/50 transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-accent-100 flex items-center justify-center">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="w-10 h-10 shrink-0 rounded-xl bg-accent-100 flex items-center justify-center">
                   <i className="ri-smartphone-line text-accent-600 text-xl" />
                 </div>
-                <div className="text-left">
+                <div className="min-w-0 text-left">
                   <h3 className="font-heading font-semibold text-foreground-900 text-sm">Withdraw to My Mobile</h3>
                   <p className="text-xs text-foreground-500 mt-0.5">
                     Send money directly to your registered number{" "}
-                    <span className="font-mono font-medium text-foreground-700">{profile.phone_number}</span>
+                    <span className="font-mono font-medium text-foreground-700 break-all">{profile.phone_number}</span>
                   </p>
                 </div>
               </div>
-              <div className={`transition-transform ${showWithdrawForm ? "rotate-180" : ""}`}>
+              <div className={`shrink-0 transition-transform ${showWithdrawForm ? "rotate-180" : ""}`}>
                 <i className="ri-arrow-down-s-line text-foreground-400" />
               </div>
             </button>
 
             {showWithdrawForm && (
-              <div className="border-t border-accent-200/70 p-5">
+              <div className="border-t border-accent-200/70 p-4 sm:p-5">
                 {withdrawStatus && (
                   <div className={`rounded-lg px-4 py-3 mb-4 text-sm ${withdrawStatus.ok ? "bg-emerald-100 text-emerald-700" : "bg-accent-100 text-accent-700"}`}>
                     <div className="flex items-start gap-2">
@@ -605,7 +605,7 @@ export default function PayoutsPage() {
                       {profile.phone_number}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({activeCurrency}) *</label>
                       <input
@@ -678,12 +678,12 @@ export default function PayoutsPage() {
                   <button
                     type="submit"
                     disabled={withdrawSubmitting}
-                    className="w-full bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-background-50 font-medium py-2.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap text-sm flex items-center justify-center gap-2"
+                    className="w-full bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-background-50 font-medium py-2.5 rounded-lg transition-colors cursor-pointer text-sm flex items-center justify-center gap-2 min-w-0"
                   >
                     {withdrawSubmitting ? (
                       <><i className="ri-loader-4-line animate-spin" />Processing...</>
                     ) : (
-                      <><i className="ri-smartphone-line" />Withdraw to {profile.phone_number}</>
+                      <><i className="ri-smartphone-line shrink-0" /><span className="truncate">Withdraw to {profile.phone_number}</span></>
                     )}
                   </button>
                 </form>
@@ -701,20 +701,20 @@ export default function PayoutsPage() {
 
         {/* Merchant Funding Link */}
         {merchantSlug && (
-          <div className="bg-background-50 rounded-xl border border-background-200/70 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+          <div className="bg-background-50 rounded-xl border border-background-200/70 p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="w-10 h-10 shrink-0 rounded-lg bg-primary-100 flex items-center justify-center">
                   <i className="ri-link-m text-primary-600 text-lg" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-heading font-semibold text-foreground-900 text-sm">Your Funding Link</h3>
                   <p className="text-xs text-foreground-600 mt-0.5">Share this link with customers to receive payments directly into your ObPay account</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowFundingQR(!showFundingQR)}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 bg-primary-100 hover:bg-primary-200 px-3 py-1.5 rounded-full transition-colors cursor-pointer whitespace-nowrap"
+                className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 bg-primary-100 hover:bg-primary-200 px-3 py-1.5 rounded-full transition-colors cursor-pointer whitespace-nowrap"
               >
                 <i className={showFundingQR ? "ri-qr-scan-line" : "ri-qr-code-line"} />
                 {showFundingQR ? "Hide QR" : "Show QR"}
@@ -722,12 +722,12 @@ export default function PayoutsPage() {
             </div>
 
             {/* Funding Link URL + Copy */}
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4 min-w-0">
               <a
                 href={getFundingUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-xs bg-background-100 px-3 py-2 rounded-lg text-primary-600 font-mono break-all hover:bg-primary-50 hover:text-primary-700 transition-colors cursor-pointer underline underline-offset-2"
+                className="min-w-0 flex-1 text-xs bg-background-100 px-3 py-2 rounded-lg text-primary-600 font-mono break-all hover:bg-primary-50 hover:text-primary-700 transition-colors cursor-pointer underline underline-offset-2"
               >
                 {getFundingUrl()}
               </a>
@@ -742,7 +742,7 @@ export default function PayoutsPage() {
             {/* QR Code */}
             {showFundingQR && (
               <div className="flex flex-col items-center gap-3 p-4 bg-background-100 rounded-lg">
-                <div className="w-48 h-48 bg-background-50 rounded-lg border border-background-200/70 p-3 flex items-center justify-center">
+                <div className="w-40 h-40 sm:w-48 sm:h-48 max-w-full bg-background-50 rounded-lg border border-background-200/70 p-3 flex items-center justify-center">
                   <img loading="lazy" decoding="async"
                     src={getQRCodeUrl(getFundingUrl())}
                     alt="QR Code for funding link"
@@ -757,7 +757,7 @@ export default function PayoutsPage() {
                 <div className="bg-foreground-900 rounded-lg p-3 w-full max-w-xs">
                   <p className="text-[11px] text-foreground-400 mb-2 font-medium">Embed code for your website:</p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-[11px] text-primary-300 font-mono bg-foreground-800 px-3 py-2 rounded-lg break-all select-all">
+                    <code className="min-w-0 flex-1 text-[11px] text-primary-300 font-mono bg-foreground-800 px-3 py-2 rounded-lg break-all select-all">
                       {`<a href="${getFundingUrl()}">Pay with ObPay</a>`}
                     </code>
                     <button
@@ -835,7 +835,7 @@ export default function PayoutsPage() {
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-foreground-900/40" onClick={() => setShowModal(false)} />
-            <div className="relative bg-background-50 rounded-xl border border-background-200/70 p-6 w-full max-w-md shadow-lg animate-in fade-in zoom-in-95">
+            <div className="relative bg-background-50 rounded-xl border border-background-200/70 p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-lg animate-in fade-in zoom-in-95">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-heading font-semibold text-lg text-foreground-900">New Payout</h3>
                 <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-lg hover:bg-background-200 flex items-center justify-center text-foreground-400 hover:text-foreground-600 transition-colors cursor-pointer">
@@ -866,8 +866,8 @@ export default function PayoutsPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-foreground-600 mb-1">Recipient Phone *</label>
-                  <div className="flex items-center gap-2">
-                    <input type="text" value={form.phoneNumber} onChange={(e) => handlePayoutPhoneChange(e.target.value)} placeholder="e.g. +256771234567" className="flex-1 px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <input type="text" value={form.phoneNumber} onChange={(e) => handlePayoutPhoneChange(e.target.value)} placeholder="e.g. +256771234567" className="min-w-0 flex-1 px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required />
                     <button
                       type="button"
                       onClick={handleVerifyPayoutNumber}
@@ -890,7 +890,7 @@ export default function PayoutsPage() {
                     </p>
                   )}
                 </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({form.currency}) *</label><input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minPayout > 0 ? `Min ${formatCurrency(minPayout, form.currency)}` : "50000"} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required min={minPayout || 1000} max={maxPayout || undefined} />
                     {(minPayout > 0 || maxPayout > 0) && (
@@ -910,7 +910,7 @@ export default function PayoutsPage() {
                     <p className="text-[11px] text-foreground-500 mt-1">Select the payout currency</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <div><label className="block text-xs font-medium text-foreground-600 mb-1">Network</label>
                     <select value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400">
                       <option value="mtn">MTN Mobile Money</option>
