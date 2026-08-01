@@ -203,14 +203,42 @@ export const LOCAL_ACTIONS = [
   "verify-phone",
   "verify-number",
   "test-connection",
+  "server-ip",
+  "payout-preflight",
 ];
 
 export async function runObpayAction(action: string, accessToken: string, body: any) {
   const creds = readMarzCreds();
   if (!creds) return { success: false, error: "MarzPay credentials are not configured on the server." };
 
+  // The public IP MarzPay sees — this is what must be whitelisted for payouts.
+  if (action === "server-ip") {
+    return { success: true, data: { ip: await getEgressIp() } };
+  }
+
+  // Checks whether disbursements are currently allowed from this server.
+  if (action === "payout-preflight") {
+    const svc = await marzFetch(creds, "/send-money/services");
+    const bal = await marzFetch(creds, "/balance");
+    const ip = await getEgressIp();
+    if (bal.ok) {
+      return { success: true, data: { ip, disbursement_ready: true, subscribed: svc.ok, balance: bal.data?.data ?? null } };
+    }
+    return {
+      success: true,
+      data: {
+        ip,
+        disbursement_ready: false,
+        subscribed: svc.ok,
+        blocked_by_ip_whitelist: isIpWhitelistError(bal),
+        message: await friendlyProviderError(bal, "payout"),
+      },
+    };
+  }
+
   // Actions that do not need a signed-in merchant.
   if (action === "verify-phone" || action === "verify-number") {
+
     const res = await marzFetch(creds, "/phone-verification/verify", {
       method: "POST",
       body: { phone_number: normalizePhone(body?.phoneNumber, body?.currency) },
