@@ -313,13 +313,22 @@ export async function runMarzAction(action: string, payload: any) {
 let cachedIp: string | null = null;
 export async function getEgressIp(): Promise<string | null> {
   if (cachedIp) return cachedIp;
+  const ip = await probeEgressIp(!!proxyConfig());
+  if (ip) cachedIp = ip;
+  return cachedIp;
+}
+
+/** Measures the outbound IP as MarzPay sees it, optionally through the relay. */
+export async function probeEgressIp(useProxy: boolean): Promise<string | null> {
   try {
-    const resp = await fetch("https://api.ipify.org?format=json");
+    const target = "https://api.ipify.org?format=json";
+    const resp = useProxy
+      ? await proxiedFetch(target, { method: "GET", headers: { Accept: "application/json" } })
+      : await fetch(target);
     if (!resp.ok) return null;
-    const data: any = await resp.json();
-    const ip = String(data?.ip || "").trim();
-    if (/^[0-9.]+$/.test(ip)) cachedIp = ip;
-    return cachedIp;
+    const text = await resp.text();
+    const match = text.match(/\b\d{1,3}(?:\.\d{1,3}){3}\b/);
+    return match ? match[0] : null;
   } catch {
     return null;
   }
