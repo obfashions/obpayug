@@ -526,11 +526,13 @@ export async function publicCollect(body: Record<string, any>) {
   if (!res.ok) {
     await recordPayment(link.merchant_id, {
       reference,
-      link_id: link.id,
+      payment_link_id: link.id,
+      type: "collection",
+      source: "payment_link",
       amount,
       currency: link.currency,
       status: "failed",
-      customer_phone: phone,
+      phone_number: phone,
       description: link.title,
     });
     return fail(res.error || "The mobile money request could not be started. Please try again.");
@@ -540,11 +542,13 @@ export async function publicCollect(body: Record<string, any>) {
   await recordPayment(link.merchant_id, {
     reference,
     provider_reference: providerRef,
-    link_id: link.id,
+    payment_link_id: link.id,
+    type: "collection",
+    source: "payment_link",
     amount,
     currency: link.currency,
     status: "pending",
-    customer_phone: phone,
+    phone_number: phone,
     description: link.title,
   });
   await db()
@@ -594,7 +598,7 @@ export async function publicPaymentStatus(reference: string) {
         reference: ref,
         amount: record.amount,
         currency: record.currency,
-        customer_phone: record.customer_phone,
+        phone_number: record.phone_number,
       });
       return done({ status: next, reference: ref, amount: record.amount });
     }
