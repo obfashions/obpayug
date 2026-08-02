@@ -49,32 +49,40 @@ export async function resolveIdentity(accessToken: string): Promise<Identity | n
   const key = legacyKey();
   if (!token || !base || !key) return null;
 
-  try {
-    const resp = await fetch(`${base}/auth/v1/user`, {
-      headers: { apikey: key, Authorization: `Bearer ${token}` },
-    });
-    if (!resp.ok) return null;
-    const user = (await resp.json()) as { id?: string; email?: string };
-    if (!user?.id) return null;
-
-    let isAdmin = false;
+  // A blip on the account backend used to look like an expired session.
+  // Retry transient failures before giving up on the token.
+  let user: { id?: string; email?: string } | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const profResp = await fetch(
-        `${base}/rest/v1/profiles?id=eq.${user.id}&select=role`,
-        { headers: { apikey: key, Authorization: `Bearer ${token}` } },
-      );
-      if (profResp.ok) {
-        const rows = (await profResp.json()) as Array<{ role?: string }>;
-        isAdmin = rows?.[0]?.role === "admin";
+      const resp = await fetch(`${base}/auth/v1/user`, {
+        headers: { apikey: key, Authorization: `Bearer ${token}` },
+      });
+      if (resp.status === 401 || resp.status === 403) return null; // genuinely signed out
+      if (resp.ok) {
+        user = (await resp.json()) as { id?: string; email?: string };
+        break;
       }
     } catch {
-      /* role lookup is best-effort */
+      /* retry */
     }
-
-    return { userId: user.id, email: user.email || "", isAdmin };
-  } catch {
-    return null;
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 400));
   }
+  if (!user?.id) return null;
+
+  let isAdmin = false;
+  try {
+    const profResp = await fetch(`${base}/rest/v1/profiles?id=eq.${user.id}&select=role`, {
+      headers: { apikey: key, Authorization: `Bearer ${token}` },
+    });
+    if (profResp.ok) {
+      const rows = (await profResp.json()) as Array<{ role?: string }>;
+      isAdmin = rows?.[0]?.role === "admin";
+    }
+  } catch {
+    /* role lookup is best-effort */
+  }
+
+  return { userId: user.id, email: user.email || "", isAdmin };
 }
 
 export async function requireIdentity(accessToken: string): Promise<Identity> {
@@ -82,6 +90,7 @@ export async function requireIdentity(accessToken: string): Promise<Identity> {
   if (!identity) throw new Error("Please sign in again to continue.");
   return identity;
 }
+
 
 export async function requireAdmin(accessToken: string): Promise<Identity> {
   const identity = await requireIdentity(accessToken);
