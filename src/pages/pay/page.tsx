@@ -270,6 +270,13 @@ export default function PayPage() {
         edgeUnreachable = true;
       }
 
+      if (edgeUnreachable && managedLink) {
+        setPollStatus("failed");
+        setPollMessage("We could not reach the payment service. Please try again in a moment.");
+        setSubmitting(false);
+        return;
+      }
+
       if (edgeUnreachable) {
         const { error: insErr } = await supabase.from("transactions").insert({
           user_id: link?.user_id || merchant?.user_id,

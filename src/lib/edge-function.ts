@@ -40,6 +40,8 @@ export async function invokeEdgeFunction(
 // Payment actions run only on this project's server, which holds the MarzPay
 // credentials. Never fall back to the uploaded backend for these actions: that
 // endpoint still contains the retired provider integration.
+const PUBLIC_ACTIONS = new Set(["verify-phone", "verify-number", "server-ip"]);
+
 const LOCAL_ACTIONS = new Set([
   "collect",
   "payout",
@@ -63,7 +65,9 @@ export async function invokeObpay(
   if (LOCAL_ACTIONS.has(action)) {
     try {
       const { obpayServerCall } = await import("@/lib/obpay.functions");
-      const accessToken = await getAccessToken();
+      // Public actions run for signed-out payers — don't stall waiting for a
+      // session that will never arrive.
+      const accessToken = PUBLIC_ACTIONS.has(action) ? "" : await getAccessToken();
       return await obpayServerCall({ data: { action, accessToken, body } });
     } catch (error: any) {
       return {
