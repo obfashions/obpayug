@@ -61,6 +61,9 @@ export default function PayPage() {
   const [verifyError, setVerifyError] = useState("");
   const [txnStartTime, setTxnStartTime] = useState<number | null>(null);
   const [txnElapsed, setTxnElapsed] = useState<number>(0);
+  // True when the link lives in ObPay's own managed storage, which means the
+  // whole checkout (collection + status) runs on ObPay's server.
+  const [managedLink, setManagedLink] = useState(false);
 
   useEffect(() => {
     if (!slug) { setError("Invalid payment link"); setLoading(false); return; }
@@ -82,6 +85,7 @@ export default function PayPage() {
             user_id: d.merchant_id,
           });
           setMerchant({ company_name: d.title, merchant_id: d.merchant_id, user_id: d.merchant_id });
+          setManagedLink(true);
           const amountParam = searchParams.get("amount");
           if (amountParam) setAmount(parseFloat(amountParam));
           else if (Number(d.amount) > 0) setAmount(Number(d.amount));
@@ -157,7 +161,9 @@ export default function PayPage() {
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise(r => setTimeout(r, 4000));
       try {
-        const pollData = await invokeObpay({ _action: "public-check-transaction", reference: ref });
+        const pollData = managedLink
+          ? await platform<any>("public-status", { reference: ref })
+          : await invokeObpay({ _action: "public-check-transaction", reference: ref });
         if (pollData?.data?.status === "success") {
           confirmed = true;
           const elapsed = Math.round((Date.now() - start) / 1000);
@@ -180,7 +186,7 @@ export default function PayPage() {
       setPollStatus("pending");
       setPollMessage(`Payment request sent. If your mobile money was charged, the merchant will be notified once confirmed. Reference: ${ref}`);
     }
-  }, [link, amount]);
+  }, [link, amount, managedLink]);
 
   // Realtime: watch transaction status updates from webhooks
   useEffect(() => {
@@ -230,16 +236,18 @@ export default function PayPage() {
       let edgeUnreachable = false;
 
       try {
-        const apiData = await invokeObpay({
-          _action: "public-collect",
-          _merchant_slug: slug,
-          phoneNumber,
-          amount: payAmount,
-          currency: "UGX",
-          network,
-          description: link?.description || `Payment to ${merchant?.company_name || "Merchant"}`,
-          reference: ref,
-        });
+        const apiData = managedLink
+          ? await platform<any>("public-pay", { slug, phoneNumber, amount: payAmount })
+          : await invokeObpay({
+              _action: "public-collect",
+              _merchant_slug: slug,
+              phoneNumber,
+              amount: payAmount,
+              currency: "UGX",
+              network,
+              description: link?.description || `Payment to ${merchant?.company_name || "Merchant"}`,
+              reference: ref,
+            });
 
         if (apiData?.success) {
           const edgeTxnRef = apiData?.data?.reference || ref;
@@ -260,6 +268,13 @@ export default function PayPage() {
         edgeUnreachable = true;
       } catch {
         edgeUnreachable = true;
+      }
+
+      if (edgeUnreachable && managedLink) {
+        setPollStatus("failed");
+        setPollMessage("We could not reach the payment service. Please try again in a moment.");
+        setSubmitting(false);
+        return;
       }
 
       if (edgeUnreachable) {
@@ -300,7 +315,9 @@ export default function PayPage() {
     setPollStatus("polling");
     setPollMessage("Checking payment status with ObPay...");
     try {
-      const pollData = await invokeObpay({ _action: "public-check-transaction", reference: txnRef });
+      const pollData = managedLink
+        ? await platform<any>("public-status", { reference: txnRef })
+        : await invokeObpay({ _action: "public-check-transaction", reference: txnRef });
       if (pollData?.data?.status === "success") {
         setPollStatus("success");
         setPollMessage(`Payment confirmed! ${formatCurrency(link?.amount || amount)} was successful.`);

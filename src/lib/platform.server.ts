@@ -186,13 +186,13 @@ export async function deletePaymentLink(id: Identity, linkId: string) {
 export async function publicPaymentLink(slug: string) {
   const { data, error } = await db()
     .from("payment_links")
-    .select("id, merchant_id, slug, title, description, amount, currency, fixed_amount, redirect_url, status")
+    .select("id, merchant_id, slug, title, description, amount, currency, fixed_amount, redirect_url, status, views")
     .eq("slug", String(slug || "").trim())
     .maybeSingle();
   if (error) return fail(error.message);
   if (!data) return fail("This payment link does not exist.");
   if (data.status !== "active") return fail("This payment link is no longer accepting payments.");
-  await db().from("payment_links").update({ views: (data as any).views ?? 0 }).eq("id", data.id);
+  await db().from("payment_links").update({ views: ((data as any).views ?? 0) + 1 }).eq("id", data.id);
   return done(data);
 }
 
@@ -478,6 +478,136 @@ export async function listPayments(id: Identity, limit = 100) {
   return done(data ?? []);
 }
 
+// ─── public hosted checkout ───────────────────────────────────
+// A payer is not signed in, so these run without a merchant session. The
+// payment link itself identifies the merchant. Collections go straight to
+// MarzPay from this server, and the result is stored in ObPay's own records —
+// nothing here touches the merchant account backend.
+
+function marzCountry(currency: string): string {
+  const c = String(currency || "UGX").toUpperCase();
+  if (c === "KES") return "kenya";
+  if (c === "TZS") return "tanzania";
+  return "uganda";
+}
+
+export async function publicCollect(body: Record<string, any>) {
+  const { readMarzCreds, marzFetch, normalizePhone } = await import("./marz.server");
+  const creds = readMarzCreds();
+  if (!creds) return fail("Payments are temporarily unavailable. Please try again shortly.");
+
+  const slug = String(body.slug || "").trim();
+  const { data: link } = await db()
+    .from("payment_links")
+    .select("id, merchant_id, title, description, amount, currency, fixed_amount, status, payments_count")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!link) return fail("This payment link does not exist.");
+  if (link.status !== "active") return fail("This payment link is no longer accepting payments.");
+
+  const amount = Number(link.fixed_amount && link.amount != null ? link.amount : body.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return fail("Enter a valid amount to pay.");
+  const phone = normalizePhone(body.phoneNumber, link.currency);
+  if (!phone) return fail("Enter the mobile money number that will pay.");
+
+  const reference = `OBP${Date.now().toString(36).toUpperCase()}${randomToken(4).toUpperCase()}`;
+  const res = await marzFetch(creds, "/collect-money", {
+    method: "POST",
+    body: {
+      amount: Math.round(amount),
+      phone_number: phone,
+      method: "mobile_money",
+      country: marzCountry(link.currency),
+      reference,
+      description: String(link.description || link.title || "ObPay payment").slice(0, 255),
+    },
+  });
+
+  if (!res.ok) {
+    await recordPayment(link.merchant_id, {
+      reference,
+      payment_link_id: link.id,
+      type: "collection",
+      source: "payment_link",
+      amount,
+      currency: link.currency,
+      status: "failed",
+      phone_number: phone,
+      description: link.title,
+    });
+    return fail(res.error || "The mobile money request could not be started. Please try again.");
+  }
+
+  const providerRef = res.data?.data?.transaction?.reference || reference;
+  await recordPayment(link.merchant_id, {
+    reference,
+    provider_reference: providerRef,
+    payment_link_id: link.id,
+    type: "collection",
+    source: "payment_link",
+    amount,
+    currency: link.currency,
+    status: "pending",
+    phone_number: phone,
+    description: link.title,
+  });
+  await db()
+    .from("payment_links")
+    .update({ payments_count: (link.payments_count ?? 0) + 1 })
+    .eq("id", link.id);
+
+  return done({
+    reference,
+    provider_reference: providerRef,
+    amount,
+    currency: link.currency,
+    status: "pending",
+    message: "Approve the prompt on your phone to complete the payment.",
+  });
+}
+
+export async function publicPaymentStatus(reference: string) {
+  const ref = String(reference || "").trim();
+  if (!ref) return fail("Missing payment reference.");
+  const { data: record } = await db()
+    .from("payment_records")
+    .select("*")
+    .eq("reference", ref)
+    .maybeSingle();
+  if (!record) return fail("We could not find that payment.");
+  if (record.status !== "pending") return done({ status: record.status, reference: ref, amount: record.amount });
+
+  const { readMarzCreds, marzFetch } = await import("./marz.server");
+  const creds = readMarzCreds();
+  if (creds) {
+    const lookupRef = record.provider_reference || ref;
+    const res = await marzFetch(creds, `/transactions/${encodeURIComponent(lookupRef)}`);
+    const raw = String(res.data?.data?.transaction?.status || "").toLowerCase();
+    const next =
+      ["success", "successful", "completed", "complete"].includes(raw)
+        ? "success"
+        : ["failed", "cancelled", "canceled", "rejected", "expired"].includes(raw)
+          ? "failed"
+          : null;
+    if (next) {
+      await db()
+        .from("payment_records")
+        .update({ status: next, updated_at: new Date().toISOString() })
+        .eq("reference", ref);
+      await dispatchWebhook(record.merchant_id, next === "success" ? "collection.success" : "collection.failed", {
+        reference: ref,
+        amount: record.amount,
+        currency: record.currency,
+        phone_number: record.phone_number,
+      });
+      return done({ status: next, reference: ref, amount: record.amount });
+    }
+  }
+
+  return done({ status: "pending", reference: ref, amount: record.amount });
+}
+
+
 // ─── action router ────────────────────────────────────────────
 
 export async function runPlatformAction(
@@ -488,6 +618,9 @@ export async function runPlatformAction(
   try {
     // Public actions need no session.
     if (action === "public-link") return await publicPaymentLink(body.slug);
+    if (action === "public-pay") return await publicCollect(body);
+    if (action === "public-status") return await publicPaymentStatus(body.reference);
+
 
     const id =
       action.startsWith("admin-")
