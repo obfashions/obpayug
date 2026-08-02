@@ -186,13 +186,13 @@ export async function deletePaymentLink(id: Identity, linkId: string) {
 export async function publicPaymentLink(slug: string) {
   const { data, error } = await db()
     .from("payment_links")
-    .select("id, merchant_id, slug, title, description, amount, currency, fixed_amount, redirect_url, status")
+    .select("id, merchant_id, slug, title, description, amount, currency, fixed_amount, redirect_url, status, views")
     .eq("slug", String(slug || "").trim())
     .maybeSingle();
   if (error) return fail(error.message);
   if (!data) return fail("This payment link does not exist.");
   if (data.status !== "active") return fail("This payment link is no longer accepting payments.");
-  await db().from("payment_links").update({ views: (data as any).views ?? 0 }).eq("id", data.id);
+  await db().from("payment_links").update({ views: ((data as any).views ?? 0) + 1 }).eq("id", data.id);
   return done(data);
 }
 
