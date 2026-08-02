@@ -614,6 +614,9 @@ export async function runPlatformAction(
   try {
     // Public actions need no session.
     if (action === "public-link") return await publicPaymentLink(body.slug);
+    if (action === "public-pay") return await publicCollect(body);
+    if (action === "public-status") return await publicPaymentStatus(body.reference);
+
 
     const id =
       action.startsWith("admin-")
