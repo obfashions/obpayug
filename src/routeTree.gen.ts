@@ -49,6 +49,7 @@ import { Route as DashboardWebhookTestRouteImport } from './routes/dashboard.web
 import { Route as DashboardWebhooksRouteImport } from './routes/dashboard.webhooks'
 import { Route as PaySlugRouteImport } from './routes/pay.$slug'
 import { Route as ApiPublicEgressIpRouteImport } from './routes/api/public/egress-ip'
+import { Route as ApiPublicPlatformHealthRouteImport } from './routes/api/public/platform-health'
 import { Route as FunctionsV1SplatRouteImport } from './routes/functions.v1.$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -252,6 +253,11 @@ const ApiPublicEgressIpRoute = ApiPublicEgressIpRouteImport.update({
   path: '/api/public/egress-ip',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPlatformHealthRoute = ApiPublicPlatformHealthRouteImport.update({
+  id: '/api/public/platform-health',
+  path: '/api/public/platform-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FunctionsV1SplatRoute = FunctionsV1SplatRouteImport.update({
   id: '/functions/v1/$',
   path: '/functions/v1/$',
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
+  '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRoutesByTo {
@@ -342,6 +349,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
+  '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRoutesById {
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
+  '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
 }
 export interface FileRouteTypes {
@@ -431,6 +440,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/api/public/egress-ip'
+    | '/api/public/platform-health'
     | '/functions/v1/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/api/public/egress-ip'
+    | '/api/public/platform-health'
     | '/functions/v1/$'
   id:
     | '__root__'
@@ -517,6 +528,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/api/public/egress-ip'
+    | '/api/public/platform-health'
     | '/functions/v1/$'
   fileRoutesById: FileRoutesById
 }
@@ -561,6 +573,7 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiPublicEgressIpRoute: typeof ApiPublicEgressIpRoute
+  ApiPublicPlatformHealthRoute: typeof ApiPublicPlatformHealthRoute
   FunctionsV1SplatRoute: typeof FunctionsV1SplatRoute
 }
 
@@ -846,6 +859,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEgressIpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/platform-health': {
+      id: '/api/public/platform-health'
+      path: '/api/public/platform-health'
+      fullPath: '/api/public/platform-health'
+      preLoaderRoute: typeof ApiPublicPlatformHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/functions/v1/$': {
       id: '/functions/v1/$'
       path: '/functions/v1/$'
@@ -897,6 +917,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ApiPublicEgressIpRoute: ApiPublicEgressIpRoute,
+  ApiPublicPlatformHealthRoute: ApiPublicPlatformHealthRoute,
   FunctionsV1SplatRoute: FunctionsV1SplatRoute,
 }
 export const routeTree = rootRouteImport
