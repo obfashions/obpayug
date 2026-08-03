@@ -147,7 +147,7 @@ function RootShell({ children }: { children: ReactNode }) {
             unstyled text). Must stay ahead of <HeadContent /> and must not be
             moved into the route head() links, where React hoists it as a
             non-blocking precedence stylesheet. */}
-        <link rel="stylesheet" href={appCss} />
+        {import.meta.env.DEV ? null : <link rel="stylesheet" href={appCss} />}
         <style
           dangerouslySetInnerHTML={{
             __html:
