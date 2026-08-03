@@ -143,11 +143,9 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
-        {/* Render-blocking so the first paint is already styled (no flash of
-            unstyled text). Must stay ahead of <HeadContent /> and must not be
-            moved into the route head() links, where React hoists it as a
-            non-blocking precedence stylesheet. */}
-        {import.meta.env.DEV ? null : <link rel="stylesheet" href={appCss} />}
+        {/* Minimal base styles only. The app stylesheet is injected by the
+            bundler via the side-effect import above — rendering an extra
+            <link> here caused a server/client hydration mismatch. */}
         <style
           dangerouslySetInnerHTML={{
             __html:
@@ -155,6 +153,7 @@ function RootShell({ children }: { children: ReactNode }) {
           }}
         />
         <HeadContent />
+
       </head>
       <body>
         {children}
