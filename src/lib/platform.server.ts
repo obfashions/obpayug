@@ -417,7 +417,12 @@ function decodeDataUrl(dataUrl: string): { bytes: Uint8Array; contentType: strin
 export async function uploadKycDocument(id: Identity, body: Record<string, any>) {
   const decoded = decodeDataUrl(body.file_data);
   if (!decoded) return fail("That file could not be read. Try another photo.");
+  const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "application/pdf"];
+  if (!ALLOWED.includes(decoded.contentType.toLowerCase())) {
+    return fail("Upload a JPG, PNG, WEBP or PDF document.");
+  }
   if (decoded.bytes.length > 8 * 1024 * 1024) return fail("Each document must be under 8 MB.");
+
 
   const docType = String(body.doc_type || "document");
   const ext = decoded.contentType.includes("pdf") ? "pdf" : decoded.contentType.split("/")[1] || "jpg";
