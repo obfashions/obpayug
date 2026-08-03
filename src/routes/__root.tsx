@@ -140,6 +140,17 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {/* Render-blocking so the first paint is already styled (no flash of
+            unstyled text). Must stay ahead of <HeadContent /> and must not be
+            moved into the route head() links, where React hoists it as a
+            non-blocking precedence stylesheet. */}
+        <link rel="stylesheet" href={appCss} />
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              "html{-webkit-text-size-adjust:100%}body{margin:0;background:#ffffff;color:#0f172a;font-family:Inter,'Plus Jakarta Sans',system-ui,-apple-system,sans-serif}",
+          }}
+        />
         <HeadContent />
       </head>
       <body>
@@ -149,6 +160,7 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
+
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
