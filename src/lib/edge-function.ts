@@ -40,7 +40,21 @@ export async function invokeEdgeFunction(
 // Payment actions run only on this project's server, which holds the MarzPay
 // credentials. Never fall back to the uploaded backend for these actions: that
 // endpoint still contains the retired provider integration.
-const PUBLIC_ACTIONS = new Set(["verify-phone", "verify-number", "server-ip"]);
+const PUBLIC_ACTIONS = new Set([
+  "verify-phone",
+  "verify-number",
+  "server-ip",
+  "svc-list",
+  "bank-banks",
+  "bank-services",
+  "bank-validate",
+  "bill-services",
+  "bill-areas",
+  "bill-bouquets",
+  "bill-verify",
+  "airtime-catalog",
+  "airtime-detect",
+]);
 
 const LOCAL_ACTIONS = new Set([
   "collect",
@@ -54,7 +68,26 @@ const LOCAL_ACTIONS = new Set([
   "test-connection",
   "server-ip",
   "payout-preflight",
+  // MarzPay service catalog
+  "svc-list",
+  "bank-banks",
+  "bank-services",
+  "bank-validate",
+  "bank-transfer",
+  "bank-status",
+  "bill-services",
+  "bill-areas",
+  "bill-bouquets",
+  "bill-verify",
+  "bill-pay",
+  "bill-status",
+  "airtime-catalog",
+  "airtime-detect",
+  "airtime-purchase",
+  "airtime-status",
+  "airtime-list",
 ]);
+
 
 export async function invokeObpay(
   body: Record<string, unknown>,
