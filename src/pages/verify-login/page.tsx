@@ -17,6 +17,10 @@ export default function VerifyLogin() {
   const [error, setError] = useState("");
   const [sendingCode, setSendingCode] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
+  // True when the code was emailed by the account service instead of the
+  // legacy mailer — verification then goes through the auth OTP endpoint.
+  const [otpMode, setOtpMode] = useState(false);
+
   const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const codeSentRef = useRef(false);
