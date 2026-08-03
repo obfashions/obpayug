@@ -9,6 +9,9 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+// Side-effect import registers the stylesheet with the dev/SSR style collector
+// so the very first paint is styled; ?url gives the hashed href for prod.
+import "../styles.css";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nextProvider } from "react-i18next";
