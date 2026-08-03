@@ -11,9 +11,8 @@ const db = () => supabaseAdmin as any;
 
 function marzCountry(currency: string): string {
   const c = String(currency || "UGX").toUpperCase();
-  if (c === "KES") return "kenya";
-  if (c === "TZS") return "tanzania";
-  return "uganda";
+  const map: Record<string, string> = { UGX: "UG", KES: "KE", TZS: "TZ", GHS: "GH", XAF: "CM" };
+  return map[c] || "UG";
 }
 
 export async function apiCollect(merchantId: string, body: Record<string, any>) {
@@ -44,6 +43,8 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
   }
 
 
+  // MarzPay requires a UUID reference; keep the merchant's reference locally.
+  const marzRef = crypto.randomUUID();
   const res = await marzFetch(creds, "/collect-money", {
     method: "POST",
     body: {
@@ -51,7 +52,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
       phone_number: phone,
       method: "mobile_money",
       country: marzCountry(currency),
-      reference,
+      reference: marzRef,
       description: String(body.description || "ObPay collection").slice(0, 255),
     },
   });
@@ -70,7 +71,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
     return { success: false, error: res.error || "The collection could not be started." };
   }
 
-  const providerRef = res.data?.data?.transaction?.reference || reference;
+  const providerRef = res.data?.data?.transaction?.reference || marzRef;
   await recordPayment(merchantId, {
     reference,
     provider_reference: providerRef,
