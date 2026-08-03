@@ -71,7 +71,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
     return { success: false, error: res.error || "The collection could not be started." };
   }
 
-  const providerRef = res.data?.data?.transaction?.reference || reference;
+  const providerRef = res.data?.data?.transaction?.reference || marzRef;
   await recordPayment(merchantId, {
     reference,
     provider_reference: providerRef,
