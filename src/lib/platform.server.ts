@@ -607,12 +607,17 @@ export async function publicCollect(body: Record<string, any>) {
 export async function publicPaymentStatus(reference: string) {
   const ref = String(reference || "").trim();
   if (!ref) return fail("Missing payment reference.");
+  // Unauthenticated endpoint: only hosted-checkout payments (whose references
+  // are server-generated and unguessable) may be looked up here. API-created
+  // records use merchant-chosen references and stay behind the merchant API.
   const { data: record } = await db()
     .from("payment_records")
     .select("*")
     .eq("reference", ref)
+    .eq("source", "payment_link")
     .maybeSingle();
   if (!record) return fail("We could not find that payment.");
+
   if (record.status !== "pending") return done({ status: record.status, reference: ref, amount: record.amount });
 
   const { readMarzCreds, marzFetch } = await import("./marz.server");
