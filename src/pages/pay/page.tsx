@@ -120,8 +120,14 @@ export default function PayPage() {
             setError("This payment link has expired.");
           }
         } else {
-          setError(lookupData?.error || "Payment link not found or is no longer active.");
+          const raw = String(lookupData?.error || "");
+          setError(
+            /suspend|approval|pending/i.test(raw)
+              ? "This payment link is no longer available. Please ask the merchant for an up-to-date link."
+              : raw || "Payment link not found or is no longer active.",
+          );
         }
+
       } catch (err: any) {
         setError(err.message || "Unable to load payment page. Please check your connection and try again.");
       } finally {
