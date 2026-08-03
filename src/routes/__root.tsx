@@ -9,6 +9,9 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+// Side-effect import registers the stylesheet with the dev/SSR style collector
+// so the very first paint is styled; ?url gives the hashed href for prod.
+import "../styles.css";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nextProvider } from "react-i18next";
@@ -106,7 +109,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
-      { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/favicon.png" },
 
@@ -141,6 +143,17 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {/* Render-blocking so the first paint is already styled (no flash of
+            unstyled text). Must stay ahead of <HeadContent /> and must not be
+            moved into the route head() links, where React hoists it as a
+            non-blocking precedence stylesheet. */}
+        {import.meta.env.DEV ? null : <link rel="stylesheet" href={appCss} />}
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              "html{-webkit-text-size-adjust:100%}body{margin:0;background:#ffffff;color:#0f172a;font-family:Inter,'Plus Jakarta Sans',system-ui,-apple-system,sans-serif}",
+          }}
+        />
         <HeadContent />
       </head>
       <body>
@@ -150,6 +163,7 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
+
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
