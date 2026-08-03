@@ -548,6 +548,9 @@ export async function publicCollect(body: Record<string, any>) {
   if (!phone) return fail("Enter the mobile money number that will pay.");
 
   const reference = `OBP${Date.now().toString(36).toUpperCase()}${randomToken(4).toUpperCase()}`;
+  // MarzPay requires the provider reference to be a UUID; we keep our own
+  // human-readable reference locally and map it via provider_reference.
+  const marzRef = crypto.randomUUID();
   const res = await marzFetch(creds, "/collect-money", {
     method: "POST",
     body: {
@@ -555,7 +558,7 @@ export async function publicCollect(body: Record<string, any>) {
       phone_number: phone,
       method: "mobile_money",
       country: marzCountry(link.currency),
-      reference,
+      reference: marzRef,
       description: String(link.description || link.title || "ObPay payment").slice(0, 255),
     },
   });
