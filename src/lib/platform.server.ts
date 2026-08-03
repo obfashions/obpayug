@@ -208,9 +208,35 @@ export async function listWebhooks(id: Identity) {
   return done(data ?? []);
 }
 
+/**
+ * Webhook URLs are merchant-supplied and this server calls them, so they must
+ * be public HTTPS hosts — otherwise an endpoint could be pointed at internal
+ * infrastructure (SSRF).
+ */
+export function isSafeWebhookUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return false;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    const [a, b] = host.split(".").map(Number) as [number, number];
+    if (a === 10 || a === 127 || a === 0 || a === 169) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+  }
+  if (host.includes(":")) return false; // raw IPv6 literal
+  return true;
+}
+
 export async function createWebhook(id: Identity, body: Record<string, any>) {
   const url = String(body.url || "").trim();
-  if (!/^https:\/\/.+/i.test(url)) return fail("The endpoint URL must start with https://");
+  if (!isSafeWebhookUrl(url)) return fail("The endpoint URL must be a public https:// address.");
+
   const events: string[] = Array.isArray(body.events) && body.events.length
     ? body.events.map(String)
     : ["collection.success", "collection.failed", "payout.success", "payout.failed"];
