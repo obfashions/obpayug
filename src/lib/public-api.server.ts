@@ -43,6 +43,8 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
   }
 
 
+  // MarzPay requires a UUID reference; keep the merchant's reference locally.
+  const marzRef = crypto.randomUUID();
   const res = await marzFetch(creds, "/collect-money", {
     method: "POST",
     body: {
@@ -50,7 +52,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
       phone_number: phone,
       method: "mobile_money",
       country: marzCountry(currency),
-      reference,
+      reference: marzRef,
       description: String(body.description || "ObPay collection").slice(0, 255),
     },
   });
