@@ -25,6 +25,24 @@ function secretFrom(request: Request): string {
   return header.replace(/^Bearer\s+/i, "").trim();
 }
 
+// Lightweight per-key throttle so a leaked or looping key cannot hammer the
+// payment provider. Best-effort (per server instance), not a billing control.
+const RATE_LIMIT = 90; // requests
+const RATE_WINDOW_MS = 60_000;
+const hits = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimited(key: string): boolean {
+  const now = Date.now();
+  const entry = hits.get(key);
+  if (!entry || now > entry.resetAt) {
+    hits.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    if (hits.size > 5000) for (const [k, v] of hits) if (now > v.resetAt) hits.delete(k);
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > RATE_LIMIT;
+}
+
 async function handle(request: Request, params: Record<string, string>) {
   const path = String((params as any)._splat || "").replace(/^\/+|\/+$/g, "");
   const { merchantForSecret, apiCollect, apiTransaction, apiPayments } = await import(
@@ -33,6 +51,10 @@ async function handle(request: Request, params: Record<string, string>) {
 
   const merchantId = await merchantForSecret(secretFrom(request));
   if (!merchantId) return json({ success: false, error: "Invalid or missing API secret key." }, 401);
+  if (rateLimited(merchantId)) {
+    return json({ success: false, error: "Too many requests. Try again in a minute." }, 429);
+  }
+
 
   let body: Record<string, any> = {};
   if (request.method === "POST") {
