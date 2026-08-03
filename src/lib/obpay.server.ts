@@ -7,6 +7,8 @@
 // row level security still applies exactly as it would in the browser.
 
 import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp, proxyConfig } from "./marz.server";
+import { runMarzServiceAction, MARZ_SERVICE_ACTIONS, MARZ_PUBLIC_SERVICE_ACTIONS } from "./marz-services.server";
+
 
 const SUPA_URL = () =>
   (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -208,11 +210,24 @@ export const LOCAL_ACTIONS = [
   "test-connection",
   "server-ip",
   "payout-preflight",
+  ...MARZ_SERVICE_ACTIONS,
 ];
 
 export async function runObpayAction(action: string, accessToken: string, body: any) {
   const creds = readMarzCreds();
   if (!creds) return { success: false, error: "MarzPay credentials are not configured on the server." };
+
+  // MarzPay service catalog (bank transfer, bills, airtime & data).
+  if (MARZ_SERVICE_ACTIONS.includes(action)) {
+    if (MARZ_PUBLIC_SERVICE_ACTIONS.includes(action)) {
+      return runMarzServiceAction(action, accessToken, null, body);
+    }
+    const svcUserId = await verifySupabaseUser(accessToken);
+    if (!svcUserId) return { success: false, error: "Please sign in again to continue." };
+    return runMarzServiceAction(action, accessToken, svcUserId, body);
+  }
+
+
 
   // The public IP MarzPay sees — this is what must be whitelisted for payouts.
   if (action === "server-ip") {
