@@ -7,6 +7,8 @@
 // row level security still applies exactly as it would in the browser.
 
 import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp, proxyConfig } from "./marz.server";
+import { runMarzServiceAction, MARZ_SERVICE_ACTIONS, MARZ_PUBLIC_SERVICE_ACTIONS } from "./marz-services.server";
+
 
 const SUPA_URL = () =>
   (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
