@@ -578,7 +578,7 @@ export async function publicCollect(body: Record<string, any>) {
     return fail(res.error || "The mobile money request could not be started. Please try again.");
   }
 
-  const providerRef = res.data?.data?.transaction?.reference || reference;
+  const providerRef = res.data?.data?.transaction?.reference || marzRef;
   await recordPayment(link.merchant_id, {
     reference,
     provider_reference: providerRef,
