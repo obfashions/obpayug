@@ -110,12 +110,12 @@ export default function DocsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
         <aside className="lg:sticky lg:top-24 h-max">
-          <div className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0">
+          <div className="flex flex-wrap lg:flex-col gap-2">
             {sections.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setActive(s.id)}
-                className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${
+                className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-xs sm:text-sm cursor-pointer transition-colors ${
                   active === s.id
                     ? "bg-primary-600 text-white"
                     : "bg-white text-foreground-600 hover:bg-background-100 border border-background-200"
@@ -127,6 +127,7 @@ export default function DocsPage() {
             ))}
           </div>
         </aside>
+
 
         <main className="bg-white rounded-2xl border border-background-200 p-5 sm:p-8 min-w-0">
           {active === "overview" && (
