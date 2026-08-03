@@ -88,6 +88,11 @@ export default function VerifyLogin() {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  /**
+   * Sends the 6-digit login code. The mailer function on the old backend is
+   * unreliable, so if it fails we fall back to the account service's own
+   * one-time-code email, which always works.
+   */
   const sendCode = async () => {
     if (!user?.id || !email) return;
     setSendingCode(true);
@@ -98,18 +103,33 @@ export default function VerifyLogin() {
         body: { user_id: user.id, email, type: "login" },
       });
 
-      if (fnError || !data?.success) {
-        setError(friendlyError(data?.error || fnError?.message, "We couldn't send the verification code right now. Please try again."));
-      } else {
+      if (!fnError && data?.success) {
+        setOtpMode(false);
         setCodeSent(true);
         setResendCooldown(60);
+        return;
       }
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+
+      if (otpError) {
+        setError(friendlyError(otpError.message || data?.error || fnError?.message, "We couldn't send the verification code right now. Please try again."));
+        return;
+      }
+
+      setOtpMode(true);
+      setCodeSent(true);
+      setResendCooldown(60);
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
       setSendingCode(false);
     }
   };
+
 
   const handleCodeChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
