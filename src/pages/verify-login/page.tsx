@@ -185,18 +185,33 @@ export default function VerifyLogin() {
     setError("");
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("verify-code", {
-        body: { user_id: user.id, email, type: "login", code: fullCode },
-      });
+      if (otpMode) {
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          email,
+          token: fullCode,
+          type: "email",
+        });
+        if (otpError) {
+          setError(friendlyError(otpError.message, "That code didn't work. Please check it and try again."));
+          setSubmitting(false);
+          return;
+        }
+        await supabase.from("profiles").update({ login_verified_at: new Date().toISOString() }).eq("id", user.id);
+      } else {
+        const { data, error: fnError } = await supabase.functions.invoke("verify-code", {
+          body: { user_id: user.id, email, type: "login", code: fullCode },
+        });
 
-      if (fnError || !data?.success) {
-        setError(friendlyError(data?.error || fnError?.message, "That code didn't work. Please check it and try again."));
-        setSubmitting(false);
-        return;
+        if (fnError || !data?.success) {
+          setError(friendlyError(data?.error || fnError?.message, "That code didn't work. Please check it and try again."));
+          setSubmitting(false);
+          return;
+        }
       }
 
       // Refresh profile so AuthContext picks up login_verified_at
       await refreshProfile();
+
 
       // Determine redirect
       const { data: profileData } = await supabase
