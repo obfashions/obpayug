@@ -34,8 +34,11 @@ import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminTransactionLookupRouteImport } from './routes/admin.transaction-lookup'
 import { Route as AdminTransactionsRouteImport } from './routes/admin.transactions'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardAirtimeDataRouteImport } from './routes/dashboard.airtime-data'
 import { Route as DashboardApiKeysRouteImport } from './routes/dashboard.api-keys'
 import { Route as DashboardApiSandboxRouteImport } from './routes/dashboard.api-sandbox'
+import { Route as DashboardBankTransferRouteImport } from './routes/dashboard.bank-transfer'
+import { Route as DashboardBillPaymentsRouteImport } from './routes/dashboard.bill-payments'
 import { Route as DashboardCollectionsRouteImport } from './routes/dashboard.collections'
 import { Route as DashboardCompanyDocumentsRouteImport } from './routes/dashboard.company-documents'
 import { Route as DashboardKycRouteImport } from './routes/dashboard.kyc'
@@ -43,6 +46,7 @@ import { Route as DashboardLoansRouteImport } from './routes/dashboard.loans'
 import { Route as DashboardPaymentLinksRouteImport } from './routes/dashboard.payment-links'
 import { Route as DashboardPayoutsRouteImport } from './routes/dashboard.payouts'
 import { Route as DashboardReportsRouteImport } from './routes/dashboard.reports'
+import { Route as DashboardServicesRouteImport } from './routes/dashboard.services'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardTransactionsRouteImport } from './routes/dashboard.transactions'
 import { Route as DashboardWebhookTestRouteImport } from './routes/dashboard.webhook-test'
@@ -178,6 +182,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardAirtimeDataRoute = DashboardAirtimeDataRouteImport.update({
+  id: '/dashboard/airtime-data',
+  path: '/dashboard/airtime-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardApiKeysRoute = DashboardApiKeysRouteImport.update({
   id: '/dashboard/api-keys',
   path: '/dashboard/api-keys',
@@ -186,6 +195,16 @@ const DashboardApiKeysRoute = DashboardApiKeysRouteImport.update({
 const DashboardApiSandboxRoute = DashboardApiSandboxRouteImport.update({
   id: '/dashboard/api-sandbox',
   path: '/dashboard/api-sandbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardBankTransferRoute = DashboardBankTransferRouteImport.update({
+  id: '/dashboard/bank-transfer',
+  path: '/dashboard/bank-transfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardBillPaymentsRoute = DashboardBillPaymentsRouteImport.update({
+  id: '/dashboard/bill-payments',
+  path: '/dashboard/bill-payments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardCollectionsRoute = DashboardCollectionsRouteImport.update({
@@ -222,6 +241,11 @@ const DashboardPayoutsRoute = DashboardPayoutsRouteImport.update({
 const DashboardReportsRoute = DashboardReportsRouteImport.update({
   id: '/dashboard/reports',
   path: '/dashboard/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardServicesRoute = DashboardServicesRouteImport.update({
+  id: '/dashboard/services',
+  path: '/dashboard/services',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
@@ -294,8 +318,11 @@ export interface FileRoutesByFullPath {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/airtime-data': typeof DashboardAirtimeDataRoute
   '/dashboard/api-keys': typeof DashboardApiKeysRoute
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
+  '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
+  '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/kyc': typeof DashboardKycRoute
@@ -303,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
   '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
@@ -339,8 +367,11 @@ export interface FileRoutesByTo {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/airtime-data': typeof DashboardAirtimeDataRoute
   '/dashboard/api-keys': typeof DashboardApiKeysRoute
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
+  '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
+  '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/kyc': typeof DashboardKycRoute
@@ -348,6 +379,7 @@ export interface FileRoutesByTo {
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
   '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
@@ -385,8 +417,11 @@ export interface FileRoutesById {
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/airtime-data': typeof DashboardAirtimeDataRoute
   '/dashboard/api-keys': typeof DashboardApiKeysRoute
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
+  '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
+  '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/kyc': typeof DashboardKycRoute
@@ -394,6 +429,7 @@ export interface FileRoutesById {
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
   '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
@@ -432,8 +468,11 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/transaction-lookup'
     | '/admin/transactions'
+    | '/dashboard/airtime-data'
     | '/dashboard/api-keys'
     | '/dashboard/api-sandbox'
+    | '/dashboard/bank-transfer'
+    | '/dashboard/bill-payments'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/kyc'
@@ -441,6 +480,7 @@ export interface FileRouteTypes {
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/reports'
+    | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
     | '/dashboard/webhook-test'
@@ -477,8 +517,11 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/transaction-lookup'
     | '/admin/transactions'
+    | '/dashboard/airtime-data'
     | '/dashboard/api-keys'
     | '/dashboard/api-sandbox'
+    | '/dashboard/bank-transfer'
+    | '/dashboard/bill-payments'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/kyc'
@@ -486,6 +529,7 @@ export interface FileRouteTypes {
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/reports'
+    | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
     | '/dashboard/webhook-test'
@@ -522,8 +566,11 @@ export interface FileRouteTypes {
     | '/admin/tickets'
     | '/admin/transaction-lookup'
     | '/admin/transactions'
+    | '/dashboard/airtime-data'
     | '/dashboard/api-keys'
     | '/dashboard/api-sandbox'
+    | '/dashboard/bank-transfer'
+    | '/dashboard/bill-payments'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/kyc'
@@ -531,6 +578,7 @@ export interface FileRouteTypes {
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/reports'
+    | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
     | '/dashboard/webhook-test'
@@ -568,8 +616,11 @@ export interface RootRouteChildren {
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTransactionLookupRoute: typeof AdminTransactionLookupRoute
   AdminTransactionsRoute: typeof AdminTransactionsRoute
+  DashboardAirtimeDataRoute: typeof DashboardAirtimeDataRoute
   DashboardApiKeysRoute: typeof DashboardApiKeysRoute
   DashboardApiSandboxRoute: typeof DashboardApiSandboxRoute
+  DashboardBankTransferRoute: typeof DashboardBankTransferRoute
+  DashboardBillPaymentsRoute: typeof DashboardBillPaymentsRoute
   DashboardCollectionsRoute: typeof DashboardCollectionsRoute
   DashboardCompanyDocumentsRoute: typeof DashboardCompanyDocumentsRoute
   DashboardKycRoute: typeof DashboardKycRoute
@@ -577,6 +628,7 @@ export interface RootRouteChildren {
   DashboardPaymentLinksRoute: typeof DashboardPaymentLinksRoute
   DashboardPayoutsRoute: typeof DashboardPayoutsRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
+  DashboardServicesRoute: typeof DashboardServicesRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardTransactionsRoute: typeof DashboardTransactionsRoute
   DashboardWebhookTestRoute: typeof DashboardWebhookTestRoute
@@ -767,6 +819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/airtime-data': {
+      id: '/dashboard/airtime-data'
+      path: '/dashboard/airtime-data'
+      fullPath: '/dashboard/airtime-data'
+      preLoaderRoute: typeof DashboardAirtimeDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/api-keys': {
       id: '/dashboard/api-keys'
       path: '/dashboard/api-keys'
@@ -779,6 +838,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/api-sandbox'
       fullPath: '/dashboard/api-sandbox'
       preLoaderRoute: typeof DashboardApiSandboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/bank-transfer': {
+      id: '/dashboard/bank-transfer'
+      path: '/dashboard/bank-transfer'
+      fullPath: '/dashboard/bank-transfer'
+      preLoaderRoute: typeof DashboardBankTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/bill-payments': {
+      id: '/dashboard/bill-payments'
+      path: '/dashboard/bill-payments'
+      fullPath: '/dashboard/bill-payments'
+      preLoaderRoute: typeof DashboardBillPaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/collections': {
@@ -828,6 +901,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/reports'
       fullPath: '/dashboard/reports'
       preLoaderRoute: typeof DashboardReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/services': {
+      id: '/dashboard/services'
+      path: '/dashboard/services'
+      fullPath: '/dashboard/services'
+      preLoaderRoute: typeof DashboardServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/settings': {
@@ -920,8 +1000,11 @@ const rootRouteChildren: RootRouteChildren = {
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTransactionLookupRoute: AdminTransactionLookupRoute,
   AdminTransactionsRoute: AdminTransactionsRoute,
+  DashboardAirtimeDataRoute: DashboardAirtimeDataRoute,
   DashboardApiKeysRoute: DashboardApiKeysRoute,
   DashboardApiSandboxRoute: DashboardApiSandboxRoute,
+  DashboardBankTransferRoute: DashboardBankTransferRoute,
+  DashboardBillPaymentsRoute: DashboardBillPaymentsRoute,
   DashboardCollectionsRoute: DashboardCollectionsRoute,
   DashboardCompanyDocumentsRoute: DashboardCompanyDocumentsRoute,
   DashboardKycRoute: DashboardKycRoute,
@@ -929,6 +1012,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardPaymentLinksRoute: DashboardPaymentLinksRoute,
   DashboardPayoutsRoute: DashboardPayoutsRoute,
   DashboardReportsRoute: DashboardReportsRoute,
+  DashboardServicesRoute: DashboardServicesRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardTransactionsRoute: DashboardTransactionsRoute,
   DashboardWebhookTestRoute: DashboardWebhookTestRoute,

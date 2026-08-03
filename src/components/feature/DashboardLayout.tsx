@@ -10,6 +10,11 @@ const navItems = [
   { label: "Collections", href: "/dashboard/collections", icon: "ri-download-cloud-line", group: "main" },
   { label: "Loans", href: "/dashboard/loans", icon: "ri-bank-line", group: "main" },
   { label: "Payouts", href: "/dashboard/payouts", icon: "ri-upload-cloud-line", group: "main" },
+  { label: "Bank Transfer", href: "/dashboard/bank-transfer", icon: "ri-bank-card-line", group: "main" },
+  { label: "Bill Payments", href: "/dashboard/bill-payments", icon: "ri-flashlight-line", group: "main" },
+  { label: "Airtime & Data", href: "/dashboard/airtime-data", icon: "ri-smartphone-line", group: "main" },
+  { label: "Services", href: "/dashboard/services", icon: "ri-apps-2-line", group: "main" },
+
   { label: "Transactions", href: "/dashboard/transactions", icon: "ri-exchange-line", group: "main" },
   { label: "Payment Links", href: "/dashboard/payment-links", icon: "ri-link-m", group: "main" },
   { label: "Reports", href: "/dashboard/reports", icon: "ri-file-chart-line", group: "main" },
