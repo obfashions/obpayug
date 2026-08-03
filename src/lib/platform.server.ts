@@ -287,9 +287,15 @@ export async function dispatchWebhook(merchantId: string, event: string, payload
     const bodyText = JSON.stringify({ event, created_at: new Date().toISOString(), data: payload });
     let responseCode: number | null = null;
     let responseBody = "";
+    if (!isSafeWebhookUrl(endpoint.url)) {
+      responseBody = "Endpoint URL is not a public https:// address; delivery skipped.";
+    } else
     try {
+      // A merchant endpoint that never answers must not hold up a payment
+      // response, so every delivery is capped at 8 seconds.
       const resp = await fetch(endpoint.url, {
         method: "POST",
+        signal: AbortSignal.timeout(8000),
         headers: {
           "Content-Type": "application/json",
           "X-ObPay-Event": event,
@@ -297,6 +303,7 @@ export async function dispatchWebhook(merchantId: string, event: string, payload
         },
         body: bodyText,
       });
+
       responseCode = resp.status;
       responseBody = (await resp.text()).slice(0, 2000);
     } catch (err: any) {
