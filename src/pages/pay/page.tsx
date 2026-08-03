@@ -120,8 +120,14 @@ export default function PayPage() {
             setError("This payment link has expired.");
           }
         } else {
-          setError(lookupData?.error || "Payment link not found or is no longer active.");
+          const raw = String(lookupData?.error || "");
+          setError(
+            /suspend|approval|pending/i.test(raw)
+              ? "This payment link is no longer available. Please ask the merchant for an up-to-date link."
+              : raw || "Payment link not found or is no longer active.",
+          );
         }
+
       } catch (err: any) {
         setError(err.message || "Unable to load payment page. Please check your connection and try again.");
       } finally {
@@ -334,27 +340,47 @@ export default function PayPage() {
     }
   };
 
+  /**
+   * Checks the mobile money number locally. The old provider name-lookup was
+   * removed because it answered "User account suspended" for every payer,
+   * which made a perfectly valid number look rejected.
+   */
   const handleVerifyPhone = async () => {
-    const phone = phoneNumber.trim();
-    if (!phone) return;
+    const raw = phoneNumber.trim();
+    if (!raw) return;
     setVerifyingPhone(true);
     setVerifyError("");
     setVerifiedName(null);
-    try {
-      const data = await invokeObpay({ _action: "verify-phone", phoneNumber: phone });
-      if (data?.success && data.data?.customer_name) {
-        setVerifiedName(data.data.customer_name);
-      } else {
-        setVerifyError(data?.error || "This number may not be registered for mobile money.");
-        setVerifiedName(null);
-      }
-    } catch {
-      setVerifyError("Unable to verify this number right now.");
-      setVerifiedName(null);
-    } finally {
+
+    const digits = raw.replace(/\D/g, "");
+    let local = "";
+    if (/^0\d{9}$/.test(digits)) local = digits.slice(1);
+    else if (/^256\d{9}$/.test(digits)) local = digits.slice(3);
+    else if (/^\d{9}$/.test(digits)) local = digits;
+
+    if (!local) {
+      setVerifyError("Enter a valid mobile money number, e.g. 0771234567 or 256771234567.");
       setVerifyingPhone(false);
+      return;
     }
+
+    const prefix = local.slice(0, 2);
+    const mtn = ["77", "78", "76", "39"];
+    const airtel = ["70", "74", "75", "20"];
+    const detected = mtn.includes(prefix) ? "mtn" : airtel.includes(prefix) ? "airtel" : "";
+
+    if (!detected) {
+      setVerifyError("This does not look like an MTN or Airtel Uganda number. Check it and try again.");
+      setVerifyingPhone(false);
+      return;
+    }
+
+    setNetwork(detected);
+    setPhoneNumber(`256${local}`);
+    setVerifiedName(detected === "mtn" ? "MTN Mobile Money number" : "Airtel Money number");
+    setVerifyingPhone(false);
   };
+
 
   if (loading) {
     return (
