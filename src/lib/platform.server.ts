@@ -208,9 +208,35 @@ export async function listWebhooks(id: Identity) {
   return done(data ?? []);
 }
 
+/**
+ * Webhook URLs are merchant-supplied and this server calls them, so they must
+ * be public HTTPS hosts — otherwise an endpoint could be pointed at internal
+ * infrastructure (SSRF).
+ */
+export function isSafeWebhookUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return false;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    const [a, b] = host.split(".").map(Number) as [number, number];
+    if (a === 10 || a === 127 || a === 0 || a === 169) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+  }
+  if (host.includes(":")) return false; // raw IPv6 literal
+  return true;
+}
+
 export async function createWebhook(id: Identity, body: Record<string, any>) {
   const url = String(body.url || "").trim();
-  if (!/^https:\/\/.+/i.test(url)) return fail("The endpoint URL must start with https://");
+  if (!isSafeWebhookUrl(url)) return fail("The endpoint URL must be a public https:// address.");
+
   const events: string[] = Array.isArray(body.events) && body.events.length
     ? body.events.map(String)
     : ["collection.success", "collection.failed", "payout.success", "payout.failed"];
@@ -261,9 +287,15 @@ export async function dispatchWebhook(merchantId: string, event: string, payload
     const bodyText = JSON.stringify({ event, created_at: new Date().toISOString(), data: payload });
     let responseCode: number | null = null;
     let responseBody = "";
+    if (!isSafeWebhookUrl(endpoint.url)) {
+      responseBody = "Endpoint URL is not a public https:// address; delivery skipped.";
+    } else
     try {
+      // A merchant endpoint that never answers must not hold up a payment
+      // response, so every delivery is capped at 8 seconds.
       const resp = await fetch(endpoint.url, {
         method: "POST",
+        signal: AbortSignal.timeout(8000),
         headers: {
           "Content-Type": "application/json",
           "X-ObPay-Event": event,
@@ -271,6 +303,7 @@ export async function dispatchWebhook(merchantId: string, event: string, payload
         },
         body: bodyText,
       });
+
       responseCode = resp.status;
       responseBody = (await resp.text()).slice(0, 2000);
     } catch (err: any) {
@@ -384,7 +417,12 @@ function decodeDataUrl(dataUrl: string): { bytes: Uint8Array; contentType: strin
 export async function uploadKycDocument(id: Identity, body: Record<string, any>) {
   const decoded = decodeDataUrl(body.file_data);
   if (!decoded) return fail("That file could not be read. Try another photo.");
+  const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "application/pdf"];
+  if (!ALLOWED.includes(decoded.contentType.toLowerCase())) {
+    return fail("Upload a JPG, PNG, WEBP or PDF document.");
+  }
   if (decoded.bytes.length > 8 * 1024 * 1024) return fail("Each document must be under 8 MB.");
+
 
   const docType = String(body.doc_type || "document");
   const ext = decoded.contentType.includes("pdf") ? "pdf" : decoded.contentType.split("/")[1] || "jpg";
@@ -569,12 +607,17 @@ export async function publicCollect(body: Record<string, any>) {
 export async function publicPaymentStatus(reference: string) {
   const ref = String(reference || "").trim();
   if (!ref) return fail("Missing payment reference.");
+  // Unauthenticated endpoint: only hosted-checkout payments (whose references
+  // are server-generated and unguessable) may be looked up here. API-created
+  // records use merchant-chosen references and stay behind the merchant API.
   const { data: record } = await db()
     .from("payment_records")
     .select("*")
     .eq("reference", ref)
+    .eq("source", "payment_link")
     .maybeSingle();
   if (!record) return fail("We could not find that payment.");
+
   if (record.status !== "pending") return done({ status: record.status, reference: ref, amount: record.amount });
 
   const { readMarzCreds, marzFetch } = await import("./marz.server");

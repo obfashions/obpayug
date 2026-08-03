@@ -28,12 +28,21 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
   if (!phone) return { success: false, error: "`phone_number` is required." };
 
   const reference = String(body.reference || `OBP${Date.now().toString(36).toUpperCase()}`).slice(0, 40);
+  // `reference` is globally unique (payment_records upserts on it), so the
+  // check must be global too — otherwise one merchant's reference could
+  // overwrite another's record. The message stays neutral so it cannot be
+  // used to probe other merchants' references.
   const { data: existing } = await db()
     .from("payment_records")
-    .select("reference")
+    .select("merchant_id")
     .eq("reference", reference)
     .maybeSingle();
-  if (existing) return { success: false, error: `Reference "${reference}" has already been used.` };
+  if (existing) {
+    return existing.merchant_id === merchantId
+      ? { success: false, error: `Reference "${reference}" has already been used.` }
+      : { success: false, error: "That reference is not available. Use a different one." };
+  }
+
 
   const res = await marzFetch(creds, "/collect-money", {
     method: "POST",
