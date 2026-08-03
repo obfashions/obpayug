@@ -524,9 +524,8 @@ export async function listPayments(id: Identity, limit = 100) {
 
 function marzCountry(currency: string): string {
   const c = String(currency || "UGX").toUpperCase();
-  if (c === "KES") return "kenya";
-  if (c === "TZS") return "tanzania";
-  return "uganda";
+  const map: Record<string, string> = { UGX: "UG", KES: "KE", TZS: "TZ", GHS: "GH", XAF: "CM" };
+  return map[c] || "UG";
 }
 
 export async function publicCollect(body: Record<string, any>) {
