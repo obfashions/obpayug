@@ -99,7 +99,10 @@ export function useParams<
     string | undefined
   >,
 >(): T {
-  return useTanStackParams({ strict: false }) as T;
+  return (useTanStackParams as unknown as (opts: { strict: false }) => T)({
+    strict: false,
+  });
+
 }
 
 export function useLocation() {
