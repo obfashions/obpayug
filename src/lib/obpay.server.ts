@@ -175,8 +175,29 @@ async function resolveTransaction(token: string, txn: any) {
     });
   }
 
+  // Mirror the settled transaction into ObPay's own records (admin screens)
+  // and notify the merchant + admin by email.
+  try {
+    const { notifySettlement } = await import("./notify.server");
+    await notifySettlement({
+      merchantId: txn.user_id,
+      reference: txn.reference,
+      type: txn.type === "payout" ? "payout" : "collection",
+      amount: txn.amount,
+      currency: txn.currency || "UGX",
+      status,
+      phone_number: txn.phone_number || txn.recipient_phone || null,
+      description: txn.description || null,
+      source: "dashboard",
+      accessToken: token,
+    });
+  } catch {
+    /* notifications must never break settlement */
+  }
+
   return { id: txn.id, reference: txn.reference, status };
 }
+
 
 async function syncPending(token: string, userId: string, limit = 25) {
   const res = await rest(

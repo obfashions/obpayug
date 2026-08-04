@@ -645,9 +645,22 @@ export async function publicPaymentStatus(reference: string) {
         currency: record.currency,
         phone_number: record.phone_number,
       });
+      const { notifySettlement } = await import("./notify.server");
+      await notifySettlement({
+        merchantId: record.merchant_id,
+        reference: ref,
+        type: "collection",
+        amount: record.amount,
+        currency: record.currency,
+        status: next,
+        phone_number: record.phone_number,
+        description: record.description,
+        source: "payment_link",
+      });
       return done({ status: next, reference: ref, amount: record.amount });
     }
   }
+
 
   return done({ status: "pending", reference: ref, amount: record.amount });
 }
