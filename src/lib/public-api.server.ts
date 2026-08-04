@@ -121,7 +121,20 @@ export async function apiTransaction(merchantId: string, reference: string) {
         currency: record.currency,
         phone_number: record.phone_number,
       });
+      const { notifySettlement } = await import("./notify.server");
+      await notifySettlement({
+        merchantId,
+        reference,
+        type: record.type || "collection",
+        amount: record.amount,
+        currency: record.currency,
+        status: next,
+        phone_number: record.phone_number,
+        description: record.description,
+        source: "api",
+      });
       return { success: true, data: { ...record, status: next } };
+
     }
   }
   return { success: true, data: record };
