@@ -95,7 +95,7 @@ export default function SupportAssistant() {
             if (!text) return null;
             return (
               <Message from={message.role} key={message.id}>
-                <MessageContent variant={message.role === "user" ? "contained" : "flat"}>
+                <MessageContent>
                   <MessageResponse>{text}</MessageResponse>
                 </MessageContent>
               </Message>
