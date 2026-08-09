@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "@/lib/router-compat";
 import { JsonLd } from "@/components/base/JsonLd";
+import SupportAssistant from "@/components/feature/SupportAssistant";
 
 interface Ticket {
   id: number;
