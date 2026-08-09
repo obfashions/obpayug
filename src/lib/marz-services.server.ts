@@ -4,7 +4,7 @@
 // Every money-moving action debits the merchant's ObPay wallet through Supabase
 // REST with the CALLER's access token, so row level security still applies.
 
-import { readMarzCreds, marzFetch, normalizePhone } from "./marz.server";
+import { getMarzCreds, marzFetch, normalizePhone } from "./marz.server";
 
 const SUPA_URL = () =>
   (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -72,7 +72,7 @@ function fail(res: { error?: string; data?: any }, fallback: string) {
 }
 
 async function bankCharge(amount: number): Promise<number> {
-  const creds = readMarzCreds()!;
+  const creds = (await getMarzCreds())!;
   const res = await marzFetch(creds, "/bank-transfer/services");
   const s = res.ok ? unwrap(res)?.bank_transfer_settings : null;
   if (!s) return 0;
@@ -129,7 +129,7 @@ async function ensureFunds(token: string, userId: string, needed: number, curren
 const newRef = (prefix: string) => `${prefix}${Date.now().toString(36).toUpperCase()}`;
 
 export async function runMarzServiceAction(action: string, accessToken: string, userId: string | null, body: any) {
-  const creds = readMarzCreds();
+  const creds = await getMarzCreds();
   if (!creds) return { success: false, error: "MarzPay credentials are not configured on the server." };
   const b = body || {};
 

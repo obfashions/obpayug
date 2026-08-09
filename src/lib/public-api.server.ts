@@ -96,8 +96,8 @@ export async function apiBalance(merchantId: string) {
 // ─── collections ──────────────────────────────────────────────
 
 export async function apiCollect(merchantId: string, body: Record<string, any>) {
-  const { readMarzCreds, marzFetch, normalizePhone } = await import("./marz.server");
-  const creds = readMarzCreds();
+  const { getMarzCreds, marzFetch, normalizePhone } = await import("./marz.server");
+  const creds = await getMarzCreds();
   if (!creds) return err("Payments are temporarily unavailable.");
 
   const amount = Number(body.amount);
@@ -171,8 +171,8 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
 // ─── payouts (send money) ─────────────────────────────────────
 
 export async function apiPayout(merchantId: string, body: Record<string, any>) {
-  const { readMarzCreds, marzFetch, normalizePhone, isIpWhitelistError } = await import("./marz.server");
-  const creds = readMarzCreds();
+  const { getMarzCreds, marzFetch, normalizePhone, isIpWhitelistError } = await import("./marz.server");
+  const creds = await getMarzCreds();
   if (!creds) return err("Payouts are temporarily unavailable.");
 
   const amount = Number(body.amount);
@@ -258,8 +258,8 @@ export async function apiTransaction(merchantId: string, reference: string) {
   if (!record) return err("No transaction with that reference.");
   if (record.status !== "pending") return ok(record);
 
-  const { readMarzCreds, marzFetch } = await import("./marz.server");
-  const creds = readMarzCreds();
+  const { getMarzCreds, marzFetch } = await import("./marz.server");
+  const creds = await getMarzCreds();
   if (creds) {
     const res = await marzFetch(creds, `/transactions/${encodeURIComponent(record.provider_reference || reference)}`);
     const next = normalizeStatus(res.data?.data?.transaction?.status || "");

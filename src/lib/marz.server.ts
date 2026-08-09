@@ -1,7 +1,10 @@
-// Server-only MarzPay helpers. Credentials live in THIS project's environment
-// (MARZ_API_KEY / MARZ_API_SECRET / MARZ_API_BASIC) and never reach the browser.
+// Server-only MarzPay helpers. Credentials come from the admin-managed store
+// first (Admin → MarzPay API) and fall back to this project's environment
+// (MARZ_API_KEY / MARZ_API_SECRET / MARZ_API_BASIC). They never reach the browser.
 
 export const MARZ_BASE = "https://wallet.wearemarz.com/api/v1";
+
+export const MARZ_CRED_ID = "marz";
 
 export interface MarzCreds {
   key: string;
@@ -9,30 +12,95 @@ export interface MarzCreds {
   basic: string;
 }
 
+function buildCreds(key: string, secret: string): MarzCreds {
+  return { key, secret, basic: btoa(`${key}:${secret}`) };
+}
+
+/** Splits a base64 "key:secret" Authorization value. */
+export function decodeBasic(basic: string): MarzCreds | null {
+  try {
+    const decoded = atob(basic.trim());
+    const idx = decoded.indexOf(":");
+    if (idx > 0) {
+      return {
+        key: decoded.slice(0, idx).trim(),
+        secret: decoded.slice(idx + 1).trim(),
+        basic: basic.trim(),
+      };
+    }
+  } catch {
+    /* not base64 — ignore */
+  }
+  return null;
+}
+
+/** Environment-only credentials (the built-in fallback). */
 export function readMarzCreds(): MarzCreds | null {
   const key = (process.env["MARZ_API_KEY"] || "").trim();
   const secret = (process.env["MARZ_API_SECRET"] || "").trim();
-  if (key && secret) {
-    return { key, secret, basic: btoa(`${key}:${secret}`) };
-  }
+  if (key && secret) return buildCreds(key, secret);
 
   const basic = (process.env["MARZ_API_BASIC"] || "").trim();
-  if (basic) {
-    try {
-      const decoded = atob(basic);
-      const idx = decoded.indexOf(":");
-      if (idx > 0) {
-        return {
-          key: decoded.slice(0, idx).trim(),
-          secret: decoded.slice(idx + 1).trim(),
-          basic,
-        };
-      }
-    } catch {
-      /* not base64 — ignore */
-    }
-  }
+  if (basic) return decodeBasic(basic);
   return null;
+}
+
+/* ── Admin-managed override ─────────────────────────────────────────────── */
+
+let credCache: { creds: MarzCreds | null; source: "database" | "environment" | "none"; at: number } | null = null;
+const CRED_TTL_MS = 15_000;
+
+export function invalidateMarzCredsCache() {
+  credCache = null;
+}
+
+/** Reads the admin-saved credentials, if any (service-role only table). */
+export async function readStoredMarzCreds(): Promise<{
+  creds: MarzCreds | null;
+  enabled: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await (supabaseAdmin as any)
+      .from("platform_credentials")
+      .select("api_key, api_secret, enabled, updated_at, updated_by")
+      .eq("id", MARZ_CRED_ID)
+      .maybeSingle();
+    if (!data) return { creds: null, enabled: false, updatedAt: null, updatedBy: null };
+    const key = String(data.api_key || "").trim();
+    const secret = String(data.api_secret || "").trim();
+    return {
+      creds: key && secret ? buildCreds(key, secret) : null,
+      enabled: data.enabled !== false,
+      updatedAt: data.updated_at || null,
+      updatedBy: data.updated_by || null,
+    };
+  } catch {
+    return { creds: null, enabled: false, updatedAt: null, updatedBy: null };
+  }
+}
+
+/** The credentials every MarzPay call must use: admin store first, env second. */
+export async function getMarzCreds(): Promise<MarzCreds | null> {
+  const now = Date.now();
+  if (credCache && now - credCache.at < CRED_TTL_MS) return credCache.creds;
+
+  const stored = await readStoredMarzCreds();
+  if (stored.creds && stored.enabled) {
+    credCache = { creds: stored.creds, source: "database", at: now };
+    return stored.creds;
+  }
+  const env = readMarzCreds();
+  credCache = { creds: env, source: env ? "environment" : "none", at: now };
+  return env;
+}
+
+/** Where the live credentials are coming from, for the admin screen. */
+export async function marzCredsSource(): Promise<"database" | "environment" | "none"> {
+  await getMarzCreds();
+  return credCache?.source || "none";
 }
 
 /* ---------------------------------------------------------------------------
@@ -198,7 +266,7 @@ async function supaRest(accessToken: string, path: string, init?: RequestInit) {
  *  `platform_settings` row, so the deployed edge functions can use them too.
  *  Requires an admin caller. */
 export async function pushMarzCredentialsToDb(accessToken: string) {
-  const creds = readMarzCreds();
+  const creds = await getMarzCreds();
   if (!creds) return { ok: false, message: "No MarzPay credentials configured on the server." };
 
   const userId = await verifySupabaseUser(accessToken);
@@ -234,7 +302,7 @@ export async function pushMarzCredentialsToDb(accessToken: string) {
 
 /** Runs a MarzPay call server-side with the credentials held in this project. */
 export async function runMarzAction(action: string, payload: any) {
-  const creds = readMarzCreds();
+  const creds = await getMarzCreds();
   if (!creds) return { success: false, error: "MarzPay credentials are not configured." };
 
   const country = (c?: string) => ({ UGX: "UG", KES: "KE", GHS: "GH", XAF: "CM", TZS: "TZ" } as Record<string, string>)[(c || "UGX").toUpperCase()] || "UG";

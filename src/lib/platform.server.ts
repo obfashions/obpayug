@@ -537,8 +537,8 @@ function marzCountry(currency: string): string {
 }
 
 export async function publicCollect(body: Record<string, any>) {
-  const { readMarzCreds, marzFetch, normalizePhone } = await import("./marz.server");
-  const creds = readMarzCreds();
+  const { getMarzCreds, marzFetch, normalizePhone } = await import("./marz.server");
+  const creds = await getMarzCreds();
   if (!creds) return fail("Payments are temporarily unavailable. Please try again shortly.");
 
   const slug = String(body.slug || "").trim();
@@ -630,8 +630,8 @@ export async function publicPaymentStatus(reference: string) {
 
   if (record.status !== "pending") return done({ status: record.status, reference: ref, amount: record.amount });
 
-  const { readMarzCreds, marzFetch } = await import("./marz.server");
-  const creds = readMarzCreds();
+  const { getMarzCreds, marzFetch } = await import("./marz.server");
+  const creds = await getMarzCreds();
   if (creds) {
     const lookupRef = record.provider_reference || ref;
     const res = await marzFetch(creds, `/transactions/${encodeURIComponent(lookupRef)}`);
