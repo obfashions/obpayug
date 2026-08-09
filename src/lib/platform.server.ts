@@ -283,7 +283,15 @@ export async function dispatchWebhook(merchantId: string, event: string, payload
 
   const results: Array<Record<string, unknown>> = [];
   for (const endpoint of endpoints ?? []) {
-    if (Array.isArray(endpoint.events) && endpoint.events.length && !endpoint.events.includes(event)) continue;
+    // `test.ping` always goes out — it is how a merchant proves the endpoint
+    // is reachable before subscribing to real events.
+    if (
+      event !== "test.ping" &&
+      Array.isArray(endpoint.events) &&
+      endpoint.events.length &&
+      !endpoint.events.includes(event)
+    )
+      continue;
     const bodyText = JSON.stringify({ event, created_at: new Date().toISOString(), data: payload });
     let responseCode: number | null = null;
     let responseBody = "";
