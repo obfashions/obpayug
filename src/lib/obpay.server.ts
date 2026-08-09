@@ -6,7 +6,7 @@
 // Database writes go through Supabase REST with the CALLER's access token, so
 // row level security still applies exactly as it would in the browser.
 
-import { readMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp, proxyConfig } from "./marz.server";
+import { getMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp, proxyConfig } from "./marz.server";
 import { runMarzServiceAction, MARZ_SERVICE_ACTIONS, MARZ_PUBLIC_SERVICE_ACTIONS } from "./marz-services.server";
 
 
@@ -85,7 +85,7 @@ async function friendlyProviderError(res: { error?: string; data?: any }, kind: 
 // ─── MarzPay wrappers ─────────────────────────────────────────
 
 async function marzTxn(reference: string) {
-  const creds = readMarzCreds()!;
+  const creds = (await getMarzCreds())!;
   const res = await marzFetch(creds, `/transactions/${encodeURIComponent(reference)}`);
   if (!res.ok) return { ok: false as const, error: res.error, data: res.data };
   const body = res.data?.data || res.data || {};
@@ -235,7 +235,7 @@ export const LOCAL_ACTIONS = [
 ];
 
 export async function runObpayAction(action: string, accessToken: string, body: any) {
-  const creds = readMarzCreds();
+  const creds = await getMarzCreds();
   if (!creds) return { success: false, error: "MarzPay credentials are not configured on the server." };
 
   // MarzPay service catalog (bank transfer, bills, airtime & data).

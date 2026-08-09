@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "@/lib/router-compat";
 import { JsonLd } from "@/components/base/JsonLd";
+import SupportAssistant from "@/components/feature/SupportAssistant";
 
 interface Ticket {
   id: number;
@@ -162,6 +163,9 @@ export default function SupportPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 space-y-8">
+        {/* AI Assistant */}
+        <SupportAssistant />
+
         {/* Contact Options */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* WhatsApp */}

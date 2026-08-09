@@ -25,6 +25,7 @@ import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.compan
 import { Route as AdminEmailCampaignsRouteImport } from './routes/admin.email-campaigns'
 import { Route as AdminKycReviewRouteImport } from './routes/admin.kyc-review'
 import { Route as AdminLoansRouteImport } from './routes/admin.loans'
+import { Route as AdminMarzApiRouteImport } from './routes/admin.marz-api'
 import { Route as AdminMerchantsRouteImport } from './routes/admin.merchants'
 import { Route as AdminPayoutRequestsRouteImport } from './routes/admin.payout-requests'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -54,6 +55,7 @@ import { Route as DashboardWebhooksRouteImport } from './routes/dashboard.webhoo
 import { Route as PaySlugRouteImport } from './routes/pay.$slug'
 import { Route as ApiPublicEgressIpRouteImport } from './routes/api/public/egress-ip'
 import { Route as ApiPublicPlatformHealthRouteImport } from './routes/api/public/platform-health'
+import { Route as ApiPublicSupportChatRouteImport } from './routes/api/public/support-chat'
 import { Route as FunctionsV1SplatRouteImport } from './routes/functions.v1.$'
 import { Route as ApiPublicV1SplatRouteImport } from './routes/api/public/v1.$'
 
@@ -135,6 +137,11 @@ const AdminKycReviewRoute = AdminKycReviewRouteImport.update({
 const AdminLoansRoute = AdminLoansRouteImport.update({
   id: '/admin/loans',
   path: '/admin/loans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminMarzApiRoute = AdminMarzApiRouteImport.update({
+  id: '/admin/marz-api',
+  path: '/admin/marz-api',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
@@ -283,6 +290,11 @@ const ApiPublicPlatformHealthRoute = ApiPublicPlatformHealthRouteImport.update({
   path: '/api/public/platform-health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSupportChatRoute = ApiPublicSupportChatRouteImport.update({
+  id: '/api/public/support-chat',
+  path: '/api/public/support-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FunctionsV1SplatRoute = FunctionsV1SplatRouteImport.update({
   id: '/functions/v1/$',
   path: '/functions/v1/$',
@@ -310,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
+  '/admin/marz-api': typeof AdminMarzApiRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -340,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
+  '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
   '/api/public/v1/$': typeof ApiPublicV1SplatRoute
 }
@@ -359,6 +373,7 @@ export interface FileRoutesByTo {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
+  '/admin/marz-api': typeof AdminMarzApiRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -389,6 +404,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
+  '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
   '/api/public/v1/$': typeof ApiPublicV1SplatRoute
 }
@@ -409,6 +425,7 @@ export interface FileRoutesById {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
+  '/admin/marz-api': typeof AdminMarzApiRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -439,6 +456,7 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
+  '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
   '/api/public/v1/$': typeof ApiPublicV1SplatRoute
 }
@@ -460,6 +478,7 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/kyc-review'
     | '/admin/loans'
+    | '/admin/marz-api'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -490,6 +509,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/public/egress-ip'
     | '/api/public/platform-health'
+    | '/api/public/support-chat'
     | '/functions/v1/$'
     | '/api/public/v1/$'
   fileRoutesByTo: FileRoutesByTo
@@ -509,6 +529,7 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/kyc-review'
     | '/admin/loans'
+    | '/admin/marz-api'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -539,6 +560,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/public/egress-ip'
     | '/api/public/platform-health'
+    | '/api/public/support-chat'
     | '/functions/v1/$'
     | '/api/public/v1/$'
   id:
@@ -558,6 +580,7 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/kyc-review'
     | '/admin/loans'
+    | '/admin/marz-api'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -588,6 +611,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/public/egress-ip'
     | '/api/public/platform-health'
+    | '/api/public/support-chat'
     | '/functions/v1/$'
     | '/api/public/v1/$'
   fileRoutesById: FileRoutesById
@@ -608,6 +632,7 @@ export interface RootRouteChildren {
   AdminEmailCampaignsRoute: typeof AdminEmailCampaignsRoute
   AdminKycReviewRoute: typeof AdminKycReviewRoute
   AdminLoansRoute: typeof AdminLoansRoute
+  AdminMarzApiRoute: typeof AdminMarzApiRoute
   AdminMerchantsRoute: typeof AdminMerchantsRoute
   AdminPayoutRequestsRoute: typeof AdminPayoutRequestsRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -638,6 +663,7 @@ export interface RootRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiPublicEgressIpRoute: typeof ApiPublicEgressIpRoute
   ApiPublicPlatformHealthRoute: typeof ApiPublicPlatformHealthRoute
+  ApiPublicSupportChatRoute: typeof ApiPublicSupportChatRoute
   FunctionsV1SplatRoute: typeof FunctionsV1SplatRoute
   ApiPublicV1SplatRoute: typeof ApiPublicV1SplatRoute
 }
@@ -754,6 +780,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/loans'
       fullPath: '/admin/loans'
       preLoaderRoute: typeof AdminLoansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/marz-api': {
+      id: '/admin/marz-api'
+      path: '/admin/marz-api'
+      fullPath: '/admin/marz-api'
+      preLoaderRoute: typeof AdminMarzApiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/merchants': {
@@ -959,6 +992,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPlatformHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/support-chat': {
+      id: '/api/public/support-chat'
+      path: '/api/public/support-chat'
+      fullPath: '/api/public/support-chat'
+      preLoaderRoute: typeof ApiPublicSupportChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/functions/v1/$': {
       id: '/functions/v1/$'
       path: '/functions/v1/$'
@@ -992,6 +1032,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminEmailCampaignsRoute: AdminEmailCampaignsRoute,
   AdminKycReviewRoute: AdminKycReviewRoute,
   AdminLoansRoute: AdminLoansRoute,
+  AdminMarzApiRoute: AdminMarzApiRoute,
   AdminMerchantsRoute: AdminMerchantsRoute,
   AdminPayoutRequestsRoute: AdminPayoutRequestsRoute,
   AdminReportsRoute: AdminReportsRoute,
@@ -1022,6 +1063,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
   ApiPublicEgressIpRoute: ApiPublicEgressIpRoute,
   ApiPublicPlatformHealthRoute: ApiPublicPlatformHealthRoute,
+  ApiPublicSupportChatRoute: ApiPublicSupportChatRoute,
   FunctionsV1SplatRoute: FunctionsV1SplatRoute,
   ApiPublicV1SplatRoute: ApiPublicV1SplatRoute,
 }

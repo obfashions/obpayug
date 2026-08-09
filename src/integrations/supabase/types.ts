@@ -306,6 +306,36 @@ export type Database = {
           },
         ]
       }
+      platform_credentials: {
+        Row: {
+          api_key: string | null
+          api_secret: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string
+          enabled?: boolean
+          id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       webhook_deliveries: {
         Row: {
           attempts: number
