@@ -1,0 +1,1 @@
+ALTER TABLE public.platform_credentials ADD COLUMN IF NOT EXISTS label text NOT NULL DEFAULT 'MarzPay keys';

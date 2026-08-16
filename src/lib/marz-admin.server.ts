@@ -1,5 +1,6 @@
-// Admin-only management of the MarzPay credentials that power every
-// collection, payout and service call on ObPay.
+// Admin-only management of the MarzPay credential sets that power every
+// collection, payout and service call on ObPay. Several sets can be stored;
+// exactly one is selected as live.
 
 import { requireAdmin } from "./identity.server";
 import {
@@ -8,10 +9,10 @@ import {
   getMarzCreds,
   invalidateMarzCredsCache,
   isIpWhitelistError,
+  listStoredMarzCreds,
   marzCredsSource,
   marzFetch,
   readMarzCreds,
-  readStoredMarzCreds,
   type MarzCreds,
 } from "./marz.server";
 
@@ -63,40 +64,47 @@ async function probe(creds: MarzCreds) {
   return { success: false, error: res.error || "MarzPay rejected these credentials.", data: res.data };
 }
 
+async function statusPayload() {
+  const rows = await listStoredMarzCreds();
+  const env = readMarzCreds();
+  const active = await getMarzCreds();
+  return {
+    success: true,
+    data: {
+      source: await marzCredsSource(),
+      active: active ? { key: mask(active.key, 10), secretMasked: mask(active.secret, 4) } : null,
+      credentials: rows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        key: r.key,
+        secretMasked: mask(r.secret, 4),
+        enabled: r.enabled,
+        updatedAt: r.updatedAt,
+        updatedBy: r.updatedBy,
+      })),
+      environment: env ? { key: mask(env.key, 10), secretMasked: mask(env.secret, 4) } : null,
+    },
+  };
+}
+
 export async function runMarzAdminAction(
   action: string,
   accessToken: string,
   body: Record<string, unknown> = {},
 ) {
   const admin = await requireAdmin(accessToken);
+  const rowId = String(body?.["id"] || "").trim();
 
-  if (action === "status") {
-    const stored = await readStoredMarzCreds();
-    const env = readMarzCreds();
-    const active = await getMarzCreds();
-    return {
-      success: true,
-      data: {
-        source: await marzCredsSource(),
-        active: active ? { key: mask(active.key, 10), secretMasked: mask(active.secret, 4) } : null,
-        stored: stored.creds
-          ? {
-              key: stored.creds.key,
-              secretMasked: mask(stored.creds.secret, 4),
-              enabled: stored.enabled,
-              updatedAt: stored.updatedAt,
-              updatedBy: stored.updatedBy,
-            }
-          : null,
-        environment: env ? { key: mask(env.key, 10), secretMasked: mask(env.secret, 4) } : null,
-      },
-    };
-  }
+  if (action === "status") return statusPayload();
 
   if (action === "test") {
-    // Test either the credentials typed into the form, or the live ones.
     const typed = credsFromInput(body);
-    const creds = typed || (await getMarzCreds());
+    let creds: MarzCreds | null = typed;
+    if (!creds && rowId) {
+      const row = (await listStoredMarzCreds()).find((r) => r.id === rowId);
+      if (row?.key && row.secret) creds = { key: row.key, secret: row.secret, basic: btoa(`${row.key}:${row.secret}`) };
+    }
+    if (!creds) creds = await getMarzCreds();
     if (!creds) return { success: false, error: "No MarzPay credentials to test." };
     return probe(creds);
   }
@@ -106,6 +114,8 @@ export async function runMarzAdminAction(
     if (!creds) {
       return { success: false, error: "Enter both an API key and secret, or a valid base64 Authorization value." };
     }
+    const label = String(body?.["label"] || "").trim() || "MarzPay keys";
+    const makeActive = body?.["activate"] !== false;
 
     if (body?.["skipVerify"] !== true) {
       const check = await probe(creds);
@@ -113,12 +123,14 @@ export async function runMarzAdminAction(
     }
 
     const client = await db();
+    const id = rowId || `${MARZ_CRED_ID}:${crypto.randomUUID().slice(0, 8)}`;
     const { error } = await client.from("platform_credentials").upsert(
       {
-        id: MARZ_CRED_ID,
+        id,
+        label,
         api_key: creds.key,
         api_secret: creds.secret,
-        enabled: true,
+        enabled: makeActive,
         updated_by: admin.email || admin.userId,
         updated_at: new Date().toISOString(),
       },
@@ -126,21 +138,51 @@ export async function runMarzAdminAction(
     );
     if (error) return { success: false, error: error.message };
 
+    if (makeActive) await deactivateOthers(client, id);
     invalidateMarzCredsCache();
-    const verify = await probe((await getMarzCreds())!);
-    return {
-      success: true,
-      data: { saved: true, verified: verify.success, note: (verify as any).data?.note || null },
-    };
+    return { success: true, data: { saved: true, id } };
+  }
+
+  if (action === "activate") {
+    if (!rowId) return { success: false, error: "Choose which credentials to use." };
+    const client = await db();
+    const { error } = await client
+      .from("platform_credentials")
+      .update({ enabled: true, updated_at: new Date().toISOString(), updated_by: admin.email || admin.userId })
+      .eq("id", rowId);
+    if (error) return { success: false, error: error.message };
+    await deactivateOthers(client, rowId);
+    invalidateMarzCredsCache();
+    return { success: true, data: { active: rowId } };
+  }
+
+  if (action === "delete") {
+    if (!rowId) return { success: false, error: "Choose which credentials to remove." };
+    const client = await db();
+    const { error } = await client.from("platform_credentials").delete().eq("id", rowId);
+    if (error) return { success: false, error: error.message };
+    invalidateMarzCredsCache();
+    return { success: true, data: { removed: rowId, source: await marzCredsSource() } };
   }
 
   if (action === "disable" || action === "reset") {
     const client = await db();
-    const { error } = await client.from("platform_credentials").delete().eq("id", MARZ_CRED_ID);
+    const { error } = await client
+      .from("platform_credentials")
+      .update({ enabled: false, updated_at: new Date().toISOString() })
+      .or(`id.eq.${MARZ_CRED_ID},id.like.${MARZ_CRED_ID}:%`);
     if (error) return { success: false, error: error.message };
     invalidateMarzCredsCache();
     return { success: true, data: { reverted: true, source: await marzCredsSource() } };
   }
 
   return { success: false, error: `Unsupported action: ${action}` };
+}
+
+async function deactivateOthers(client: any, keepId: string) {
+  await client
+    .from("platform_credentials")
+    .update({ enabled: false })
+    .or(`id.eq.${MARZ_CRED_ID},id.like.${MARZ_CRED_ID}:%`)
+    .neq("id", keepId);
 }

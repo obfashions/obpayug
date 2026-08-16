@@ -313,6 +313,7 @@ export type Database = {
           created_at: string
           enabled: boolean
           id: string
+          label: string
           updated_at: string
           updated_by: string | null
         }
@@ -322,6 +323,7 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           id: string
+          label?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -331,6 +333,7 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           id?: string
+          label?: string
           updated_at?: string
           updated_by?: string | null
         }

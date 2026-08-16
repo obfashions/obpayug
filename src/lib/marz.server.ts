@@ -45,7 +45,17 @@ export function readMarzCreds(): MarzCreds | null {
   return null;
 }
 
-/* ── Admin-managed override ─────────────────────────────────────────────── */
+/* ── Admin-managed credential sets ──────────────────────────────────────── */
+
+export interface StoredMarzCred {
+  id: string;
+  label: string;
+  key: string;
+  secret: string;
+  enabled: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
 
 let credCache: { creds: MarzCreds | null; source: "database" | "environment" | "none"; at: number } | null = null;
 const CRED_TTL_MS = 15_000;
@@ -54,41 +64,63 @@ export function invalidateMarzCredsCache() {
   credCache = null;
 }
 
-/** Reads the admin-saved credentials, if any (service-role only table). */
-export async function readStoredMarzCreds(): Promise<{
-  creds: MarzCreds | null;
-  enabled: boolean;
-  updatedAt: string | null;
-  updatedBy: string | null;
-}> {
+async function adminDb() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as any;
+}
+
+/** Every MarzPay credential set the admin has saved. */
+export async function listStoredMarzCreds(): Promise<StoredMarzCred[]> {
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await (supabaseAdmin as any)
+    const client = await adminDb();
+    const { data } = await client
       .from("platform_credentials")
-      .select("api_key, api_secret, enabled, updated_at, updated_by")
-      .eq("id", MARZ_CRED_ID)
-      .maybeSingle();
-    if (!data) return { creds: null, enabled: false, updatedAt: null, updatedBy: null };
-    const key = String(data.api_key || "").trim();
-    const secret = String(data.api_secret || "").trim();
-    return {
-      creds: key && secret ? buildCreds(key, secret) : null,
-      enabled: data.enabled !== false,
-      updatedAt: data.updated_at || null,
-      updatedBy: data.updated_by || null,
-    };
+      .select("id, label, api_key, api_secret, enabled, updated_at, updated_by")
+      .or(`id.eq.${MARZ_CRED_ID},id.like.${MARZ_CRED_ID}:%`)
+      .order("created_at", { ascending: true });
+    return ((data || []) as any[]).map((row) => ({
+      id: String(row.id),
+      label: String(row.label || "MarzPay keys"),
+      key: String(row.api_key || "").trim(),
+      secret: String(row.api_secret || "").trim(),
+      enabled: row.enabled === true,
+      updatedAt: row.updated_at || null,
+      updatedBy: row.updated_by || null,
+    }));
   } catch {
-    return { creds: null, enabled: false, updatedAt: null, updatedBy: null };
+    return [];
   }
 }
 
-/** The credentials every MarzPay call must use: admin store first, env second. */
+/** The selected (live) credential set, if any. */
+export async function readStoredMarzCreds(): Promise<{
+  creds: MarzCreds | null;
+  enabled: boolean;
+  id: string | null;
+  label: string | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}> {
+  const rows = await listStoredMarzCreds();
+  const active = rows.find((r) => r.enabled && r.key && r.secret);
+  if (!active) return { creds: null, enabled: false, id: null, label: null, updatedAt: null, updatedBy: null };
+  return {
+    creds: buildCreds(active.key, active.secret),
+    enabled: true,
+    id: active.id,
+    label: active.label,
+    updatedAt: active.updatedAt,
+    updatedBy: active.updatedBy,
+  };
+}
+
+/** The credentials every MarzPay call must use: selected admin set first, env second. */
 export async function getMarzCreds(): Promise<MarzCreds | null> {
   const now = Date.now();
   if (credCache && now - credCache.at < CRED_TTL_MS) return credCache.creds;
 
   const stored = await readStoredMarzCreds();
-  if (stored.creds && stored.enabled) {
+  if (stored.creds) {
     credCache = { creds: stored.creds, source: "database", at: now };
     return stored.creds;
   }
@@ -96,6 +128,7 @@ export async function getMarzCreds(): Promise<MarzCreds | null> {
   credCache = { creds: env, source: env ? "environment" : "none", at: now };
   return env;
 }
+
 
 /** Where the live credentials are coming from, for the admin screen. */
 export async function marzCredsSource(): Promise<"database" | "environment" | "none"> {
