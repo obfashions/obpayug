@@ -1,0 +1,133 @@
+// Server-only, idempotent settlement for ObPay-managed payment records
+// (hosted checkout links and the public merchant API).
+//
+// Several things poll MarzPay at the same time: the payer's status page, the
+// merchant dashboard, the API caller, and the webhook receiver. Without a
+// single claim step the same payment could be marked successful twice and the
+// merchant would receive duplicate emails and webhooks. `settlePaymentRecord`
+// claims the record with a conditional update and only the winning caller
+// performs the side effects.
+
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+const db = () => supabaseAdmin as any;
+
+export type Terminal = "success" | "failed";
+
+export function normalizeSettlementStatus(raw: string): "pending" | Terminal | null {
+  const s = String(raw || "").toLowerCase().trim();
+  if (["success", "successful", "completed", "complete", "paid", "sandbox"].includes(s)) return "success";
+  if (["failed", "failure", "cancelled", "canceled", "rejected", "declined", "expired", "reversed"].includes(s))
+    return "failed";
+  if (["pending", "processing", "in_progress", "initiated"].includes(s)) return "pending";
+  return null;
+}
+
+export interface SettleResult {
+  claimed: boolean;
+  status: string;
+  record: Record<string, any> | null;
+}
+
+/**
+ * Moves a pending payment record to a terminal state exactly once and fires
+ * the webhook + notification side effects for the caller that won the claim.
+ */
+export async function settlePaymentRecord(
+  record: Record<string, any>,
+  next: Terminal,
+  opts: { fee?: number; providerReference?: string | null } = {},
+): Promise<SettleResult> {
+  const now = new Date().toISOString();
+  const amount = Number(record.amount) || 0;
+  const fee = Number.isFinite(opts.fee) ? Number(opts.fee) : Number(record.fee_amount) || 0;
+
+  const { data: claimed } = await db()
+    .from("payment_records")
+    .update({
+      status: next,
+      settled_at: now,
+      updated_at: now,
+      fee_amount: fee,
+      net_amount: next === "success" ? amount - fee : 0,
+      ...(opts.providerReference ? { provider_reference: opts.providerReference } : {}),
+    })
+    .eq("id", record.id)
+    .is("settled_at", null)
+    .select("*");
+
+  const row = Array.isArray(claimed) ? claimed[0] : null;
+  // Another poller already settled this payment — never notify twice.
+  if (!row) return { claimed: false, status: next, record: null };
+
+  const kind = record.type === "payout" ? "payout" : "collection";
+
+  try {
+    const { dispatchWebhook } = await import("./platform.server");
+    await dispatchWebhook(record.merchant_id, `${kind}.${next}`, {
+      reference: record.reference,
+      provider_reference: row.provider_reference ?? null,
+      amount,
+      fee: fee,
+      net_amount: row.net_amount,
+      currency: record.currency,
+      phone_number: record.phone_number,
+      status: next,
+      type: kind,
+    });
+  } catch {
+    /* webhook delivery must never break settlement */
+  }
+
+  try {
+    const { notifySettlement } = await import("./notify.server");
+    await notifySettlement({
+      merchantId: record.merchant_id,
+      reference: record.reference,
+      type: kind,
+      amount,
+      currency: record.currency,
+      status: next,
+      phone_number: record.phone_number,
+      description: record.description,
+      source: record.source || "api",
+    });
+  } catch {
+    /* notifications must never break settlement */
+  }
+
+  return { claimed: true, status: next, record: row };
+}
+
+/**
+ * Asks MarzPay for the current state of a pending record and settles it when
+ * the provider reports a terminal status. Returns the up-to-date record.
+ */
+export async function refreshPaymentRecord(record: Record<string, any>): Promise<Record<string, any>> {
+  if (!record || record.status !== "pending") return record;
+
+  const { getMarzCreds, marzFetch } = await import("./marz.server");
+  const creds = await getMarzCreds();
+  if (!creds) return record;
+
+  const lookup = record.provider_reference || record.reference;
+  const res = await marzFetch(creds, `/transactions/${encodeURIComponent(String(lookup))}`);
+  if (!res.ok) return record;
+
+  const body = (res.data as any)?.data || res.data || {};
+  const txn = body.transaction || {};
+  const detail = body.collection || body.disbursement || {};
+  const next = normalizeSettlementStatus(txn.status || "");
+  if (!next || next === "pending") return record;
+
+  const fee = Number(detail.charge?.raw ?? detail.charge ?? 0) || 0;
+  const out = await settlePaymentRecord(record, next, {
+    fee,
+    providerReference: txn.uuid || record.provider_reference || null,
+  });
+  if (out.record) return out.record;
+
+  // Lost the claim: return whatever the winner wrote.
+  const { data: fresh } = await db().from("payment_records").select("*").eq("id", record.id).maybeSingle();
+  return fresh || { ...record, status: next };
+}
