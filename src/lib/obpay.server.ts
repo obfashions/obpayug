@@ -36,13 +36,16 @@ async function rest(token: string, path: string, init?: RequestInit) {
   return { ok: resp.ok, status: resp.status, data };
 }
 
-const SERVICE_KEY = () => process.env["SUPABASE_SERVICE_ROLE_KEY"] || "";
+// Service key for the merchant database (the uploaded Supabase project that
+// holds transactions + merchant_wallets). This is NOT the Lovable Cloud key.
+const SERVICE_KEY = () =>
+  (process.env["LEGACY_SUPABASE_SERVICE_ROLE_KEY"] || process.env["MERCHANT_DB_SERVICE_KEY"] || "").trim();
 
 /**
  * Settlement writes (transaction status + wallet balance) must always succeed,
  * even if the merchant's own RLS policies do not allow updating their wallet.
- * When a service role key is available on the server we use it; otherwise we
- * fall back to the caller's token so behaviour is unchanged.
+ * When a service key for the merchant database is configured we use it;
+ * otherwise we fall back to the caller's token so behaviour is unchanged.
  */
 async function restWrite(token: string, path: string, init?: RequestInit) {
   const key = SERVICE_KEY();
