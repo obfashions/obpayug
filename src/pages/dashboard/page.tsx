@@ -272,8 +272,8 @@ export default function DashboardPage() {
       const fee = Math.round(amount * (withdrawFeePercent / 100) * 100) / 100;
       const total = amount + fee;
 
-      if (total > (wallet?.available_balance || 0)) {
-        setWithdrawStatus({ ok: false, message: `You need ${formatCurrency(total, activeCurrency)} (includes ${formatCurrency(fee, activeCurrency)} fee at ${withdrawFeePercent}%). Your balance is ${formatCurrency(wallet?.available_balance || 0, activeCurrency)}.` });
+      if (total > activeBalance) {
+        setWithdrawStatus({ ok: false, message: `You need ${formatCurrency(total, activeCurrency)} (includes ${formatCurrency(fee, activeCurrency)} fee at ${withdrawFeePercent}%). Your balance is ${formatCurrency(activeBalance, activeCurrency)}.` });
         setWithdrawSubmitting(false); return;
       }
 

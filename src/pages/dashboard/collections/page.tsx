@@ -39,7 +39,7 @@ function formatCompact(num: number): string {
 
 export default function CollectionsPage() {
   const { user } = useAuth();
-  const { activeCurrency } = useCurrency();
+  const { activeCurrency, activeBalance } = useCurrency();
   const [collections, setCollections] = useState<Transaction[]>([]);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -365,7 +365,7 @@ export default function CollectionsPage() {
           <div className="bg-background-50 rounded-xl p-4 border border-background-200/70 hover:border-background-300/60 transition-all">
             <div className="flex items-center justify-between mb-2"><div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center"><i className="ri-wallet-3-line text-primary-600 text-lg" /></div><span className="text-[11px] text-foreground-400">Ready to use</span></div>
             <p className="text-xs text-foreground-500 mb-0.5">Available Balance</p>
-            <p className="font-heading font-bold text-xl text-foreground-900">{formatCurrency(wallet?.available_balance || 0, activeCurrency)}</p>
+            <p className="font-heading font-bold text-xl text-foreground-900">{formatCurrency(activeBalance, activeCurrency)}</p>
           </div>
           <div className="bg-background-50 rounded-xl p-4 border border-background-200/70 hover:border-background-300/60 transition-all">
             <div className="flex items-center justify-between mb-2"><div className="w-10 h-10 rounded-lg bg-accent-100 flex items-center justify-center"><i className="ri-time-line text-accent-600 text-lg" /></div><span className="text-[11px] text-foreground-400">{pendingTxns.length} pending</span></div>

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -193,6 +193,42 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_balances: {
+        Row: {
+          available_balance: number
+          created_at: string
+          currency: string
+          id: string
+          merchant_id: string
+          pending_balance: number
+          total_collections: number
+          total_payouts: number
+          updated_at: string
+        }
+        Insert: {
+          available_balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          merchant_id: string
+          pending_balance?: number
+          total_collections?: number
+          total_payouts?: number
+          updated_at?: string
+        }
+        Update: {
+          available_balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          merchant_id?: string
+          pending_balance?: number
+          total_collections?: number
+          total_payouts?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_links: {
         Row: {
           amount: number | null
@@ -247,6 +283,7 @@ export type Database = {
       payment_records: {
         Row: {
           amount: number
+          balance_applied_at: string | null
           created_at: string
           currency: string
           description: string | null
@@ -267,6 +304,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          balance_applied_at?: string | null
           created_at?: string
           currency?: string
           description?: string | null
@@ -287,6 +325,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          balance_applied_at?: string | null
           created_at?: string
           currency?: string
           description?: string | null
@@ -430,7 +469,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_merchant_balance_change: {
+        Args: {
+          p_available_delta: number
+          p_collections_delta?: number
+          p_currency: string
+          p_merchant_id: string
+          p_payouts_delta?: number
+        }
+        Returns: {
+          available_balance: number
+          created_at: string
+          currency: string
+          id: string
+          merchant_id: string
+          pending_balance: number
+          total_collections: number
+          total_payouts: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "merchant_balances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      settle_payment_record_and_balance: {
+        Args: {
+          p_fee?: number
+          p_provider_reference?: string
+          p_record_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
