@@ -250,13 +250,16 @@ export type Database = {
           created_at: string
           currency: string
           description: string | null
+          fee_amount: number
           id: string
           merchant_id: string
           metadata: Json
+          net_amount: number | null
           payment_link_id: string | null
           phone_number: string | null
           provider_reference: string | null
           reference: string
+          settled_at: string | null
           source: string
           status: string
           type: string
@@ -267,13 +270,16 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          fee_amount?: number
           id?: string
           merchant_id: string
           metadata?: Json
+          net_amount?: number | null
           payment_link_id?: string | null
           phone_number?: string | null
           provider_reference?: string | null
           reference: string
+          settled_at?: string | null
           source?: string
           status?: string
           type: string
@@ -284,13 +290,16 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          fee_amount?: number
           id?: string
           merchant_id?: string
           metadata?: Json
+          net_amount?: number | null
           payment_link_id?: string | null
           phone_number?: string | null
           provider_reference?: string | null
           reference?: string
+          settled_at?: string | null
           source?: string
           status?: string
           type?: string
