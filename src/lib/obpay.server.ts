@@ -36,6 +36,37 @@ async function rest(token: string, path: string, init?: RequestInit) {
   return { ok: resp.ok, status: resp.status, data };
 }
 
+const SERVICE_KEY = () => process.env["SUPABASE_SERVICE_ROLE_KEY"] || "";
+
+/**
+ * Settlement writes (transaction status + wallet balance) must always succeed,
+ * even if the merchant's own RLS policies do not allow updating their wallet.
+ * When a service role key is available on the server we use it; otherwise we
+ * fall back to the caller's token so behaviour is unchanged.
+ */
+async function restWrite(token: string, path: string, init?: RequestInit) {
+  const key = SERVICE_KEY();
+  if (!key) return rest(token, path, init);
+  const resp = await fetch(`${SUPA_URL()}/rest/v1${path}`, {
+    ...init,
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...((init?.headers as Record<string, string>) || {}),
+    },
+  });
+  const text = await resp.text();
+  let data: any = null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text;
+  }
+  return { ok: resp.ok, status: resp.status, data };
+}
+
 const first = (res: { data: any }) => (Array.isArray(res.data) ? res.data[0] || null : null);
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
