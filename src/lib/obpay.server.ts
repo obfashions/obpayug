@@ -36,6 +36,40 @@ async function rest(token: string, path: string, init?: RequestInit) {
   return { ok: resp.ok, status: resp.status, data };
 }
 
+// Service key for the merchant database (the uploaded Supabase project that
+// holds transactions + merchant_wallets). This is NOT the Lovable Cloud key.
+const SERVICE_KEY = () =>
+  (process.env["LEGACY_SUPABASE_SERVICE_ROLE_KEY"] || process.env["MERCHANT_DB_SERVICE_KEY"] || "").trim();
+
+/**
+ * Settlement writes (transaction status + wallet balance) must always succeed,
+ * even if the merchant's own RLS policies do not allow updating their wallet.
+ * When a service key for the merchant database is configured we use it;
+ * otherwise we fall back to the caller's token so behaviour is unchanged.
+ */
+async function restWrite(token: string, path: string, init?: RequestInit) {
+  const key = SERVICE_KEY();
+  if (!key) return rest(token, path, init);
+  const resp = await fetch(`${SUPA_URL()}/rest/v1${path}`, {
+    ...init,
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...((init?.headers as Record<string, string>) || {}),
+    },
+  });
+  const text = await resp.text();
+  let data: any = null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text;
+  }
+  return { ok: resp.ok, status: resp.status, data };
+}
+
 const first = (res: { data: any }) => (Array.isArray(res.data) ? res.data[0] || null : null);
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -127,20 +161,20 @@ async function resolveTransaction(token: string, txn: any) {
     ...(status === "success" ? { completed_at: now, net_amount: Number(txn.amount) - fee } : {}),
   };
 
-  const upd = await rest(token, `/transactions?id=eq.${txn.id}&status=eq.pending`, {
+  const upd = await restWrite(token, `/transactions?id=eq.${txn.id}&status=eq.pending`, {
     method: "PATCH",
     body: JSON.stringify(updates),
   });
   // Someone else (webhook/other tab) already resolved it — do not touch the wallet twice.
   if (!upd.ok || !Array.isArray(upd.data) || upd.data.length === 0) return null;
 
-  const walletRes = await rest(token, `/merchant_wallets?user_id=eq.${txn.user_id}&select=*`);
+  const walletRes = await restWrite(token, `/merchant_wallets?user_id=eq.${txn.user_id}&select=*`);
   const wallet = first(walletRes);
 
   if (status === "success" && txn.type === "collection") {
     const credit = Number(txn.amount) - fee;
     if (wallet) {
-      await rest(token, `/merchant_wallets?user_id=eq.${txn.user_id}`, {
+      await restWrite(token, `/merchant_wallets?user_id=eq.${txn.user_id}`, {
         method: "PATCH",
         body: JSON.stringify({
           available_balance: Number(wallet.available_balance || 0) + credit,
@@ -149,7 +183,7 @@ async function resolveTransaction(token: string, txn: any) {
         }),
       });
     } else {
-      await rest(token, `/merchant_wallets`, {
+      await restWrite(token, `/merchant_wallets`, {
         method: "POST",
         body: JSON.stringify({
           user_id: txn.user_id,
@@ -165,7 +199,7 @@ async function resolveTransaction(token: string, txn: any) {
 
   if (status === "failed" && txn.type === "payout" && wallet) {
     const refund = Number(txn.amount) + Number(txn.fee_amount || 0);
-    await rest(token, `/merchant_wallets?user_id=eq.${txn.user_id}`, {
+    await restWrite(token, `/merchant_wallets?user_id=eq.${txn.user_id}`, {
       method: "PATCH",
       body: JSON.stringify({
         available_balance: Number(wallet.available_balance || 0) + refund,
@@ -214,7 +248,7 @@ async function syncPending(token: string, userId: string, limit = 25) {
       /* keep syncing the rest */
     }
   }
-  return { checked: rows.length, resolved };
+  return { checked: rows.length, resolved, updated: resolved };
 }
 
 // ─── Public entry point ───────────────────────────────────────
@@ -342,7 +376,9 @@ export async function runObpayAction(action: string, accessToken: string, body: 
   // ── Sync pending ─────────────────────────────────────────
   if (action === "sync-all-pending") {
     const out = await syncPending(accessToken, userId);
-    return { success: true, data: out };
+    // Older dashboard screens read `updated` at the top level, newer ones read
+    // it inside `data` — expose both so every page reacts to a settlement.
+    return { success: true, data: out, updated: out.updated, checked: out.checked };
   }
 
   // ── Single transaction status ────────────────────────────
