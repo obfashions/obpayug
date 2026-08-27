@@ -126,3 +126,22 @@ export async function refreshPaymentRecord(record: Record<string, any>): Promise
   const { data: fresh } = await db().from("payment_records").select("*").eq("id", record.id).maybeSingle();
   return fresh || { ...record, status: next };
 }
+
+/** Reconciles a bounded batch before returning a merchant's balance. */
+export async function refreshMerchantPendingPayments(merchantId: string, limit = 50): Promise<void> {
+  const { data: pending } = await db()
+    .from("payment_records")
+    .select("*")
+    .eq("merchant_id", merchantId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(Math.min(Math.max(limit, 1), 100));
+
+  for (const record of pending ?? []) {
+    try {
+      await refreshPaymentRecord(record);
+    } catch {
+      /* one provider lookup must not prevent the remaining records from syncing */
+    }
+  }
+}

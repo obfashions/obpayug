@@ -112,6 +112,14 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     refreshBalances();
   }, [refreshBalances]);
 
+  useEffect(() => {
+    if (!user) return;
+    const interval = window.setInterval(() => {
+      void refreshBalances();
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [user, refreshBalances]);
+
   // Realtime wallet updates
   useEffect(() => {
     if (!user) return;

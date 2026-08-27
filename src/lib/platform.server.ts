@@ -121,6 +121,8 @@ export async function listPaymentLinks(id: Identity) {
 }
 
 export async function getMerchantBalances(id: Identity) {
+  const { refreshMerchantPendingPayments } = await import("./settle.server");
+  await refreshMerchantPendingPayments(id.userId);
   const { data, error } = await db()
     .from("merchant_balances")
     .select("currency, available_balance, pending_balance, total_collections, total_payouts, updated_at")

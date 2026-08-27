@@ -61,6 +61,8 @@ export async function apiAccount(merchantId: string) {
 }
 
 export async function apiBalance(merchantId: string) {
+  const { refreshMerchantPendingPayments } = await import("./settle.server");
+  await refreshMerchantPendingPayments(merchantId);
   const { runMarzAction } = await import("./marz.server");
   const res = await runMarzAction("balance", {});
   const { data: rows, error } = await db()
