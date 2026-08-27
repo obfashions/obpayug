@@ -6,7 +6,6 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   merchantForSecret,
   recordPayment,
-  dispatchWebhook,
   listPaymentLinks,
   createPaymentLink,
   updatePaymentLink,
@@ -39,14 +38,6 @@ function ok(data: unknown) {
 }
 function err(message: string) {
   return { success: false, error: message };
-}
-
-function normalizeStatus(raw: string): "pending" | "success" | "failed" | null {
-  const s = String(raw || "").toLowerCase();
-  if (["success", "successful", "completed", "complete", "paid"].includes(s)) return "success";
-  if (["failed", "cancelled", "canceled", "rejected", "expired", "reversed"].includes(s)) return "failed";
-  if (["pending", "processing", "initiated"].includes(s)) return "pending";
-  return null;
 }
 
 // ─── account ──────────────────────────────────────────────────
