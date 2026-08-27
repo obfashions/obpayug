@@ -628,49 +628,12 @@ export async function publicPaymentStatus(reference: string) {
     .maybeSingle();
   if (!record) return fail("We could not find that payment.");
 
-  if (record.status !== "pending") return done({ status: record.status, reference: ref, amount: record.amount });
+  if (record.status !== "pending")
+    return done({ status: record.status, reference: ref, amount: record.amount });
 
-  const { getMarzCreds, marzFetch } = await import("./marz.server");
-  const creds = await getMarzCreds();
-  if (creds) {
-    const lookupRef = record.provider_reference || ref;
-    const res = await marzFetch(creds, `/transactions/${encodeURIComponent(lookupRef)}`);
-    const raw = String(res.data?.data?.transaction?.status || "").toLowerCase();
-    const next =
-      ["success", "successful", "completed", "complete"].includes(raw)
-        ? "success"
-        : ["failed", "cancelled", "canceled", "rejected", "expired"].includes(raw)
-          ? "failed"
-          : null;
-    if (next) {
-      await db()
-        .from("payment_records")
-        .update({ status: next, updated_at: new Date().toISOString() })
-        .eq("reference", ref);
-      await dispatchWebhook(record.merchant_id, next === "success" ? "collection.success" : "collection.failed", {
-        reference: ref,
-        amount: record.amount,
-        currency: record.currency,
-        phone_number: record.phone_number,
-      });
-      const { notifySettlement } = await import("./notify.server");
-      await notifySettlement({
-        merchantId: record.merchant_id,
-        reference: ref,
-        type: "collection",
-        amount: record.amount,
-        currency: record.currency,
-        status: next,
-        phone_number: record.phone_number,
-        description: record.description,
-        source: "payment_link",
-      });
-      return done({ status: next, reference: ref, amount: record.amount });
-    }
-  }
-
-
-  return done({ status: "pending", reference: ref, amount: record.amount });
+  const { refreshPaymentRecord } = await import("./settle.server");
+  const fresh = await refreshPaymentRecord(record);
+  return done({ status: fresh.status, reference: ref, amount: fresh.amount });
 }
 
 

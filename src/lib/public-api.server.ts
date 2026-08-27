@@ -6,7 +6,6 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   merchantForSecret,
   recordPayment,
-  dispatchWebhook,
   listPaymentLinks,
   createPaymentLink,
   updatePaymentLink,
@@ -39,14 +38,6 @@ function ok(data: unknown) {
 }
 function err(message: string) {
   return { success: false, error: message };
-}
-
-function normalizeStatus(raw: string): "pending" | "success" | "failed" | null {
-  const s = String(raw || "").toLowerCase();
-  if (["success", "successful", "completed", "complete", "paid"].includes(s)) return "success";
-  if (["failed", "cancelled", "canceled", "rejected", "expired", "reversed"].includes(s)) return "failed";
-  if (["pending", "processing", "initiated"].includes(s)) return "pending";
-  return null;
 }
 
 // ─── account ──────────────────────────────────────────────────
@@ -258,41 +249,8 @@ export async function apiTransaction(merchantId: string, reference: string) {
   if (!record) return err("No transaction with that reference.");
   if (record.status !== "pending") return ok(record);
 
-  const { getMarzCreds, marzFetch } = await import("./marz.server");
-  const creds = await getMarzCreds();
-  if (creds) {
-    const res = await marzFetch(creds, `/transactions/${encodeURIComponent(record.provider_reference || reference)}`);
-    const next = normalizeStatus(res.data?.data?.transaction?.status || "");
-    if (next && next !== "pending") {
-      await db()
-        .from("payment_records")
-        .update({ status: next, updated_at: new Date().toISOString() })
-        .eq("id", record.id);
-      const kind = record.type === "payout" ? "payout" : "collection";
-      await dispatchWebhook(merchantId, `${kind}.${next === "success" ? "success" : "failed"}`, {
-        reference,
-        amount: record.amount,
-        currency: record.currency,
-        phone_number: record.phone_number,
-        status: next,
-        type: kind,
-      });
-      const { notifySettlement } = await import("./notify.server");
-      await notifySettlement({
-        merchantId,
-        reference,
-        type: kind,
-        amount: record.amount,
-        currency: record.currency,
-        status: next,
-        phone_number: record.phone_number,
-        description: record.description,
-        source: "api",
-      });
-      return ok({ ...record, status: next });
-    }
-  }
-  return ok(record);
+  const { refreshPaymentRecord } = await import("./settle.server");
+  return ok(await refreshPaymentRecord(record));
 }
 
 export async function apiTransactions(merchantId: string, query: URLSearchParams) {
