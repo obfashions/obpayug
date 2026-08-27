@@ -193,6 +193,42 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_balances: {
+        Row: {
+          available_balance: number
+          created_at: string
+          currency: string
+          id: string
+          merchant_id: string
+          pending_balance: number
+          total_collections: number
+          total_payouts: number
+          updated_at: string
+        }
+        Insert: {
+          available_balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          merchant_id: string
+          pending_balance?: number
+          total_collections?: number
+          total_payouts?: number
+          updated_at?: string
+        }
+        Update: {
+          available_balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          merchant_id?: string
+          pending_balance?: number
+          total_collections?: number
+          total_payouts?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_links: {
         Row: {
           amount: number | null
@@ -430,7 +466,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_merchant_balance_change: {
+        Args: {
+          p_available_delta: number
+          p_collections_delta?: number
+          p_currency: string
+          p_merchant_id: string
+          p_payouts_delta?: number
+        }
+        Returns: {
+          available_balance: number
+          created_at: string
+          currency: string
+          id: string
+          merchant_id: string
+          pending_balance: number
+          total_collections: number
+          total_payouts: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "merchant_balances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
