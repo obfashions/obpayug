@@ -120,6 +120,16 @@ export async function listPaymentLinks(id: Identity) {
   return done(data ?? []);
 }
 
+export async function getMerchantBalances(id: Identity) {
+  const { data, error } = await db()
+    .from("merchant_balances")
+    .select("currency, available_balance, pending_balance, total_collections, total_payouts, updated_at")
+    .eq("merchant_id", id.userId)
+    .order("currency");
+  if (error) return fail(error.message);
+  return done(data ?? []);
+}
+
 export async function createPaymentLink(id: Identity, body: Record<string, any>) {
   const title = String(body.title || "").trim();
   if (!title) return fail("Give the payment link a title.");
@@ -690,6 +700,8 @@ export async function runPlatformAction(
         return await listApiLogs(id, body.limit);
       case "payments.list":
         return await listPayments(id, body.limit);
+      case "balances.get":
+        return await getMerchantBalances(id);
 
       case "kyc.get":
         return await getKyc(id);

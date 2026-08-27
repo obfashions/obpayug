@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { platform } from "@/lib/platform";
 import {
   getCurrencyInfo,
   getCurrencyByCountry,
@@ -66,11 +67,14 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("merchant_wallets")
-        .select("available_balance, pending_balance, balances_by_currency, total_collections, total_payouts")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const [{ data, error }, managed] = await Promise.all([
+        supabase
+          .from("merchant_wallets")
+          .select("available_balance, pending_balance, balances_by_currency, total_collections, total_payouts")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        platform<Array<{ currency: string; available_balance: number }>>("balances.get"),
+      ]);
 
       if (error) throw error;
 
@@ -80,6 +84,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       const merged: BalancesByCurrency = { ...rawBalances };
       if (data?.available_balance != null) {
         merged[legacyCurrency] = Math.max(merged[legacyCurrency] || 0, Number(data.available_balance));
+      }
+      if (managed.success) {
+        for (const row of managed.data || []) {
+          const currency = String(row.currency || DEFAULT_CURRENCY).toUpperCase();
+          merged[currency] = (merged[currency] || 0) + (Number(row.available_balance) || 0);
+        }
       }
 
       setBalances(merged);

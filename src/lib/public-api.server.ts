@@ -63,24 +63,29 @@ export async function apiAccount(merchantId: string) {
 export async function apiBalance(merchantId: string) {
   const { runMarzAction } = await import("./marz.server");
   const res = await runMarzAction("balance", {});
-  if (!res.success) return err(res.error || "Balance is temporarily unavailable.");
-  const { data: rows } = await db()
-    .from("payment_records")
-    .select("type, amount, status")
+  const { data: rows, error } = await db()
+    .from("merchant_balances")
+    .select("currency, available_balance, pending_balance, total_collections, total_payouts")
     .eq("merchant_id", merchantId)
-    .eq("status", "success");
-  let collected = 0;
-  let paid = 0;
-  for (const r of rows ?? []) {
-    if (r.type === "collection") collected += Number(r.amount) || 0;
-    else paid += Number(r.amount) || 0;
-  }
+    .order("currency");
+  if (error) return err("Balance is temporarily unavailable.");
+  const balances = (rows ?? []).map((row: any) => ({
+    currency: row.currency,
+    available_balance: Number(row.available_balance) || 0,
+    pending_balance: Number(row.pending_balance) || 0,
+    collected: Number(row.total_collections) || 0,
+    paid_out: Number(row.total_payouts) || 0,
+  }));
+  const primary = balances.find((row: any) => row.currency === "UGX") || balances[0];
   return ok({
-    currency: "UGX",
-    collected,
-    paid_out: paid,
-    net: collected - paid,
-    provider_balance: (res.data as any)?.balance ?? null,
+    currency: primary?.currency || "UGX",
+    available_balance: primary?.available_balance || 0,
+    pending_balance: primary?.pending_balance || 0,
+    collected: primary?.collected || 0,
+    paid_out: primary?.paid_out || 0,
+    net: primary?.available_balance || 0,
+    balances,
+    provider_balance: res.success ? (res.data as any)?.balance ?? null : null,
   });
 }
 

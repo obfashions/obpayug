@@ -228,7 +228,7 @@ export default function PayoutsPage() {
       const fee = estimatedPayoutFee();
       const totalDeduction = amount + fee;
 
-      if (totalDeduction > wallet.available_balance) {
+      if (totalDeduction > activeBalance) {
         const feeLabel = amount <= 70000 ? `${formatCurrency(fee, form.currency)} flat fee` : `${formatCurrency(fee, form.currency)} (3%)`;
         setSubmitStatus({ ok: false, message: `You need ${formatCurrency(totalDeduction, form.currency)} (includes ${feeLabel}). Your balance is ${formatCurrency(activeBalance, form.currency)}.` });
         setSubmitting(false); return;

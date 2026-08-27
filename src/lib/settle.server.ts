@@ -42,23 +42,18 @@ export async function settlePaymentRecord(
   const amount = Number(record.amount) || 0;
   const fee = Number.isFinite(opts.fee) ? Number(opts.fee) : Number(record.fee_amount) || 0;
 
-  const { data: claimed } = await db()
-    .from("payment_records")
-    .update({
-      status: next,
-      settled_at: now,
-      updated_at: now,
-      fee_amount: fee,
-      net_amount: next === "success" ? amount - fee : 0,
-      ...(opts.providerReference ? { provider_reference: opts.providerReference } : {}),
-    })
-    .eq("id", record.id)
-    .is("settled_at", null)
-    .select("*");
+  const { data: settlement, error } = await db().rpc("settle_payment_record_and_balance", {
+    p_record_id: record.id,
+    p_status: next,
+    p_fee: fee,
+    p_provider_reference: opts.providerReference || null,
+  });
+  if (error) throw new Error(error.message || "Could not settle this payment.");
 
-  const row = Array.isArray(claimed) ? claimed[0] : null;
+  const claimed = settlement?.claimed === true;
+  const row = settlement?.record || null;
   // Another poller already settled this payment — never notify twice.
-  if (!row) return { claimed: false, status: next, record: null };
+  if (!claimed) return { claimed: false, status: row?.status || next, record: row };
 
   const kind = record.type === "payout" ? "payout" : "collection";
 
