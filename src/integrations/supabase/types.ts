@@ -495,6 +495,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      settle_payment_record_and_balance: {
+        Args: {
+          p_fee?: number
+          p_provider_reference?: string
+          p_record_id: string
+          p_status: string
+        }
+        Returns: {
+          amount: number
+          balance_applied_at: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          fee_amount: number
+          id: string
+          merchant_id: string
+          metadata: Json
+          net_amount: number | null
+          payment_link_id: string | null
+          phone_number: string | null
+          provider_reference: string | null
+          reference: string
+          settled_at: string | null
+          source: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payment_records"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
