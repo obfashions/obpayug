@@ -13,12 +13,22 @@ interface CredRow {
   updatedBy: string | null;
 }
 
+interface EgressState {
+  approved: string | null;
+  current: string | null;
+  lastSeen: string | null;
+  matches: boolean;
+  staticRelay: boolean;
+  checkedAt: string;
+}
+
 interface StatusData {
   source: "database" | "environment" | "none";
   base_url: string;
   callback_url: string;
   static_egress: boolean;
   server_ip: string | null;
+  egress: EgressState | null;
   active: { key: string; secretMasked: string } | null;
   credentials: CredRow[];
   environment: { key: string; secretMasked: string } | null;
