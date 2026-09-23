@@ -94,6 +94,11 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
+  if (currency !== "UGX") return err("`currency` must be `UGX`.");
+  const customerName = String(body.customer_name || body.customerName || "").trim();
+  const customerEmail = String(body.customer_email || body.customerEmail || "").trim();
+  if (!customerName) return err("`customer_name` is required.");
+  if (!/^\S+@\S+\.\S+$/.test(customerEmail)) return err("`customer_email` must be a valid email address.");
   const phone = walletNumber(body.phone_number ?? body.phoneNumber);
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
   if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
@@ -118,8 +123,8 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
   const out = await gatewayCollect(creds, {
     reference,
     amount,
-    customerName: String(body.customer_name || body.customerName || "ObPay customer"),
-    customerEmail: String(body.customer_email || body.customerEmail || "payments@obpay.online"),
+    customerName,
+    customerEmail,
     phone,
     bankCode: networkCode(body.network || body.payment_method, phone),
     description: String(body.description || "ObPay collection"),
@@ -179,6 +184,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
+  if (currency !== "UGX") return err("`currency` must be `UGX`.");
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
   if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
 
@@ -189,12 +195,14 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     ? String(body.account_number || body.accountNumber || "").replace(/\s/g, "")
     : walletNumber(body.phone_number ?? body.phoneNumber ?? body.account_number);
 
-  if (isBank && !accountNumber) return err("`account_number` is required for bank payouts.");
+  if (isBank && !/^\d+$/.test(accountNumber)) return err("`account_number` must contain digits only for bank payouts.");
   if (!isBank && !accountNumber) {
     return err("`phone_number` must be a Ugandan mobile money number, e.g. 0772123456.");
   }
   const recipientName = String(body.customer_name || body.customerName || body.recipient_name || "").trim();
-  if (isBank && !recipientName) return err("`customer_name` is required for bank payouts.");
+  if (!recipientName) return err("`customer_name` is required for every payout.");
+  const recipientEmail = String(body.customer_email || body.customerEmail || "").trim();
+  if (recipientEmail && !/^\S+@\S+\.\S+$/.test(recipientEmail)) return err("`customer_email` must be a valid email address.");
 
   const reference = String(body.reference || `OBW${Date.now().toString(36).toUpperCase()}`).slice(0, 40);
   const { data: existing } = await db()
@@ -223,6 +231,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     accountNumber,
     customerName: recipientName || "ObPay recipient",
     ...(isBank ? {} : { customerPhone: accountNumber }),
+    ...(recipientEmail ? { customerEmail: recipientEmail } : {}),
     remark: String(body.description || "ObPay payout"),
     notifyUrl: callbackUrl(),
   });
