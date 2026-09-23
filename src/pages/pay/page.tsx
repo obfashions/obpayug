@@ -257,10 +257,19 @@ export default function PayPage() {
 
         if (apiData?.success) {
           const edgeTxnRef = apiData?.data?.reference || ref;
+          const checkoutUrl = apiData?.data?.checkout_url;
           setTxnRef(edgeTxnRef);
           setPollStatus("polling");
-          setPollMessage(`Payment of ${formatCurrency(payAmount)} is being processed. Waiting for confirmation from the mobile money provider...`);
           setSubmitting(false);
+
+          // The secure payment page finishes the payment and sends the payer back here.
+          if (checkoutUrl) {
+            setPollMessage(`Taking you to the secure payment page to approve ${formatCurrency(payAmount)}…`);
+            window.location.href = checkoutUrl;
+            return;
+          }
+
+          setPollMessage(`Payment of ${formatCurrency(payAmount)} is being processed. Waiting for confirmation from your mobile money provider...`);
           await pollForStatus(edgeTxnRef);
           return;
         }
