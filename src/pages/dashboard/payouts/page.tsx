@@ -353,7 +353,7 @@ export default function PayoutsPage() {
         payout_type: "withdraw",
         destinationType: "mobile",
         phoneNumber: profile.phone_number,
-        customerName: profile.full_name || profile.company_name || "Account holder",
+        customerName: profile.full_name || "Account holder",
         customerEmail: user.email || "",
         amount,
         currency: "UGX",
