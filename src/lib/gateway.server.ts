@@ -210,8 +210,17 @@ export async function gatewayFetch(
   };
 
   try {
-    // Fail closed: when the fixed-IP route is configured, never fall back to a rotating address.
-    const res = await run(!!proxyConfig());
+    const usesFixedEgress = !!proxyConfig();
+    // Fail closed: when the fixed-IP route is configured, never fall back to a
+    // rotating address. An explicit IP rejection is safe to retry because the
+    // partner rejects it before creating an order. Separate relay calls also
+    // allow Fixie to select its other approved address.
+    let res = await run(usesFixedEgress);
+    if (usesFixedEgress && isIpBlocked(res)) {
+      for (let attempt = 0; attempt < 3 && isIpBlocked(res); attempt += 1) {
+        res = await run(true);
+      }
+    }
     if (!res.ok && isIpBlocked(res)) {
       void import("./egress-monitor.server").then((m) => m.noteIpBlocked()).catch(() => {});
     }
