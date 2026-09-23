@@ -213,8 +213,10 @@ export async function runServiceAction(action: string, accessToken: string, user
       const creds = await getGatewayCreds();
       if (!creds) return { success: false, error: "Transfers are temporarily unavailable. Please try again shortly." };
 
-      const amount = Math.round(Number(b.amount || 0));
-      if (!amount || amount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+      const numericAmount = Number(b.amount || 0);
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+      if (!Number.isInteger(numericAmount)) return { success: false, error: "Enter a whole UGX amount without decimals." };
+      const amount = numericAmount;
       const bankCode = bankCodeFor(b.bankCode || b.bankName);
       if (!bankCode) return { success: false, error: "Choose a bank from the list." };
       const accountNumber = String(b.accountNumber || "").replace(/\D/g, "");

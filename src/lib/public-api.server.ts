@@ -191,6 +191,9 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
   // Bank payout when a bank_code is supplied, mobile money otherwise.
   const rawBankCode = String(body.bank_code || body.bankCode || "").toUpperCase();
   const isBank = UG_BANKS.some((b) => b.code === rawBankCode);
+  if (rawBankCode && !isBank && !["UG0030", "UG0031"].includes(rawBankCode)) {
+    return err("`bank_code` is not a supported Ugandan bank or mobile money code.");
+  }
   const accountNumber = isBank
     ? String(body.account_number || body.accountNumber || "").replace(/\s/g, "")
     : walletNumber(body.phone_number ?? body.phoneNumber ?? body.account_number);

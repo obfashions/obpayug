@@ -557,6 +557,9 @@ export async function publicCollect(body: Record<string, any>) {
     .maybeSingle();
   if (!link) return fail("This payment link does not exist.");
   if (link.status !== "active") return fail("This payment link is no longer accepting payments.");
+  if (String(link.currency || "UGX").toUpperCase() !== "UGX") {
+    return fail("This payment link uses a currency that is not supported. Ask the merchant to create a UGX link.");
+  }
 
   const numericAmount = Number(link.fixed_amount && link.amount != null ? link.amount : body.amount);
   const amount = Math.round(numericAmount);
@@ -589,7 +592,7 @@ export async function publicCollect(body: Record<string, any>) {
       type: "collection",
       source: "payment_link",
       amount,
-      currency: link.currency,
+      currency: "UGX",
       status: "failed",
       phone_number: phone,
       description: link.title,
@@ -604,7 +607,7 @@ export async function publicCollect(body: Record<string, any>) {
     type: "collection",
     source: "payment_link",
     amount,
-    currency: link.currency,
+    currency: "UGX",
     status: "pending",
     phone_number: phone,
     description: link.title,
