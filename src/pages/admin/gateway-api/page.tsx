@@ -143,6 +143,21 @@ export default function AdminGatewayApi() {
     setBusy("");
   };
 
+  const handleApproveIp = async () => {
+    setBusy("egress");
+    setResult(null);
+    const res = await call("egress-approve", { ip: status?.egress?.current || status?.server_ip || "" });
+    if (res?.success) {
+      setResult({ ok: true, message: "Saved. You'll get an email automatically if this address ever changes." });
+      await loadStatus();
+    } else {
+      setResult({ ok: false, message: res?.error || "Could not save this address." });
+    }
+    setBusy("");
+  };
+
+  const egress = status?.egress || null;
+  const ipDrifted = !!egress?.approved && !!egress?.current && !egress.matches;
   const rows = status?.credentials || [];
 
   return (
