@@ -10,20 +10,26 @@ export const Route = createFileRoute("/api/public/egress-ip")({
     handlers: {
       GET: async () => {
         const { probeEgressIp, proxyConfig } = await import("@/lib/gateway.server");
+        const { checkEgressIp } = await import("@/lib/egress-monitor.server");
         const proxy = proxyConfig();
-        const [direct, viaProxy] = await Promise.all([
-          probeEgressIp(false),
+        // Also compares against the approved address and emails the admin if it changed,
+        // so pinging this URL on a schedule gives early warning of a change.
+        const [state, viaProxy] = await Promise.all([
+          checkEgressIp("address watch ping"),
           proxy ? probeEgressIp(true) : Promise.resolve(null),
         ]);
         return new Response(
           JSON.stringify({
-            direct_ip: direct,
+            direct_ip: state.current,
+            approved_ip: state.approved,
+            matches_approved: state.matches,
             proxy_configured: !!proxy,
             proxy_ip: viaProxy,
-            whitelist_ip: viaProxy || null,
+            whitelist_ip: viaProxy || state.approved || state.current,
+            checked_at: state.checkedAt,
             note: proxy
               ? "Ask the payment partner to approve proxy_ip. It is stable."
-              : "No static-egress relay configured; direct_ip changes between requests.",
+              : "Ask the partner to approve direct_ip; an email is sent automatically if it ever changes.",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
