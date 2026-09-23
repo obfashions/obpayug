@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { supabase } from "@/lib/supabase";
-import { getProviderConnectionStatus, saveProviderCredentials, testProviderConnection } from "@/services/obpay";
+import { getProviderConnectionStatus, testProviderConnection } from "@/services/obpay";
 
 export default function SettingsPage() {
   const { profile } = useAuth();
@@ -15,14 +15,9 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   // Payment Provider state
-  const [lpAccountNumber, setLpAccountNumber] = useState("");
-  const [lpApiKey, setLpApiKey] = useState("");
-  const [lpEnv, setLpEnv] = useState<"sandbox" | "live">("live");
   const [lpStatus, setLpStatus] = useState<{ connected: boolean; status: string | null }>({ connected: false, status: null });
-  const [lpSaving, setLpSaving] = useState(false);
   const [lpTesting, setLpTesting] = useState(false);
-  const [lpTestResult, setLpTestResult] = useState<{ ok: boolean; message: string; details?: any } | null>(null);
-  const [lpSaved, setLpSaved] = useState(false);
+  const [lpTestResult, setLpTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Withdraw funding source toggle (admin only)
   const [withdrawFromJulyPay, setWithdrawFromJulyPay] = useState(false);
@@ -45,8 +40,6 @@ export default function SettingsPage() {
   const fetchConnectionStatus = useCallback(async () => {
     const status = await getProviderConnectionStatus();
     setLpStatus({ connected: status.connected, status: status.status });
-    if (status.accountNumber) setLpAccountNumber(status.accountNumber);
-    if (status.environment) setLpEnv(status.environment as "sandbox" | "live");
   }, []);
 
   const fetchPlatformSettings = useCallback(async () => {
@@ -77,34 +70,6 @@ export default function SettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }, 1000);
-  };
-
-  const handleSaveProvider = async () => {
-    if (!lpAccountNumber.trim()) {
-      setLpTestResult({ ok: false, message: "Account number is required (Paste your MarzPay API secret here)." });
-      return;
-    }
-    if (!profile?.id) return;
-
-    setLpSaving(true);
-    setLpTestResult(null);
-    const result = await saveProviderCredentials(
-      {
-        accountNumber: lpAccountNumber.trim(),
-        environment: lpEnv,
-        apiKey: lpApiKey.trim() || undefined,
-      },
-      profile.id,
-    );
-    setLpSaving(false);
-
-    if (result.ok) {
-      setLpSaved(true);
-      setLpStatus({ connected: true, status: "active" });
-      setTimeout(() => setLpSaved(false), 3000);
-    } else {
-      setLpTestResult({ ok: false, message: result.message });
-    }
   };
 
   const handleTestConnection = async () => {
@@ -215,7 +180,7 @@ export default function SettingsPage() {
             Account Settings
           </h2>
           <p className="text-sm text-foreground-600">
-            Manage your profile, payment provider, and account preferences.
+            Manage your profile, payments, and account preferences.
           </p>
         </div>
 
