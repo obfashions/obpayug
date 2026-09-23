@@ -104,6 +104,11 @@ async function sendMail(to: string, subject: string, html: string, type: string)
   }
 }
 
+/** Operational alert to the ObPay admin mailbox (not merchant facing). */
+export async function sendAdminAlert(subject: string, html: string): Promise<boolean> {
+  return await sendMail(ADMIN_ALERT_EMAIL(), subject, html, "admin_operational_alert");
+}
+
 function row(label: string, value: string) {
   return `<tr><td style="padding:6px 0;font-size:13px;color:#6b7280;">${label}</td><td style="padding:6px 0;font-size:13px;color:#111827;font-weight:600;text-align:right;">${value}</td></tr>`;
 }

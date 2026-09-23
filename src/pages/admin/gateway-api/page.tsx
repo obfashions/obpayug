@@ -13,12 +13,22 @@ interface CredRow {
   updatedBy: string | null;
 }
 
+interface EgressState {
+  approved: string | null;
+  current: string | null;
+  lastSeen: string | null;
+  matches: boolean;
+  staticRelay: boolean;
+  checkedAt: string;
+}
+
 interface StatusData {
   source: "database" | "environment" | "none";
   base_url: string;
   callback_url: string;
   static_egress: boolean;
   server_ip: string | null;
+  egress: EgressState | null;
   active: { key: string; secretMasked: string } | null;
   credentials: CredRow[];
   environment: { key: string; secretMasked: string } | null;
@@ -133,6 +143,21 @@ export default function AdminGatewayApi() {
     setBusy("");
   };
 
+  const handleApproveIp = async () => {
+    setBusy("egress");
+    setResult(null);
+    const res = await call("egress-approve", { ip: status?.egress?.current || status?.server_ip || "" });
+    if (res?.success) {
+      setResult({ ok: true, message: "Saved. You'll get an email automatically if this address ever changes." });
+      await loadStatus();
+    } else {
+      setResult({ ok: false, message: res?.error || "Could not save this address." });
+    }
+    setBusy("");
+  };
+
+  const egress = status?.egress || null;
+  const ipDrifted = !!egress?.approved && !!egress?.current && !egress.matches;
   const rows = status?.credentials || [];
 
   return (
@@ -195,6 +220,52 @@ export default function AdminGatewayApi() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Approved network address watch */}
+        <div
+          className={`rounded-xl border p-4 sm:p-5 space-y-3 ${
+            ipDrifted ? "border-red-500/40 bg-red-500/5" : "border-foreground-200/20"
+          }`}
+        >
+          <h2 className="font-medium">Approved network address</h2>
+          <p className="text-sm text-foreground-500">
+            The banking partner only accepts transactions coming from an address they have approved. ObPay checks
+            this automatically and emails you the moment it changes, so you can have the new one approved before
+            payments are affected.
+          </p>
+          <div className="grid gap-1 text-sm break-all">
+            <span className="text-foreground-500">Address approved by the partner</span>
+            <code className="text-xs">{egress?.approved || "not saved yet"}</code>
+          </div>
+          <div className="grid gap-1 text-sm break-all">
+            <span className="text-foreground-500">Address in use right now</span>
+            <code className="text-xs">{egress?.current || status?.server_ip || "unknown"}</code>
+          </div>
+          {ipDrifted ? (
+            <p className="text-sm text-red-500">
+              This address no longer matches the approved one. Send{" "}
+              <strong>{egress?.current}</strong> to the partner for approval, then save it here.
+            </p>
+          ) : egress?.approved ? (
+            <p className="text-sm text-emerald-500">Matching the approved address — payments can go through.</p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleApproveIp}
+              disabled={busy !== "" || !(egress?.current || status?.server_ip)}
+              className="px-3 py-1.5 rounded-lg text-xs bg-accent-500 text-background-50 cursor-pointer disabled:opacity-50"
+            >
+              {busy === "egress" ? "Saving…" : "Mark current address as approved"}
+            </button>
+            <button
+              onClick={loadStatus}
+              disabled={busy !== ""}
+              className="px-3 py-1.5 rounded-lg text-xs border border-foreground-200/25 cursor-pointer disabled:opacity-50"
+            >
+              Re-check now
+            </button>
+          </div>
         </div>
 
         {result && (

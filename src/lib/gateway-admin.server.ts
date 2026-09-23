@@ -67,6 +67,13 @@ async function statusPayload() {
   const rows = await listStoredGatewayCreds();
   const env = readEnvCreds();
   const active = await getGatewayCreds();
+  const { egressState } = await import("./egress-monitor.server");
+  let egress: any = null;
+  try {
+    egress = await egressState();
+  } catch {
+    egress = null;
+  }
   return {
     success: true,
     data: {
@@ -74,7 +81,8 @@ async function statusPayload() {
       base_url: GATEWAY_BASE(),
       callback_url: callbackUrl(),
       static_egress: !!proxyConfig(),
-      server_ip: await getEgressIp(),
+      server_ip: egress?.current || (await getEgressIp()),
+      egress,
       active: active ? { key: mask(active.key, 10), secretMasked: mask(active.secret, 4) } : null,
       credentials: rows.map((r) => ({
         id: r.id,
@@ -99,6 +107,21 @@ export async function runGatewayAdminAction(
   const rowId = String(body?.["id"] || "").trim();
 
   if (action === "status") return statusPayload();
+
+  if (action === "egress-approve") {
+    const { approveEgressIp } = await import("./egress-monitor.server");
+    try {
+      const state = await approveEgressIp(String(body?.["ip"] || ""), admin.email || admin.userId);
+      return { success: true, data: state };
+    } catch (err: any) {
+      return { success: false, error: err?.message || "Could not save that address." };
+    }
+  }
+
+  if (action === "egress-check") {
+    const { checkEgressIp } = await import("./egress-monitor.server");
+    return { success: true, data: await checkEgressIp("admin requested check") };
+  }
 
   if (action === "test") {
     const typed = credsFromInput(body);
