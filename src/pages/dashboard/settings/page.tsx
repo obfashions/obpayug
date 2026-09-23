@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { supabase } from "@/lib/supabase";
-import { getProviderConnectionStatus, saveProviderCredentials, testProviderConnection } from "@/services/obpay";
+import { getProviderConnectionStatus, testProviderConnection } from "@/services/obpay";
 
 export default function SettingsPage() {
   const { profile } = useAuth();
@@ -15,14 +15,9 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   // Payment Provider state
-  const [lpAccountNumber, setLpAccountNumber] = useState("");
-  const [lpApiKey, setLpApiKey] = useState("");
-  const [lpEnv, setLpEnv] = useState<"sandbox" | "live">("live");
   const [lpStatus, setLpStatus] = useState<{ connected: boolean; status: string | null }>({ connected: false, status: null });
-  const [lpSaving, setLpSaving] = useState(false);
   const [lpTesting, setLpTesting] = useState(false);
-  const [lpTestResult, setLpTestResult] = useState<{ ok: boolean; message: string; details?: any } | null>(null);
-  const [lpSaved, setLpSaved] = useState(false);
+  const [lpTestResult, setLpTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Withdraw funding source toggle (admin only)
   const [withdrawFromJulyPay, setWithdrawFromJulyPay] = useState(false);
@@ -45,8 +40,6 @@ export default function SettingsPage() {
   const fetchConnectionStatus = useCallback(async () => {
     const status = await getProviderConnectionStatus();
     setLpStatus({ connected: status.connected, status: status.status });
-    if (status.accountNumber) setLpAccountNumber(status.accountNumber);
-    if (status.environment) setLpEnv(status.environment as "sandbox" | "live");
   }, []);
 
   const fetchPlatformSettings = useCallback(async () => {
@@ -77,34 +70,6 @@ export default function SettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }, 1000);
-  };
-
-  const handleSaveProvider = async () => {
-    if (!lpAccountNumber.trim()) {
-      setLpTestResult({ ok: false, message: "Account number is required (Paste your MarzPay API secret here)." });
-      return;
-    }
-    if (!profile?.id) return;
-
-    setLpSaving(true);
-    setLpTestResult(null);
-    const result = await saveProviderCredentials(
-      {
-        accountNumber: lpAccountNumber.trim(),
-        environment: lpEnv,
-        apiKey: lpApiKey.trim() || undefined,
-      },
-      profile.id,
-    );
-    setLpSaving(false);
-
-    if (result.ok) {
-      setLpSaved(true);
-      setLpStatus({ connected: true, status: "active" });
-      setTimeout(() => setLpSaved(false), 3000);
-    } else {
-      setLpTestResult({ ok: false, message: result.message });
-    }
   };
 
   const handleTestConnection = async () => {
@@ -215,112 +180,34 @@ export default function SettingsPage() {
             Account Settings
           </h2>
           <p className="text-sm text-foreground-600">
-            Manage your profile, payment provider, and account preferences.
+            Manage your profile, payments, and account preferences.
           </p>
         </div>
 
-        {/* Payment Provider Connection — Admin Only */}
+        {/* Payment engine status — Admin Only */}
         {profile?.role === "admin" && (
         <div className="bg-background-50 rounded-xl p-6 border border-background-200/70">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
             <div>
-              <h3 className="font-heading font-semibold text-base text-foreground-900">
-                Payment Provider
-              </h3>
+              <h3 className="font-heading font-semibold text-base text-foreground-900">Payment engine</h3>
               <p className="text-xs text-foreground-500 mt-0.5">
-                Connect your payment provider account to process collections and payouts.
+                Collections, payouts and transfers run through the ObPay payment engine. Keys are managed in Admin → Gateway API.
               </p>
             </div>
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-              lpStatus.connected
-                ? "bg-primary-100 text-primary-700"
-                : "bg-accent-100 text-accent-700"
+              lpStatus.connected ? "bg-primary-100 text-primary-700" : "bg-accent-100 text-accent-700"
             }`}>
               <span className={`w-2 h-2 rounded-full ${lpStatus.connected ? "bg-primary-500" : "bg-accent-500"}`} />
-              {lpStatus.connected ? "Connected" : "Not Connected"}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground-700 mb-1.5">
-                MarzPay API Secret
-              </label>
-              <input
-                type="text"
-                value={lpAccountNumber}
-                onChange={(e) => setLpAccountNumber(e.target.value)}
-                placeholder="Paste your MarzPay API secret here"
-                className="w-full px-4 py-2.5 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary-400 placeholder:text-foreground-400"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground-700 mb-1.5">
-                MarzPay API Key
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  id="lp-api-key-input"
-                  value={lpApiKey}
-                  onChange={(e) => setLpApiKey(e.target.value)}
-                  placeholder="Paste your MarzPay API key here"
-                  className="w-full px-4 py-2.5 pr-10 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary-400 placeholder:text-foreground-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.getElementById("lp-api-key-input") as HTMLInputElement;
-                    if (input) input.type = input.type === "password" ? "text" : "password";
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-400 hover:text-foreground-600 cursor-pointer"
-                >
-                  <i className="ri-eye-line text-sm" />
-                </button>
-              </div>
-              <p className="text-[11px] text-foreground-400 mt-1">
-                Get your API key from your MarzPay dashboard at wallet.wearemarz.com. It is stored securely and never exposed to the browser.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground-700 mb-1.5">
-                Environment
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setLpEnv("live")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors cursor-pointer whitespace-nowrap ${
-                    lpEnv === "live"
-                      ? "bg-primary-100 border-primary-300 text-primary-700"
-                      : "bg-background-100 border-background-300/60 text-foreground-600 hover:bg-background-200/70"
-                  }`}
-                >
-                  <i className={`${lpEnv === "live" ? "ri-checkbox-circle-fill" : "ri-checkbox-blank-circle-line"} mr-1.5 text-xs`} />
-                  Live
-                </button>
-                <button
-                  onClick={() => setLpEnv("sandbox")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors cursor-pointer whitespace-nowrap ${
-                    lpEnv === "sandbox"
-                      ? "bg-primary-100 border-primary-300 text-primary-700"
-                      : "bg-background-100 border-background-300/60 text-foreground-600 hover:bg-background-200/70"
-                  }`}
-                >
-                  <i className={`${lpEnv === "sandbox" ? "ri-checkbox-circle-fill" : "ri-checkbox-blank-circle-line"} mr-1.5 text-xs`} />
-                  Sandbox
-                </button>
-              </div>
+              {lpStatus.connected ? "Live" : "Unavailable"}
             </div>
           </div>
 
           {/* Withdraw Funding Source Toggle */}
-          <div className="mt-5 pt-5 border-t border-background-200/70">
+          <div className="pt-1">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground-900">Withdraw from Provider Wallet</p>
-                <p className="text-xs text-foreground-500 mt-0.5">When ON, merchant withdrawals pull directly from your MarzPay wallet balance. When OFF, money is first collected from your personal mobile money number.</p>
+                <p className="text-sm font-medium text-foreground-900">Fund withdrawals from the platform float</p>
+                <p className="text-xs text-foreground-500 mt-0.5">When ON, merchant withdrawals are paid from the ObPay float. When OFF, money is first collected from your own mobile money number.</p>
               </div>
               <button
                 onClick={handleToggleWithdrawSource}
@@ -344,33 +231,10 @@ export default function SettingsPage() {
                 <i className={`${lpTestResult.ok ? "ri-checkbox-circle-line text-primary-500" : "ri-close-circle-line text-accent-500"} mt-0.5 shrink-0`} />
                 <span className={lpTestResult.ok ? "text-primary-700" : "text-accent-700"}>{lpTestResult.message}</span>
               </div>
-              {lpTestResult.details && (
-                <details className="mt-2">
-                  <summary className="text-xs cursor-pointer opacity-60 hover:opacity-100">Show details</summary>
-                  <pre className="mt-1 text-[10px] bg-black/5 rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap break-all">{JSON.stringify(lpTestResult.details, null, 2)}</pre>
-                </details>
-              )}
             </div>
           )}
 
           <div className="mt-5 flex items-center gap-3 flex-wrap">
-            <button
-              onClick={handleSaveProvider}
-              disabled={lpSaving}
-              className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 text-background-50 font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors cursor-pointer whitespace-nowrap"
-            >
-              {lpSaving ? (
-                <>
-                  <i className="ri-loader-4-line animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <i className="ri-save-line" />
-                  Save Credentials
-                </>
-              )}
-            </button>
             <button
               onClick={handleTestConnection}
               disabled={lpTesting}
@@ -379,21 +243,22 @@ export default function SettingsPage() {
               {lpTesting ? (
                 <>
                   <i className="ri-loader-4-line animate-spin" />
-                  Testing...
+                  Checking...
                 </>
               ) : (
                 <>
                   <i className="ri-plug-line" />
-                  Test Connection
+                  Check payments
                 </>
               )}
             </button>
-            {lpSaved && (
-              <span className="text-sm text-primary-600 flex items-center gap-1">
-                <i className="ri-check-line" />
-                Credentials saved successfully
-              </span>
-            )}
+            <a
+              href="/admin/gateway-api"
+              className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-background-50 font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <i className="ri-key-2-line" />
+              Manage keys
+            </a>
           </div>
         </div>
         )}

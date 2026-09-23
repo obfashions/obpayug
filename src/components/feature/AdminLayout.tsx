@@ -17,7 +17,7 @@ const adminNavItems = [
   { label: "Support Chat", href: "/admin/support", icon: "ri-chat-3-line" },
   { label: "Tickets", href: "/admin/tickets", icon: "ri-ticket-2-line" },
   { label: "Email Campaigns", href: "/admin/email-campaigns", icon: "ri-mail-send-line" },
-  { label: "MarzPay API", href: "/admin/marz-api", icon: "ri-key-2-line" },
+  { label: "Gateway API", href: "/admin/gateway-api", icon: "ri-key-2-line" },
   { label: "Settings", href: "/admin/settings", icon: "ri-settings-4-line" },
 ];
 

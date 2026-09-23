@@ -47,7 +47,7 @@ export default function CollectionsPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
 
-  // Network options per currency (per MarzPay docs)
+  // Network options per currency
   const networkOptions: Record<string, { value: string; label: string }[]> = {
     UGX: [
       { value: "mtn", label: "MTN Mobile Money" },
@@ -280,7 +280,7 @@ export default function CollectionsPage() {
           message: immediateSuccess
             ? `Collection successful! ${formatCurrency(amount, form.currency)} credited to your wallet.`
             : (providerMsg || "Collection request sent. Awaiting customer confirmation."),
-          livepayResponse: `MarzPay · Ref: ${refNum} | Status: ${apiData.status || "pending"}${immediateSuccess ? " | Paid immediately" : ""}`,
+          livepayResponse: `Ref: ${refNum} | Status: ${apiData.status || "pending"}${immediateSuccess ? " | Paid immediately" : ""}`,
         });
         setForm({ phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
         setVerifiedName(null); setVerifyError("");

@@ -192,7 +192,7 @@ export default function AdminSettings() {
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div><p className="text-sm font-medium text-foreground-900">Withdraw from MarzPay Wallet</p><p className="text-xs text-foreground-500 mt-0.5">When ON, merchant withdrawals are funded from your MarzPay wallet balance. When OFF, funds are collected from your personal mobile money number first.</p></div>
+                  <div><p className="text-sm font-medium text-foreground-900">Withdraw from platform float</p><p className="text-xs text-foreground-500 mt-0.5">When ON, merchant withdrawals are funded from the ObPay float. When OFF, funds are collected from your personal mobile money number first.</p></div>
                   <button onClick={() => setSettings({ ...settings, withdraw_from_livepay: !settings.withdraw_from_livepay, withdraw_from_julypay: !settings.withdraw_from_livepay })} className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${settings.withdraw_from_livepay || settings.withdraw_from_julypay ? "bg-accent-500" : "bg-background-300"}`}>
                     <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-background-50 transition-transform ${settings.withdraw_from_livepay || settings.withdraw_from_julypay ? "left-[22px]" : "left-0.5"}`} />
                   </button>

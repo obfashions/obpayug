@@ -27,11 +27,6 @@ function identityFor(merchantId: string): Identity {
   return { userId: merchantId, email: "", isAdmin: false };
 }
 
-function marzCountry(currency: string): string {
-  const c = String(currency || "UGX").toUpperCase();
-  const map: Record<string, string> = { UGX: "UG", KES: "KE", TZS: "TZ", GHS: "GH", XAF: "CM" };
-  return map[c] || "UG";
-}
 
 function ok(data: unknown) {
   return { success: true, data };
@@ -63,8 +58,6 @@ export async function apiAccount(merchantId: string) {
 export async function apiBalance(merchantId: string) {
   const { refreshMerchantPendingPayments } = await import("./settle.server");
   await refreshMerchantPendingPayments(merchantId);
-  const { runMarzAction } = await import("./marz.server");
-  const res = await runMarzAction("balance", {});
   const { data: rows, error } = await db()
     .from("merchant_balances")
     .select("currency, available_balance, pending_balance, total_collections, total_payouts")
@@ -87,22 +80,24 @@ export async function apiBalance(merchantId: string) {
     paid_out: primary?.paid_out || 0,
     net: primary?.available_balance || 0,
     balances,
-    provider_balance: res.success ? (res.data as any)?.balance ?? null : null,
   });
 }
 
 // ─── collections ──────────────────────────────────────────────
 
 export async function apiCollect(merchantId: string, body: Record<string, any>) {
-  const { getMarzCreds, marzFetch, normalizePhone } = await import("./marz.server");
-  const creds = await getMarzCreds();
+  const { getGatewayCreds, gatewayCollect, walletNumber, networkCode, friendlyError, callbackUrl } = await import(
+    "./gateway.server"
+  );
+  const creds = await getGatewayCreds();
   if (!creds) return err("Payments are temporarily unavailable.");
 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
-  const phone = normalizePhone(body.phone_number ?? body.phoneNumber, currency);
+  const phone = walletNumber(body.phone_number ?? body.phoneNumber);
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
-  if (!phone) return err("`phone_number` is required.");
+  if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
+  if (!phone) return err("`phone_number` must be a Ugandan mobile money number, e.g. 0772123456.");
 
   const reference = String(body.reference || `OBP${Date.now().toString(36).toUpperCase()}`).slice(0, 40);
   // `reference` is globally unique (payment_records upserts on it), so the
@@ -120,21 +115,19 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
       : err("That reference is not available. Use a different one.");
   }
 
-  // MarzPay requires a UUID reference; keep the merchant's reference locally.
-  const marzRef = crypto.randomUUID();
-  const res = await marzFetch(creds, "/collect-money", {
-    method: "POST",
-    body: {
-      amount: Math.round(amount),
-      phone_number: phone,
-      method: "mobile_money",
-      country: marzCountry(currency),
-      reference: marzRef,
-      description: String(body.description || "ObPay collection").slice(0, 255),
-    },
+  const out = await gatewayCollect(creds, {
+    reference,
+    amount,
+    customerName: String(body.customer_name || body.customerName || "ObPay customer"),
+    customerEmail: String(body.customer_email || body.customerEmail || "payments@obpay.online"),
+    phone,
+    bankCode: networkCode(body.network || body.payment_method, phone),
+    description: String(body.description || "ObPay collection"),
+    redirectUrl: body.redirect_url || body.redirectUrl || undefined,
+    notifyUrl: callbackUrl(),
   });
 
-  if (!res.ok) {
+  if (!out.ok) {
     await recordPayment(merchantId, {
       reference,
       type: "collection",
@@ -146,13 +139,12 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
       description: body.description || null,
       metadata: body.metadata && typeof body.metadata === "object" ? body.metadata : {},
     });
-    return err(res.error || "The collection could not be started.");
+    return err(friendlyError(out.res, "collection"));
   }
 
-  const providerRef = res.data?.data?.transaction?.reference || marzRef;
   await recordPayment(merchantId, {
     reference,
-    provider_reference: providerRef,
+    provider_reference: out.platformReference,
     type: "collection",
     source: "api",
     amount,
@@ -160,24 +152,49 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
     status: "pending",
     phone_number: phone,
     description: body.description || null,
-    metadata: body.metadata && typeof body.metadata === "object" ? body.metadata : {},
+    metadata: {
+      ...(body.metadata && typeof body.metadata === "object" ? body.metadata : {}),
+      checkout_url: out.checkoutUrl,
+    },
   });
 
-  return ok({ reference, provider_reference: providerRef, amount, currency, status: "pending", type: "collection" });
+  return ok({
+    reference,
+    provider_reference: out.platformReference,
+    checkout_url: out.checkoutUrl,
+    amount,
+    currency,
+    status: "pending",
+    type: "collection",
+  });
 }
 
 // ─── payouts (send money) ─────────────────────────────────────
 
 export async function apiPayout(merchantId: string, body: Record<string, any>) {
-  const { getMarzCreds, marzFetch, normalizePhone, isIpWhitelistError } = await import("./marz.server");
-  const creds = await getMarzCreds();
+  const { getGatewayCreds, gatewayPayout, walletNumber, networkCode, friendlyError, callbackUrl, UG_BANKS } =
+    await import("./gateway.server");
+  const creds = await getGatewayCreds();
   if (!creds) return err("Payouts are temporarily unavailable.");
 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
-  const phone = normalizePhone(body.phone_number ?? body.phoneNumber, currency);
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
-  if (!phone) return err("`phone_number` is required.");
+  if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
+
+  // Bank payout when a bank_code is supplied, mobile money otherwise.
+  const rawBankCode = String(body.bank_code || body.bankCode || "").toUpperCase();
+  const isBank = UG_BANKS.some((b) => b.code === rawBankCode);
+  const accountNumber = isBank
+    ? String(body.account_number || body.accountNumber || "").replace(/\s/g, "")
+    : walletNumber(body.phone_number ?? body.phoneNumber ?? body.account_number);
+
+  if (isBank && !accountNumber) return err("`account_number` is required for bank payouts.");
+  if (!isBank && !accountNumber) {
+    return err("`phone_number` must be a Ugandan mobile money number, e.g. 0772123456.");
+  }
+  const recipientName = String(body.customer_name || body.customerName || body.recipient_name || "").trim();
+  if (isBank && !recipientName) return err("`customer_name` is required for bank payouts.");
 
   const reference = String(body.reference || `OBW${Date.now().toString(36).toUpperCase()}`).slice(0, 40);
   const { data: existing } = await db()
@@ -198,20 +215,19 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     return err(`Insufficient balance. Available: ${available.toLocaleString()} ${currency}.`);
   }
 
-  const marzRef = crypto.randomUUID();
-  const res = await marzFetch(creds, "/send-money", {
-    method: "POST",
-    body: {
-      amount: Math.round(amount),
-      phone_number: phone,
-      method: "mobile_money",
-      country: marzCountry(currency),
-      reference: marzRef,
-      description: String(body.description || "ObPay payout").slice(0, 255),
-    },
+  const out = await gatewayPayout(creds, {
+    reference,
+    amount,
+    typeTrans: isBank ? 3 : 2,
+    bankCode: isBank ? rawBankCode : networkCode(body.network, accountNumber),
+    accountNumber,
+    customerName: recipientName || "ObPay recipient",
+    ...(isBank ? {} : { customerPhone: accountNumber }),
+    remark: String(body.description || "ObPay payout"),
+    notifyUrl: callbackUrl(),
   });
 
-  if (!res.ok) {
+  if (!out.ok) {
     await recordPayment(merchantId, {
       reference,
       type: "payout",
@@ -219,29 +235,32 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
       amount,
       currency,
       status: "failed",
-      phone_number: phone,
+      phone_number: accountNumber,
       description: body.description || null,
     });
-    if (isIpWhitelistError(res)) {
-      return err("Payouts are blocked by the provider's IP whitelist. Contact ObPay support.");
-    }
-    return err(res.error || "The payout could not be started.");
+    return err(friendlyError(out.res, "payout"));
   }
 
-  const providerRef = res.data?.data?.transaction?.reference || marzRef;
   await recordPayment(merchantId, {
     reference,
-    provider_reference: providerRef,
+    provider_reference: out.platformReference,
     type: "payout",
     source: "api",
     amount,
     currency,
     status: "pending",
-    phone_number: phone,
+    phone_number: accountNumber,
     description: body.description || null,
   });
 
-  return ok({ reference, provider_reference: providerRef, amount, currency, status: "pending", type: "payout" });
+  return ok({
+    reference,
+    provider_reference: out.platformReference,
+    amount,
+    currency,
+    status: "pending",
+    type: "payout",
+  });
 }
 
 // ─── transactions ─────────────────────────────────────────────

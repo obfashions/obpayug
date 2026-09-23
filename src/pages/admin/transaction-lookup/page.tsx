@@ -240,7 +240,7 @@ export default function AdminTransactionLookup() {
       <div className="space-y-6">
         <div>
           <h1 className="font-heading font-bold text-2xl text-foreground-900">Transaction Lookup</h1>
-          <p className="text-sm text-foreground-600 mt-1">Search by any reference ID — MarzPay collection ref, payout ref, or internal ObPay reference</p>
+          <p className="text-sm text-foreground-600 mt-1">Search by any reference ID — gateway reference, payout reference, or internal ObPay reference</p>
         </div>
 
         {/* Search Bar */}
@@ -251,7 +251,7 @@ export default function AdminTransactionLookup() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Paste any reference ID — e.g. INV_123, a MarzPay internal_reference UUID, or our COL/PAY reference..."
+              placeholder="Paste any reference ID — e.g. INV_123, a gateway platform reference, or our COL/PAY reference..."
               className="bg-transparent text-sm text-foreground-700 placeholder-foreground-400 focus:outline-none w-full"
               autoFocus
             />
@@ -373,7 +373,7 @@ export default function AdminTransactionLookup() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <DetailField label="Database ID" value={selectedTxn.id} mono />
                             <DetailField label="Internal Reference" value={selectedTxn.reference} mono />
-                            <DetailField label="MarzPay Reference" value={selectedTxn.provider_reference || selectedTxn.merchant_reference || "—"} mono />
+                            <DetailField label="Gateway Reference" value={selectedTxn.provider_reference || selectedTxn.merchant_reference || "—"} mono />
                             <DetailField label="LP Internal Ref" value={(selectedTxn.metadata as any)?.lp_internal_ref || selectedTxn.merchant_reference || "—"} mono />
                           </div>
                         </div>
@@ -451,7 +451,7 @@ export default function AdminTransactionLookup() {
                         {/* Webhook Events */}
                         {julypayEntries.length > 0 && (
                           <div>
-                            <p className="text-xs font-medium text-foreground-500 uppercase mb-3">MarzPay Webhook Events ({julypayEntries.length})</p>
+                            <p className="text-xs font-medium text-foreground-500 uppercase mb-3">Gateway Notifications ({julypayEntries.length})</p>
                             <div className="space-y-3">
                               {julypayEntries.map((entry) => (
                                 <div key={entry.internal_id} className="bg-background-100 rounded-lg border border-background-200/70 p-3">
@@ -504,7 +504,7 @@ export default function AdminTransactionLookup() {
             </div>
             <h3 className="font-heading font-semibold text-lg text-foreground-900 mb-2">Transaction Lookup</h3>
             <p className="text-sm text-foreground-600 max-w-md mx-auto">
-              Paste any reference ID — MarzPay collection reference, payout reference, or our internal COL/PAY reference — to find all matching transactions and view full details including MarzPay webhook events.
+              Paste any reference ID — gateway reference, payout reference, or our internal COL/PAY reference — to find all matching transactions and view full details including gateway notifications.
             </p>
           </div>
         )}

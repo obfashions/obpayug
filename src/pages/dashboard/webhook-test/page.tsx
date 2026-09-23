@@ -279,7 +279,7 @@ export default function WebhookTestPage() {
             <div>
               <p className="text-sm font-medium text-foreground-900 mb-1">How Sync Works — Aggressive 5-Pass Polling</p>
               <p className="text-xs text-foreground-600 leading-relaxed">
-                OBPay uses <strong>aggressive active polling</strong> — after a collection is initiated, it calls MarzPay directly 5 times over 35 seconds (at 2s, 5s, 10s, 20s, and 35s). This is <strong>faster than webhooks</strong> because we control the timing with zero delivery delay. When MarzPay confirms the payment, your wallet is credited and merchant webhooks are dispatched immediately. A MarzPay webhook fallback also exists as a safety net.
+                ObPay is notified by the banking network the moment a payment is approved or declined. That notification is verified, your wallet is credited, the transaction status is updated, and your own webhooks are dispatched immediately. The dashboard also re-checks any payment still marked pending whenever you open it, as a safety net.
               </p>
             </div>
           </div>

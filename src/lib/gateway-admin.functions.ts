@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { runMarzAdminAction } from "./marz-admin.server";
+import { runGatewayAdminAction } from "./gateway-admin.server";
 
-export const marzAdminCall = createServerFn({ method: "POST" })
+export const gatewayAdminCall = createServerFn({ method: "POST" })
   .inputValidator((data: { action: string; accessToken?: string; body?: Record<string, unknown> }) => ({
     action: String(data?.action || ""),
     accessToken: String(data?.accessToken || ""),
@@ -9,7 +9,7 @@ export const marzAdminCall = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }) => {
     try {
-      return await runMarzAdminAction(data.action, data.accessToken, data.body);
+      return await runGatewayAdminAction(data.action, data.accessToken, data.body);
     } catch (err: any) {
       return { success: false, error: err?.message || "Something went wrong." };
     }

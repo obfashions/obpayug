@@ -3,8 +3,8 @@ import DashboardLayout from "@/components/feature/DashboardLayout";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  getMarzConnectionStatus,
-  type MarzConnectionStatus,
+  getProviderConnectionStatus,
+  type ProviderConnectionStatus,
 } from "@/services/obpay";
 import { invokeObpay } from "@/lib/edge-function";
 
@@ -96,14 +96,14 @@ export default function ApiSandboxPage() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [useRealApi, setUseRealApi] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<MarzConnectionStatus | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ProviderConnectionStatus | null>(null);
   const [statusLoaded, setStatusLoaded] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string>("");
   const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
 
   // Load connection status and API key on mount
   useEffect(() => {
-    getMarzConnectionStatus().then((s) => {
+    getProviderConnectionStatus().then((s) => {
       setConnectionStatus(s);
       setStatusLoaded(true);
     });

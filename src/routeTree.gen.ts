@@ -25,7 +25,6 @@ import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.compan
 import { Route as AdminEmailCampaignsRouteImport } from './routes/admin.email-campaigns'
 import { Route as AdminKycReviewRouteImport } from './routes/admin.kyc-review'
 import { Route as AdminLoansRouteImport } from './routes/admin.loans'
-import { Route as AdminMarzApiRouteImport } from './routes/admin.marz-api'
 import { Route as AdminMerchantsRouteImport } from './routes/admin.merchants'
 import { Route as AdminPayoutRequestsRouteImport } from './routes/admin.payout-requests'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -54,6 +53,7 @@ import { Route as DashboardWebhookTestRouteImport } from './routes/dashboard.web
 import { Route as DashboardWebhooksRouteImport } from './routes/dashboard.webhooks'
 import { Route as PaySlugRouteImport } from './routes/pay.$slug'
 import { Route as ApiPublicEgressIpRouteImport } from './routes/api/public/egress-ip'
+import { Route as ApiPublicGatewayCallbackRouteImport } from './routes/api/public/gateway-callback'
 import { Route as ApiPublicPlatformHealthRouteImport } from './routes/api/public/platform-health'
 import { Route as ApiPublicSupportChatRouteImport } from './routes/api/public/support-chat'
 import { Route as FunctionsV1SplatRouteImport } from './routes/functions.v1.$'
@@ -137,11 +137,6 @@ const AdminKycReviewRoute = AdminKycReviewRouteImport.update({
 const AdminLoansRoute = AdminLoansRouteImport.update({
   id: '/admin/loans',
   path: '/admin/loans',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminMarzApiRoute = AdminMarzApiRouteImport.update({
-  id: '/admin/marz-api',
-  path: '/admin/marz-api',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
@@ -285,6 +280,12 @@ const ApiPublicEgressIpRoute = ApiPublicEgressIpRouteImport.update({
   path: '/api/public/egress-ip',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGatewayCallbackRoute =
+  ApiPublicGatewayCallbackRouteImport.update({
+    id: '/api/public/gateway-callback',
+    path: '/api/public/gateway-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPlatformHealthRoute = ApiPublicPlatformHealthRouteImport.update({
   id: '/api/public/platform-health',
   path: '/api/public/platform-health',
@@ -322,7 +323,6 @@ export interface FileRoutesByFullPath {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
-  '/admin/marz-api': typeof AdminMarzApiRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -352,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
+  '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
@@ -373,7 +374,6 @@ export interface FileRoutesByTo {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
-  '/admin/marz-api': typeof AdminMarzApiRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -403,6 +403,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
+  '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
@@ -425,7 +426,6 @@ export interface FileRoutesById {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
-  '/admin/marz-api': typeof AdminMarzApiRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -455,6 +455,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
+  '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
@@ -478,7 +479,6 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/kyc-review'
     | '/admin/loans'
-    | '/admin/marz-api'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -508,6 +508,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/api/public/egress-ip'
+    | '/api/public/gateway-callback'
     | '/api/public/platform-health'
     | '/api/public/support-chat'
     | '/functions/v1/$'
@@ -529,7 +530,6 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/kyc-review'
     | '/admin/loans'
-    | '/admin/marz-api'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -559,6 +559,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/api/public/egress-ip'
+    | '/api/public/gateway-callback'
     | '/api/public/platform-health'
     | '/api/public/support-chat'
     | '/functions/v1/$'
@@ -580,7 +581,6 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/kyc-review'
     | '/admin/loans'
-    | '/admin/marz-api'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -610,6 +610,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/api/public/egress-ip'
+    | '/api/public/gateway-callback'
     | '/api/public/platform-health'
     | '/api/public/support-chat'
     | '/functions/v1/$'
@@ -632,7 +633,6 @@ export interface RootRouteChildren {
   AdminEmailCampaignsRoute: typeof AdminEmailCampaignsRoute
   AdminKycReviewRoute: typeof AdminKycReviewRoute
   AdminLoansRoute: typeof AdminLoansRoute
-  AdminMarzApiRoute: typeof AdminMarzApiRoute
   AdminMerchantsRoute: typeof AdminMerchantsRoute
   AdminPayoutRequestsRoute: typeof AdminPayoutRequestsRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -662,6 +662,7 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiPublicEgressIpRoute: typeof ApiPublicEgressIpRoute
+  ApiPublicGatewayCallbackRoute: typeof ApiPublicGatewayCallbackRoute
   ApiPublicPlatformHealthRoute: typeof ApiPublicPlatformHealthRoute
   ApiPublicSupportChatRoute: typeof ApiPublicSupportChatRoute
   FunctionsV1SplatRoute: typeof FunctionsV1SplatRoute
@@ -780,13 +781,6 @@ declare module '@tanstack/react-router' {
       path: '/admin/loans'
       fullPath: '/admin/loans'
       preLoaderRoute: typeof AdminLoansRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/marz-api': {
-      id: '/admin/marz-api'
-      path: '/admin/marz-api'
-      fullPath: '/admin/marz-api'
-      preLoaderRoute: typeof AdminMarzApiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/merchants': {
@@ -985,6 +979,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEgressIpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/gateway-callback': {
+      id: '/api/public/gateway-callback'
+      path: '/api/public/gateway-callback'
+      fullPath: '/api/public/gateway-callback'
+      preLoaderRoute: typeof ApiPublicGatewayCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/platform-health': {
       id: '/api/public/platform-health'
       path: '/api/public/platform-health'
@@ -1032,7 +1033,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminEmailCampaignsRoute: AdminEmailCampaignsRoute,
   AdminKycReviewRoute: AdminKycReviewRoute,
   AdminLoansRoute: AdminLoansRoute,
-  AdminMarzApiRoute: AdminMarzApiRoute,
   AdminMerchantsRoute: AdminMerchantsRoute,
   AdminPayoutRequestsRoute: AdminPayoutRequestsRoute,
   AdminReportsRoute: AdminReportsRoute,
@@ -1062,6 +1062,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ApiPublicEgressIpRoute: ApiPublicEgressIpRoute,
+  ApiPublicGatewayCallbackRoute: ApiPublicGatewayCallbackRoute,
   ApiPublicPlatformHealthRoute: ApiPublicPlatformHealthRoute,
   ApiPublicSupportChatRoute: ApiPublicSupportChatRoute,
   FunctionsV1SplatRoute: FunctionsV1SplatRoute,

@@ -25,7 +25,7 @@ interface Payout {
 function simplifyError(msg: string): string {
   const m = msg.toLowerCase();
   // Provider-specific balance errors  
-  if ((m.includes("marz") || m.includes("livepay") || m.includes("julypay")) && (m.includes("insufficient") || m.includes("balance"))) {
+  if (m.includes("float") && (m.includes("insufficient") || m.includes("low"))) {
     return "Your payment wallet doesn't have enough funds. Collect more payments first, then try the payout again.";
   }
   // ObPay wallet balance errors
