@@ -81,7 +81,8 @@ async function statusPayload() {
       base_url: GATEWAY_BASE(),
       callback_url: callbackUrl(),
       static_egress: !!proxyConfig(),
-      server_ip: await getEgressIp(),
+      server_ip: egress?.current || (await getEgressIp()),
+      egress,
       active: active ? { key: mask(active.key, 10), secretMasked: mask(active.secret, 4) } : null,
       credentials: rows.map((r) => ({
         id: r.id,
