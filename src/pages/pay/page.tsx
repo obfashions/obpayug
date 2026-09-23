@@ -143,8 +143,11 @@ export default function PayPage() {
 
   // `window` does not exist during server rendering — read the URL after mount.
   const [currentUrl, setCurrentUrl] = useState("");
+  const [returnedRef, setReturnedRef] = useState("");
   useEffect(() => {
     setCurrentUrl(window.location.href);
+    const ref = new URLSearchParams(window.location.search).get("ref") || "";
+    if (ref) setReturnedRef(ref);
   }, [slug]);
 
   const copyUrl = () => {
