@@ -1,7 +1,7 @@
 // Server-only, idempotent settlement for ObPay-managed payment records
 // (hosted checkout links and the public merchant API).
 //
-// Several things poll MarzPay at the same time: the payer's status page, the
+// Several things settle a payment at the same time: the payer's status page, the
 // merchant dashboard, the API caller, and the webhook receiver. Without a
 // single claim step the same payment could be marked successful twice and the
 // merchant would receive duplicate emails and webhooks. `settlePaymentRecord`
