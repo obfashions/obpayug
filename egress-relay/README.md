@@ -75,7 +75,7 @@ Whitelist**. It never changes, so payouts stay working.
 
 ## Security
 
-- The relay only forwards to `wallet.wearepartner.com` (and `api.ipify.org` for the
+- The relay only forwards to `api.liralinkpay.com` (and `api.ipify.org` for the
   IP diagnostic); everything else is rejected with 403.
 - Requests without the bearer token are rejected with 401.
 - No credentials are stored on the relay — they are passed per request by ObPay
