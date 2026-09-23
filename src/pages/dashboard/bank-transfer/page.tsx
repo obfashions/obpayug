@@ -162,6 +162,7 @@ export default function BankTransferPage() {
                 required
                 type="number"
                 min={1}
+                step={1}
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 className="w-full rounded-lg border border-border bg-background p-2.5 text-sm"

@@ -317,8 +317,8 @@ export default function PayoutsPage() {
     setWithdrawSubmitting(true); setWithdrawStatus(null);
     try {
       const amount = parseFloat(withdrawAmount);
-      if (isNaN(amount) || amount <= 0) {
-        setWithdrawStatus({ ok: false, message: "Please enter a valid amount." });
+      if (isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
+        setWithdrawStatus({ ok: false, message: "Please enter a whole UGX amount." });
         setWithdrawSubmitting(false); return;
       }
       const withdrawFee = amount <= 70000
@@ -625,6 +625,7 @@ export default function PayoutsPage() {
                         required
                         min={minPayout || 1000}
                         max={maxPayout || undefined}
+                        step={1}
                       />
                       {(minPayout > 0 || maxPayout > 0) && (
                         <p className="text-[11px] text-foreground-500 mt-1">
