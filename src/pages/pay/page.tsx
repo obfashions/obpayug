@@ -46,6 +46,8 @@ export default function PayPage() {
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState(0);
   const [network, setNetwork] = useState("mtn");
@@ -239,7 +241,11 @@ export default function PayPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber || amount <= 0) return;
+    if (!customerName.trim() || !/^\S+@\S+\.\S+$/.test(customerEmail.trim()) || !phoneNumber || amount <= 0 || !Number.isInteger(amount)) {
+      setPollStatus("failed");
+      setPollMessage("Enter your full name, a valid email, mobile money number, and a whole UGX amount.");
+      return;
+    }
     setSubmitting(true);
     setPollStatus("idle");
     setPollMessage("");
@@ -254,11 +260,13 @@ export default function PayPage() {
 
       try {
         const apiData = managedLink
-          ? await platform<any>("public-pay", { slug, phoneNumber, amount: payAmount })
+          ? await platform<any>("public-pay", { slug, phoneNumber, amount: payAmount, network, customerName: customerName.trim(), customerEmail: customerEmail.trim() })
           : await invokeObpay({
               _action: "public-collect",
               _merchant_slug: slug,
               phoneNumber,
+              customerName: customerName.trim(),
+              customerEmail: customerEmail.trim(),
               amount: payAmount,
               currency: "UGX",
               network,
@@ -574,7 +582,7 @@ export default function PayPage() {
             <p className="text-xs text-foreground-500 mb-1">Amount to Pay</p>
             <p className="font-heading font-bold text-2xl text-foreground-900">
               {link?.amount ? formatCurrency(link.amount) : (
-                <input type="number" value={amount || ""} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} placeholder="Enter amount" className="w-full text-center px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" min="1000" />
+                <input type="number" value={amount || ""} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} placeholder="Enter amount" className="w-full text-center px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" min="1" step="1" />
               )}
             </p>
           </div>
@@ -589,6 +597,10 @@ export default function PayPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><label className="block text-xs font-medium text-foreground-600 mb-1">Full name *</label><input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Your full name" className="w-full px-4 py-3 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" required /></div>
+              <div><label className="block text-xs font-medium text-foreground-600 mb-1">Email address *</label><input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" required /></div>
+            </div>
             <div>
               <label className="block text-xs font-medium text-foreground-600 mb-1">Mobile Money Number</label>
               <div className="flex gap-2">
@@ -632,7 +644,7 @@ export default function PayPage() {
                 <option value="airtel">Airtel Money</option>
               </select>
             </div>
-            <button type="submit" disabled={submitting || (!link?.amount && amount <= 0) || !phoneNumber} className="w-full bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 text-background-50 font-semibold py-3 rounded-lg transition-colors cursor-pointer whitespace-nowrap text-sm">
+            <button type="submit" disabled={submitting || (!link?.amount && amount <= 0) || !phoneNumber || !customerName.trim() || !customerEmail.trim()} className="w-full bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 text-background-50 font-semibold py-3 rounded-lg transition-colors cursor-pointer whitespace-nowrap text-sm">
               {submitting ? (<><i className="ri-loader-4-line animate-spin mr-2" />Processing...</>) : `Pay ${link?.amount ? formatCurrency(link.amount) : (amount > 0 ? formatCurrency(amount) : "")}`}
             </button>
           </form>

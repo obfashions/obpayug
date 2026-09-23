@@ -45,28 +45,12 @@ export default function CollectionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
+  const [form, setForm] = useState({ customerName: "", customerEmail: "", phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
 
-  // Network options per currency
-  const networkOptions: Record<string, { value: string; label: string }[]> = {
-    UGX: [
-      { value: "mtn", label: "MTN Mobile Money" },
-      { value: "airtel", label: "Airtel Money" },
-    ],
-    KES: [
-      { value: "safaricom", label: "M-Pesa (Safaricom)" },
-      { value: "airtel", label: "Airtel Money" },
-    ],
-    GHS: [
-      { value: "mtn", label: "MTN Mobile Money" },
-      { value: "airteltigo", label: "AirtelTigo" },
-      { value: "vodafone", label: "Vodafone Cash" },
-    ],
-    XAF: [
-      { value: "mtn", label: "MTN Mobile Money" },
-      { value: "orange", label: "Orange Money" },
-    ],
-  };
+  const networkOptions = [
+    { value: "mtn", label: "MTN Mobile Money" },
+    { value: "airtel", label: "Airtel Money" },
+  ];
 
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ ok: boolean; message: string; livepayResponse?: string } | null>(null);
@@ -253,7 +237,7 @@ export default function CollectionsPage() {
     setSubmitting(true); setSubmitStatus(null);
     try {
       const amount = parseFloat(form.amount);
-      if (!form.phoneNumber || isNaN(amount) || amount <= 0) {
+      if (!form.customerName.trim() || !/^\S+@\S+\.\S+$/.test(form.customerEmail.trim()) || !form.phoneNumber || isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
         setSubmitStatus({ ok: false, message: "Please fill all required fields correctly." });
         setSubmitting(false); return;
       }
@@ -262,7 +246,7 @@ export default function CollectionsPage() {
         setSubmitting(false); return;
       }
       const ref = form.reference.trim() || `C${Date.now().toString(36).toUpperCase()}`.slice(0, 30);
-      const result = await callObpay({ _action: "collect", phoneNumber: form.phoneNumber, amount, currency: form.currency, network: form.network, description: form.description, customerName: verifiedName || "", reference: ref });
+      const result = await callObpay({ _action: "collect", phoneNumber: form.phoneNumber, amount, currency: "UGX", network: form.network, description: form.description, customerName: form.customerName.trim(), customerEmail: form.customerEmail.trim(), reference: ref });
       if (!result.success) {
         setSubmitStatus({ ok: false, message: result.error || "Payment provider declined the request" });
         setSubmitting(false); return;
@@ -285,7 +269,7 @@ export default function CollectionsPage() {
         });
         // Open the secure payment page so the customer can approve right away.
         if (checkoutUrl) window.open(checkoutUrl, "_blank", "noopener");
-        setForm({ phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
+        setForm({ customerName: "", customerEmail: "", phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
         setVerifiedName(null); setVerifyError("");
         silentRefresh();
         // Aggressive post-submit poll: query specific transaction by ref every 2s for 20s
@@ -481,6 +465,16 @@ export default function CollectionsPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground-600 mb-1">Customer full name *</label>
+                    <input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} placeholder="Customer name" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground-600 mb-1">Customer email *</label>
+                    <input type="email" value={form.customerEmail} onChange={(e) => setForm({ ...form, customerEmail: e.target.value })} placeholder="customer@example.com" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-foreground-600 mb-1">Customer Phone *</label>
                   <div className="flex gap-2">
@@ -520,25 +514,12 @@ export default function CollectionsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-foreground-600 mb-1">Amount *</label>
-                    <input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minCollection > 0 ? `Min ${formatCurrency(minCollection, form.currency)}` : "50000"} className={`w-full px-3 py-2 rounded-lg border bg-background-50 text-sm focus:outline-none focus:ring-2 ${isBelowMin ? "border-accent-400 focus:ring-accent-400" : "border-background-300/60 focus:ring-primary-400"}`} required min={minCollection || 1000} />
+                    <input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minCollection > 0 ? `Min ${formatCurrency(minCollection, form.currency)}` : "50000"} className={`w-full px-3 py-2 rounded-lg border bg-background-50 text-sm focus:outline-none focus:ring-2 ${isBelowMin ? "border-accent-400 focus:ring-accent-400" : "border-background-300/60 focus:ring-primary-400"}`} required min={minCollection || 1} step={1} />
                     {isBelowMin && <p className="text-[11px] text-accent-600 mt-1">Minimum collection: {formatCurrency(minCollection, form.currency)}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-foreground-600 mb-1">Currency</label>
-                    <select
-                      value={form.currency}
-                      onChange={(e) => {
-                        const newCurrency = e.target.value;
-                        const defaultNet = networkOptions[newCurrency]?.[0]?.value || "mtn";
-                        setForm({ ...form, currency: newCurrency, network: defaultNet });
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400"
-                    >
-                      <option value="UGX">UGX — Uganda</option>
-                      <option value="KES">KES — Kenya</option>
-                      <option value="GHS">GHS — Ghana</option>
-                      <option value="XAF">XAF — Cameroon</option>
-                    </select>
+                    <div className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-100 text-sm font-medium text-foreground-700">UGX — Uganda</div>
                   </div>
                 </div>
 
@@ -549,7 +530,7 @@ export default function CollectionsPage() {
                       onChange={(e) => setForm({ ...form, network: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400"
                     >
-                      {(networkOptions[form.currency] || networkOptions.UGX).map((opt) => (
+                      {networkOptions.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>

@@ -380,12 +380,18 @@ export async function runObpayAction(action: string, accessToken: string, body: 
 
   // ── Collect ──────────────────────────────────────────────
   if (action === "collect") {
-    const { phoneNumber, amount, currency, description, customerName, customerEmail, network } = body || {};
-    const numAmount = Math.round(Number(amount));
-    if (!phoneNumber || !numAmount || !currency) return { success: false, error: "Phone number, amount and currency are required." };
-    if (numAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+    const { phoneNumber, amount, description, customerName, customerEmail, network } = body || {};
+    const numericAmount = Number(amount);
+    const numAmount = Math.round(numericAmount);
+    if (!phoneNumber || !Number.isFinite(numericAmount)) return { success: false, error: "Mobile money number and amount are required." };
+    if (numericAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+    if (!Number.isInteger(numericAmount)) return { success: false, error: "Enter a whole UGX amount without decimals." };
+    if (!String(customerName || "").trim()) return { success: false, error: "Enter the customer's full name." };
+    if (!/^\S+@\S+\.\S+$/.test(String(customerEmail || "").trim())) return { success: false, error: "Enter a valid customer email address." };
     const wallet = walletNumber(phoneNumber);
     if (!wallet) return { success: false, error: "Enter a valid mobile money number in the 07XXXXXXXX format." };
+    if (!["mtn", "airtel", "UG0030", "UG0031"].includes(String(network || "").toLowerCase()) && !["UG0030", "UG0031"].includes(String(network || "").toUpperCase())) return { success: false, error: "Choose MTN Mobile Money or Airtel Money." };
+    const currency = "UGX";
 
     const ref = String(body?.reference || `COL${Date.now().toString(36).toUpperCase()}`).replace(/\s/g, "").slice(0, 30);
     const dup = first(await rest(accessToken, `/transactions?reference=eq.${encodeURIComponent(ref)}&select=id`));
@@ -395,8 +401,8 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     const out = await gatewayCollect(creds, {
       reference: ref,
       amount: numAmount,
-      customerName: customerName || "ObPay customer",
-      customerEmail: customerEmail || "payments@obpay.online",
+      customerName: String(customerName).trim(),
+      customerEmail: String(customerEmail).trim(),
       phone: wallet,
       bankCode,
       description: description || "Collection via ObPay",
@@ -465,13 +471,24 @@ export async function runObpayAction(action: string, accessToken: string, body: 
 
   // ── Payout / withdrawal ──────────────────────────────────
   if (action === "payout") {
-    const { phoneNumber, amount, currency, description, network, customerName } = body || {};
+    const { phoneNumber, amount, description, network, customerName, customerEmail } = body || {};
     const payoutType = body?.payout_type || body?._payout_type || "send";
-    const numAmount = Math.round(Number(amount));
-    if (!phoneNumber || !numAmount || !currency) return { success: false, error: "Phone number, amount and currency are required." };
-    if (numAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
-    const wallet = walletNumber(phoneNumber);
-    if (!wallet) return { success: false, error: "Enter a valid mobile money number in the 07XXXXXXXX format." };
+    const destinationType = body?.destinationType === "bank" ? "bank" : "mobile";
+    const numericAmount = Number(amount);
+    const numAmount = Math.round(numericAmount);
+    if (!Number.isFinite(numericAmount)) return { success: false, error: "Amount is required." };
+    if (numericAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+    if (!Number.isInteger(numericAmount)) return { success: false, error: "Enter a whole UGX amount without decimals." };
+    if (!String(customerName || "").trim()) return { success: false, error: "Enter the recipient's full name." };
+    if (customerEmail && !/^\S+@\S+\.\S+$/.test(String(customerEmail).trim())) return { success: false, error: "Enter a valid recipient email address." };
+    const rawAccount = String(body?.accountNumber || phoneNumber || "").replace(/\s/g, "");
+    const wallet = destinationType === "mobile" ? walletNumber(rawAccount) : "";
+    if (destinationType === "mobile" && !wallet) return { success: false, error: "Enter a valid mobile money number in the 07XXXXXXXX format." };
+    const requestedBankCode = String(body?.bankCode || "").toUpperCase();
+    const validBank = destinationType === "bank" && /^UG00(?:0[1-9]|1\d|2\d)$/.test(requestedBankCode);
+    if (destinationType === "bank" && !validBank) return { success: false, error: "Choose a supported Ugandan bank." };
+    if (destinationType === "bank" && !/^\d+$/.test(rawAccount)) return { success: false, error: "Bank account numbers must contain digits only." };
+    const currency = "UGX";
 
     const merchantWallet = first(await rest(accessToken, `/merchant_wallets?user_id=eq.${userId}&select=*`));
     if (merchantWallet && merchantWallet.withdrawals_enabled === false) {
@@ -496,16 +513,18 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     const ref = String(body?.reference || `PAY${Date.now().toString(36).toUpperCase()}`).replace(/\s/g, "").slice(0, 30);
     const now = new Date().toISOString();
     const txnId = crypto.randomUUID();
-    const bankCode = networkCode(network, wallet);
+    const bankCode = destinationType === "bank" ? requestedBankCode : networkCode(network, wallet);
+    const accountNumber = destinationType === "bank" ? rawAccount : wallet;
 
     const out = await gatewayPayout(creds, {
       reference: ref,
       amount: numAmount,
-      typeTrans: 2,
+      typeTrans: destinationType === "bank" ? 3 : 2,
       bankCode,
-      accountNumber: wallet,
-      customerName: customerName || "ObPay recipient",
-      customerPhone: wallet,
+      accountNumber,
+      customerName: String(customerName).trim(),
+      ...(destinationType === "mobile" ? { customerPhone: wallet } : {}),
+      ...(customerEmail ? { customerEmail: String(customerEmail).trim() } : {}),
       remark: description || (isWithdraw ? "Withdrawal" : "Payout"),
       notifyUrl: callbackUrl(),
     });
@@ -515,7 +534,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       await rest(accessToken, `/payout_requests`, {
         method: "POST",
         body: JSON.stringify({
-          user_id: userId, amount: numAmount, currency, phone_number: wallet,
+          user_id: userId, amount: numAmount, currency, phone_number: accountNumber,
           network: bankName(bankCode), status: "failed", fee_amount: fee,
           rejection_reason: message, requested_at: now,
         }),
@@ -524,8 +543,8 @@ export async function runObpayAction(action: string, accessToken: string, body: 
         method: "POST",
         body: JSON.stringify({
           id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
-          currency, status: "failed", customer_phone: wallet, fee_amount: fee,
-          metadata: { error: out.res.error, code: out.res.code },
+          currency, status: "failed", customer_phone: accountNumber, customer_name: String(customerName).trim(), fee_amount: fee,
+          metadata: { error: out.res.error, code: out.res.code, destination_type: destinationType, bank_code: bankCode },
         }),
       });
       // Nothing was deducted, so the wallet stays untouched.
@@ -535,7 +554,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     await rest(accessToken, `/payout_requests`, {
       method: "POST",
       body: JSON.stringify({
-        user_id: userId, amount: numAmount, currency, phone_number: wallet,
+        user_id: userId, amount: numAmount, currency, phone_number: accountNumber,
         network: bankName(bankCode), status: "processing",
         fee_amount: fee, provider_reference: out.platformReference, requested_at: now, processed_at: now,
       }),
@@ -545,9 +564,9 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       method: "POST",
       body: JSON.stringify({
         id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
-        currency, status: "pending", customer_phone: wallet, provider_reference: out.platformReference,
+        currency, status: "pending", customer_phone: accountNumber, customer_name: String(customerName).trim(), provider_reference: out.platformReference,
         fee_amount: fee, net_amount: numAmount, merchant_reference: ref,
-        metadata: { platform_reference: out.platformReference, payout_type: payoutType, network: bankName(bankCode) },
+        metadata: { platform_reference: out.platformReference, payout_type: payoutType, destination_type: destinationType, bank_code: bankCode, network: bankName(bankCode) },
         created_at: now,
       }),
     });
@@ -560,7 +579,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       amount: numAmount,
       currency,
       status: "pending",
-      phone_number: wallet,
+      phone_number: accountNumber,
       description: description || null,
     });
 

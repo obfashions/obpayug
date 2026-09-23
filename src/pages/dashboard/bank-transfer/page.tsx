@@ -11,7 +11,7 @@ export default function BankTransferPage() {
   const [banks, setBanks] = useState<Bank[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ bankName: "", accountNumber: "", accountName: "", branch: "", amount: "", description: "" });
+  const [form, setForm] = useState({ bankName: "", accountNumber: "", accountName: "", customerEmail: "", customerPhone: "", amount: "", description: "" });
   const [validating, setValidating] = useState(false);
   const [validated, setValidated] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -63,7 +63,7 @@ export default function BankTransferPage() {
     setSubmitting(false);
     if (res?.success) {
       setResult({ ok: true, message: `Transfer submitted. Reference ${res.data.reference}. Charge ${res.data.fee?.toLocaleString()} UGX.` });
-      setForm({ bankName: "", accountNumber: "", accountName: "", branch: "", amount: "", description: "" });
+      setForm({ bankName: "", accountNumber: "", accountName: "", customerEmail: "", customerPhone: "", amount: "", description: "" });
       setValidated(null);
     } else {
       setResult({ ok: false, message: res?.error || "The transfer failed." });
@@ -148,10 +148,11 @@ export default function BankTransferPage() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 text-foreground">Branch (optional)</label>
+              <label className="block text-sm mb-1 text-foreground">Recipient email (optional)</label>
               <input
-                value={form.branch}
-                onChange={(e) => setForm({ ...form, branch: e.target.value })}
+                type="email"
+                value={form.customerEmail}
+                onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
                 className="w-full rounded-lg border border-border bg-background p-2.5 text-sm"
               />
             </div>
@@ -161,6 +162,7 @@ export default function BankTransferPage() {
                 required
                 type="number"
                 min={1}
+                step={1}
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 className="w-full rounded-lg border border-border bg-background p-2.5 text-sm"

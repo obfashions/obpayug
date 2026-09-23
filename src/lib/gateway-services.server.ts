@@ -10,6 +10,7 @@ import {
   gatewayPayout,
   gatewayPayoutStatus,
   friendlyError,
+  callbackUrl,
   UG_BANKS,
   MOBILE_NETWORKS,
   walletNumber,
@@ -212,13 +213,19 @@ export async function runServiceAction(action: string, accessToken: string, user
       const creds = await getGatewayCreds();
       if (!creds) return { success: false, error: "Transfers are temporarily unavailable. Please try again shortly." };
 
-      const amount = Math.round(Number(b.amount || 0));
-      if (!amount || amount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+      const numericAmount = Number(b.amount || 0);
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+      if (!Number.isInteger(numericAmount)) return { success: false, error: "Enter a whole UGX amount without decimals." };
+      const amount = numericAmount;
       const bankCode = bankCodeFor(b.bankCode || b.bankName);
       if (!bankCode) return { success: false, error: "Choose a bank from the list." };
-      const accountNumber = String(b.accountNumber || "").replace(/\s/g, "");
-      if (!accountNumber) return { success: false, error: "Enter the account number." };
+      const accountNumber = String(b.accountNumber || "").replace(/\D/g, "");
+      if (!accountNumber) return { success: false, error: "Enter a numeric account number." };
       if (!b.accountName) return { success: false, error: "Enter the account name." };
+      const customerEmail = String(b.customerEmail || "").trim();
+      if (customerEmail && !/^\S+@\S+\.\S+$/.test(customerEmail)) {
+        return { success: false, error: "Enter a valid recipient email address." };
+      }
 
       const currency = "UGX";
       const fee = await bankCharge(accessToken, amount);
@@ -233,7 +240,9 @@ export async function runServiceAction(action: string, accessToken: string, user
         bankCode,
         accountNumber,
         customerName: String(b.accountName),
+        ...(customerEmail ? { customerEmail } : {}),
         remark: String(b.description || "Bank transfer via ObPay"),
+        notifyUrl: callbackUrl(),
       });
       if (!out.ok) return { success: false, error: friendlyError(out.res, "payout") };
 
