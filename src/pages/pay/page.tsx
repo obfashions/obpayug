@@ -197,6 +197,14 @@ export default function PayPage() {
     }
   }, [link, amount, managedLink]);
 
+  // A payer coming back from the secure payment page: pick the payment back up.
+  useEffect(() => {
+    if (!returnedRef) return;
+    setTxnRef(returnedRef);
+    setPollMessage("Confirming your payment…");
+    pollForStatus(returnedRef);
+  }, [returnedRef, pollForStatus]);
+
   // Realtime: watch transaction status updates from webhooks
   useEffect(() => {
     if (!txnRef || !merchant?.user_id) return;
