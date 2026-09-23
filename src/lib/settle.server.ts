@@ -95,32 +95,32 @@ export async function settlePaymentRecord(
 }
 
 /**
- * Asks MarzPay for the current state of a pending record and settles it when
- * the provider reports a terminal status. Returns the up-to-date record.
+ * Asks the gateway for the current state of a pending record and settles it when
+ * the partner reports a terminal status. Returns the up-to-date record.
+ *
+ * Payouts can be queried directly. Collections are completed by the payer on the
+ * hosted checkout and are settled by the callback endpoint, so there is nothing
+ * to poll for them.
  */
 export async function refreshPaymentRecord(record: Record<string, any>): Promise<Record<string, any>> {
   if (!record || record.status !== "pending") return record;
+  if (record.type !== "payout") return record;
 
-  const { getMarzCreds, marzFetch } = await import("./marz.server");
-  const creds = await getMarzCreds();
+  const { getGatewayCreds, gatewayPayoutStatus } = await import("./gateway.server");
+  const creds = await getGatewayCreds();
   if (!creds) return record;
 
-  const lookup = record.provider_reference || record.reference;
-  const res = await marzFetch(creds, `/transactions/${encodeURIComponent(String(lookup))}`);
-  if (!res.ok) return record;
-
-  const body = (res.data as any)?.data || res.data || {};
-  const txn = body.transaction || {};
-  const detail = body.collection || body.disbursement || {};
-  const next = normalizeSettlementStatus(txn.status || "");
+  const out = await gatewayPayoutStatus(creds, {
+    merchantReference: record.reference,
+    platformReference: record.provider_reference || null,
+  });
+  const next = out.ok ? out.status : null;
   if (!next || next === "pending") return record;
 
-  const fee = Number(detail.charge?.raw ?? detail.charge ?? 0) || 0;
-  const out = await settlePaymentRecord(record, next, {
-    fee,
-    providerReference: txn.uuid || record.provider_reference || null,
+  const settled = await settlePaymentRecord(record, next, {
+    providerReference: out.platformReference || record.provider_reference || null,
   });
-  if (out.record) return out.record;
+  if (settled.record) return settled.record;
 
   // Lost the claim: return whatever the winner wrote.
   const { data: fresh } = await db().from("payment_records").select("*").eq("id", record.id).maybeSingle();

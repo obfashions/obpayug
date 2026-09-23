@@ -37,7 +37,7 @@ export async function invokeEdgeFunction(
   }
 }
 
-// Payment actions run only on this project's server, which holds the MarzPay
+// Payment actions run only on this project's server, which holds the gateway
 // credentials. Never fall back to the uploaded backend for these actions: that
 // endpoint still contains the retired provider integration.
 const PUBLIC_ACTIONS = new Set([
@@ -68,7 +68,7 @@ const LOCAL_ACTIONS = new Set([
   "test-connection",
   "server-ip",
   "payout-preflight",
-  // MarzPay service catalog
+  // extra services
   "svc-list",
   "bank-banks",
   "bank-services",
@@ -105,7 +105,7 @@ export async function invokeObpay(
     } catch (error: any) {
       return {
         success: false,
-        error: error?.message || "The MarzPay service is temporarily unavailable. Please try again.",
+        error: error?.message || "This service is temporarily unavailable. Please try again.",
       };
     }
   }

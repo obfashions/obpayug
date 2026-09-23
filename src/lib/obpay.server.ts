@@ -1,14 +1,28 @@
 // Server-only ObPay payment engine.
 //
 // The deployed Supabase edge function cannot be updated from here, so all live
-// MarzPay work (collections, payouts, status sync, balance) runs in this
-// project's server runtime using the credentials held in its environment.
-// Database writes go through Supabase REST with the CALLER's access token, so
-// row level security still applies exactly as it would in the browser.
+// gateway work (collections, payouts, status sync, balance) runs in this
+// project's server runtime using the banking-partner credentials held by the
+// admin. Database writes go through Supabase REST with the CALLER's access
+// token, so row level security still applies exactly as it would in the browser.
 
-import { getMarzCreds, marzFetch, isIpWhitelistError, verifySupabaseUser, normalizePhone, getEgressIp, proxyConfig } from "./marz.server";
-import { runMarzServiceAction, MARZ_SERVICE_ACTIONS, MARZ_PUBLIC_SERVICE_ACTIONS } from "./marz-services.server";
-
+import {
+  getGatewayCreds,
+  gatewayBalance,
+  gatewayCollect,
+  gatewayPayout,
+  gatewayPayoutStatus,
+  friendlyError,
+  isIpBlocked,
+  networkCode,
+  walletNumber,
+  bankName,
+  getEgressIp,
+  proxyConfig,
+  verifySupabaseUser,
+  callbackUrl,
+} from "./gateway.server";
+import { runServiceAction, SERVICE_ACTIONS, SERVICE_PUBLIC_ACTIONS } from "./gateway-services.server";
 
 const SUPA_URL = () =>
   (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -44,8 +58,6 @@ const SERVICE_KEY = () =>
 /**
  * Settlement writes (transaction status + wallet balance) must always succeed,
  * even if the merchant's own RLS policies do not allow updating their wallet.
- * When a service key for the merchant database is configured we use it;
- * otherwise we fall back to the caller's token so behaviour is unchanged.
  */
 async function restWrite(token: string, path: string, init?: RequestInit) {
   const key = SERVICE_KEY();
@@ -72,92 +84,72 @@ async function restWrite(token: string, path: string, init?: RequestInit) {
 
 const first = (res: { data: any }) => (Array.isArray(res.data) ? res.data[0] || null : null);
 
-const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const providerReference = (candidate?: string) =>
-  candidate && UUID_V4.test(candidate.trim()) ? candidate.trim() : crypto.randomUUID();
-
-function marzCountry(currency?: string): string {
-  const map: Record<string, string> = { UGX: "UG", KES: "KE", GHS: "GH", XAF: "CM", TZS: "TZ" };
-  return map[(currency || "UGX").toUpperCase()] || "UG";
-}
-
-function mapNetwork(network?: string): string {
-  const lower = (network || "").toLowerCase().trim();
-  if (!lower || lower === "bank" || lower === "card") return "MTN";
-  if (lower.includes("airtel")) return "AIRTEL";
-  if (lower.includes("mtn")) return "MTN";
-  return network!.toUpperCase();
-}
-
-function normalizeStatus(raw: string): "pending" | "success" | "failed" | null {
-  const s = (raw || "").toLowerCase().trim();
-  if (["success", "successful", "completed", "sandbox"].includes(s)) return "success";
-  if (["failed", "failure", "rejected", "declined", "cancelled", "canceled", "expired"].includes(s)) return "failed";
-  if (["pending", "processing", "in_progress", "initiated"].includes(s)) return "pending";
-  return null;
-}
-
-/** Turns raw provider errors into something a merchant can act on. */
-async function friendlyProviderError(res: { error?: string; data?: any }, kind: "collection" | "payout"): Promise<string> {
-  if (isIpWhitelistError(res)) {
-    const ip = (await getEgressIp()) || "the IP shown in your MarzPay API logs";
-    if (!proxyConfig()) {
-      return `MarzPay blocked this ${kind} because it only accepts calls from whitelisted IP addresses, and this hosting platform sends each request from a different address (this one came from ${ip}). Connect the ObPay static-egress relay so every payout leaves from one fixed IP, then whitelist that single address in MarzPay → Security → IP Whitelist.`;
-    }
-    return kind === "payout"
-      ? `MarzPay refused this payout because ${ip} is not on its IP whitelist. Open your MarzPay dashboard → Security → IP Whitelist, add ${ip}, save, then retry.`
-      : `MarzPay refused this request because ${ip} is not whitelisted. Add it in MarzPay → Security → IP Whitelist, then try again.`;
+/** Mirrors a dashboard payment into ObPay's own records so the gateway callback
+ *  (which has no merchant session) can settle it and the dashboard can read the
+ *  result back. Never throws — mirroring is a convenience, not the source. */
+async function mirrorRecord(merchantId: string, row: Record<string, any>) {
+  try {
+    const { recordPayment } = await import("./platform.server");
+    await recordPayment(merchantId, row);
+  } catch {
+    /* ignore */
   }
-  const raw = (res?.error || "").toString();
-  if (/insufficient/i.test(raw)) return "Your MarzPay float is too low for this transfer. Top it up and try again.";
-  if (/invalid api credentials/i.test(raw)) return "MarzPay rejected the API credentials. Update them in Admin → Settings.";
-  if (/phone|msisdn/i.test(raw) && /invalid/i.test(raw)) return "That phone number is not valid for mobile money. Use the 2567XXXXXXXX format.";
-  if (/not subscribed|SERVICE_NOT_SUBSCRIBED/i.test(raw)) return "Your MarzPay account is not subscribed to the disbursement service. Enable it in the MarzPay service marketplace.";
-  return raw || `The ${kind} could not be processed. Please try again.`;
 }
 
-// ─── MarzPay wrappers ─────────────────────────────────────────
-
-async function marzTxn(reference: string) {
-  const creds = (await getMarzCreds())!;
-  const res = await marzFetch(creds, `/transactions/${encodeURIComponent(reference)}`);
-  if (!res.ok) return { ok: false as const, error: res.error, data: res.data };
-  const body = res.data?.data || res.data || {};
-  const txn = body.transaction || {};
-  const detail = body.collection || body.disbursement || {};
-  return {
-    ok: true as const,
-    data: {
-      status: txn.status || "",
-      uuid: txn.uuid || "",
-      reference: txn.reference || reference,
-      charge: Number(detail.charge?.raw ?? detail.charge ?? 0) || 0,
-      provider_transaction_id: detail.provider_transaction_id || "",
-      amount: txn.amount?.raw ?? null,
-      currency: txn.amount?.currency || "UGX",
-    },
-  };
+/** The ObPay-managed record for a dashboard reference, if it exists. */
+async function mirroredRecord(reference: string) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await (supabaseAdmin as any)
+      .from("payment_records")
+      .select("*")
+      .eq("reference", reference)
+      .maybeSingle();
+    return data || null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Pending-transaction resolution ───────────────────────────
+//
+// Payouts are queried directly from the gateway. Collections are completed by
+// the payer on the hosted checkout, and the gateway reports the outcome on the
+// callback endpoint — so their state is read from the mirrored ObPay record.
+
+async function providerStateFor(txn: any): Promise<{ status: "success" | "failed"; fee: number; providerRef: string | null } | null> {
+  const meta = txn.metadata || {};
+
+  if (txn.type === "payout") {
+    const creds = await getGatewayCreds();
+    if (!creds) return null;
+    const out = await gatewayPayoutStatus(creds, {
+      merchantReference: txn.merchant_reference || txn.reference,
+      platformReference: meta.platform_reference || txn.provider_reference || null,
+    });
+    if (!out.ok || !out.status || out.status === "pending") return null;
+    return { status: out.status, fee: Number(txn.fee_amount || 0), providerRef: out.platformReference || null };
+  }
+
+  const record = await mirroredRecord(txn.reference);
+  if (!record || (record.status !== "success" && record.status !== "failed")) return null;
+  return {
+    status: record.status,
+    fee: Number(record.fee_amount || txn.fee_amount || 0),
+    providerRef: record.provider_reference || null,
+  };
+}
 
 async function resolveTransaction(token: string, txn: any) {
-  const meta = txn.metadata || {};
-  const lookupRef = meta.lp_internal_ref || meta.lp_reference || txn.merchant_reference || txn.provider_reference || txn.reference;
-  if (!lookupRef) return null;
-
-  const res = await marzTxn(String(lookupRef));
-  if (!res.ok) return null;
-
-  const status = normalizeStatus(res.data.status);
-  if (!status || status === "pending") return null;
+  const state = await providerStateFor(txn);
+  if (!state) return null;
 
   const now = new Date().toISOString();
-  const fee = res.data.charge > 0 ? res.data.charge : Number(txn.fee_amount || 0);
+  const { status, fee } = state;
   const updates: Record<string, unknown> = {
     status,
     fee_amount: fee,
-    ...(res.data.uuid ? { provider_reference: res.data.uuid } : {}),
+    ...(state.providerRef ? { provider_reference: state.providerRef } : {}),
     ...(status === "success" ? { completed_at: now, net_amount: Number(txn.amount) - fee } : {}),
   };
 
@@ -165,7 +157,7 @@ async function resolveTransaction(token: string, txn: any) {
     method: "PATCH",
     body: JSON.stringify(updates),
   });
-  // Someone else (webhook/other tab) already resolved it — do not touch the wallet twice.
+  // Someone else (callback/other tab) already resolved it — do not touch the wallet twice.
   if (!upd.ok || !Array.isArray(upd.data) || upd.data.length === 0) return null;
 
   const walletRes = await restWrite(token, `/merchant_wallets?user_id=eq.${txn.user_id}&select=*`);
@@ -232,7 +224,6 @@ async function resolveTransaction(token: string, txn: any) {
   return { id: txn.id, reference: txn.reference, status };
 }
 
-
 async function syncPending(token: string, userId: string, limit = 25) {
   const res = await rest(
     token,
@@ -265,38 +256,36 @@ export const LOCAL_ACTIONS = [
   "test-connection",
   "server-ip",
   "payout-preflight",
-  ...MARZ_SERVICE_ACTIONS,
+  ...SERVICE_ACTIONS,
 ];
 
 export async function runObpayAction(action: string, accessToken: string, body: any) {
-  const creds = await getMarzCreds();
-  if (!creds) return { success: false, error: "MarzPay credentials are not configured on the server." };
+  const creds = await getGatewayCreds();
+  if (!creds) return { success: false, error: "Payments are not configured yet. Please contact ObPay support." };
 
-  // MarzPay service catalog (bank transfer, bills, airtime & data).
-  if (MARZ_SERVICE_ACTIONS.includes(action)) {
-    if (MARZ_PUBLIC_SERVICE_ACTIONS.includes(action)) {
-      return runMarzServiceAction(action, accessToken, null, body);
-    }
+  // Extra services (bank transfers, and the catalog).
+  if (SERVICE_ACTIONS.includes(action)) {
+    if (SERVICE_PUBLIC_ACTIONS.includes(action)) return runServiceAction(action, accessToken, null, body);
     const svcUserId = await verifySupabaseUser(accessToken);
     if (!svcUserId) return { success: false, error: "Please sign in again to continue." };
-    return runMarzServiceAction(action, accessToken, svcUserId, body);
+    return runServiceAction(action, accessToken, svcUserId, body);
   }
 
-
-
-  // The public IP MarzPay sees — this is what must be whitelisted for payouts.
+  // The public IP the banking partner sees (admin diagnostics).
   if (action === "server-ip") {
     return { success: true, data: { ip: await getEgressIp(), static_egress: !!proxyConfig() } };
   }
 
-  // Checks whether disbursements are currently allowed from this server.
+  // Checks whether payouts are currently possible from this server.
   if (action === "payout-preflight") {
-    const svc = await marzFetch(creds, "/send-money/services");
-    const bal = await marzFetch(creds, "/balance");
+    const bal = await gatewayBalance(creds);
     const ip = await getEgressIp();
     const staticEgress = !!proxyConfig();
     if (bal.ok) {
-      return { success: true, data: { ip, static_egress: staticEgress, disbursement_ready: true, subscribed: svc.ok, balance: bal.data?.data ?? null } };
+      return {
+        success: true,
+        data: { ip, static_egress: staticEgress, disbursement_ready: true, subscribed: true, balance: bal.balance },
+      };
     }
     return {
       success: true,
@@ -304,50 +293,43 @@ export async function runObpayAction(action: string, accessToken: string, body: 
         ip,
         static_egress: staticEgress,
         disbursement_ready: false,
-        subscribed: svc.ok,
-        blocked_by_ip_whitelist: isIpWhitelistError(bal),
-        message: await friendlyProviderError(bal, "payout"),
+        subscribed: false,
+        blocked_by_ip_whitelist: isIpBlocked(bal.res),
+        message: friendlyError(bal.res, "payout"),
       },
     };
   }
 
-  // Actions that do not need a signed-in merchant.
+  // Number checks are done locally — the gateway has no lookup endpoint.
   if (action === "verify-phone" || action === "verify-number") {
-
-    const res = await marzFetch(creds, "/phone-verification/verify", {
-      method: "POST",
-      body: { phone_number: normalizePhone(body?.phoneNumber, body?.currency) },
-    });
-    if (!res.ok) return { success: false, error: res.error || "Could not verify that number." };
-    const d = res.data?.data || {};
+    const wallet = walletNumber(body?.phoneNumber);
+    if (!wallet) return { success: false, error: "That is not a valid Ugandan mobile money number. Use 07XXXXXXXX." };
     return {
       success: true,
       data: {
-        customer_name: d.full_name || [d.first_name, d.last_name].filter(Boolean).join(" ") || d.name || d.customer_name || null,
-        phone_number: d.phone_number || res.data?.phone_number || null,
-        network: (d.provider || d.network || "").toUpperCase(),
+        customer_name: null,
+        phone_number: wallet,
+        network: bankName(networkCode(body?.network, wallet)),
       },
     };
   }
 
   if (action === "test-connection") {
-    const res = await marzFetch(creds, "/transactions?per_page=1");
-    if (res.ok) {
-      const account = res.data?.data?.account || null;
-      return { success: true, data: { status: "connected", provider: "marzpay", balance: account?.current_balance ?? null, account } };
+    const bal = await gatewayBalance(creds);
+    if (bal.ok) {
+      return { success: true, data: { status: "connected", balance: bal.balance?.available ?? null, float: bal.balance } };
     }
-    if (isIpWhitelistError(res)) {
+    if (isIpBlocked(bal.res)) {
       return {
         success: true,
         data: {
-          status: "connected",
-          provider: "marzpay",
+          status: "credentials_ok",
           balance_restricted: true,
-          note: "Connected to MarzPay. Live balance is hidden because MarzPay limits that endpoint to whitelisted IPs.",
+          note: friendlyError(bal.res, "request"),
         },
       };
     }
-    return { success: false, error: res.error || "MarzPay rejected the credentials." };
+    return { success: false, error: friendlyError(bal.res, "request") };
   }
 
   const userId = await verifySupabaseUser(accessToken);
@@ -356,9 +338,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
   // ── Balance ──────────────────────────────────────────────
   if (action === "balance") {
     const wallet = first(await rest(accessToken, `/merchant_wallets?user_id=eq.${userId}&select=*`));
-    let providerBalance: any = null;
-    const res = await marzFetch(creds, "/transactions?per_page=1");
-    if (res.ok) providerBalance = res.data?.data?.account?.current_balance ?? null;
+    const bal = await gatewayBalance(creds);
     return {
       success: true,
       data: {
@@ -368,7 +348,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
         total_payouts: wallet?.total_payouts || 0,
         currency: wallet?.currency || "UGX",
         withdrawals_enabled: wallet?.withdrawals_enabled !== false,
-        provider_balance: providerBalance,
+        provider_balance: bal.ok ? bal.balance?.available ?? null : null,
       },
     };
   }
@@ -376,8 +356,6 @@ export async function runObpayAction(action: string, accessToken: string, body: 
   // ── Sync pending ─────────────────────────────────────────
   if (action === "sync-all-pending") {
     const out = await syncPending(accessToken, userId);
-    // Older dashboard screens read `updated` at the top level, newer ones read
-    // it inside `data` — expose both so every page reacts to a settlement.
     return { success: true, data: out, updated: out.updated, checked: out.checked };
   }
 
@@ -385,94 +363,118 @@ export async function runObpayAction(action: string, accessToken: string, body: 
   if (action === "transaction-status" || action === "check-transaction") {
     const reference = String(body?.reference || "").trim();
     if (!reference) return { success: false, error: "A transaction reference is required." };
-    const row = first(await rest(accessToken, `/transactions?user_id=eq.${userId}&reference=eq.${encodeURIComponent(reference)}&select=*`));
+    const row = first(
+      await rest(accessToken, `/transactions?user_id=eq.${userId}&reference=eq.${encodeURIComponent(reference)}&select=*`),
+    );
     if (row && row.status === "pending") await resolveTransaction(accessToken, row);
-    const fresh = row
-      ? first(await rest(accessToken, `/transactions?id=eq.${row.id}&select=*`))
-      : null;
-    const provider = await marzTxn(fresh?.metadata?.lp_internal_ref || fresh?.metadata?.lp_reference || reference);
+    const fresh = row ? first(await rest(accessToken, `/transactions?id=eq.${row.id}&select=*`)) : null;
     return {
       success: true,
       data: {
-        status: fresh?.status || (provider.ok ? normalizeStatus(provider.data.status) : "unknown"),
+        status: fresh?.status || "unknown",
         reference,
         transaction: fresh,
-        provider: provider.ok ? provider.data : null,
       },
     };
   }
 
   // ── Collect ──────────────────────────────────────────────
   if (action === "collect") {
-    const { phoneNumber, amount, currency, description, customerName, network } = body || {};
-    const numAmount = Number(amount);
+    const { phoneNumber, amount, currency, description, customerName, customerEmail, network } = body || {};
+    const numAmount = Math.round(Number(amount));
     if (!phoneNumber || !numAmount || !currency) return { success: false, error: "Phone number, amount and currency are required." };
     if (numAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+    const wallet = walletNumber(phoneNumber);
+    if (!wallet) return { success: false, error: "Enter a valid mobile money number in the 07XXXXXXXX format." };
 
     const ref = String(body?.reference || `COL${Date.now().toString(36).toUpperCase()}`).replace(/\s/g, "").slice(0, 30);
     const dup = first(await rest(accessToken, `/transactions?reference=eq.${encodeURIComponent(ref)}&select=id`));
     if (dup) return { success: false, error: `Reference "${ref}" has already been used.` };
 
-    const providerRef = providerReference();
-    const res = await marzFetch(creds, "/collect-money", {
-      method: "POST",
-      body: {
-        amount: Math.round(numAmount),
-        phone_number: normalizePhone(phoneNumber, currency),
-        method: "mobile_money",
-        country: marzCountry(currency),
-        reference: providerRef,
-        description: (description || "Collection via ObPay").slice(0, 255),
-      },
+    const bankCode = networkCode(network, wallet);
+    const out = await gatewayCollect(creds, {
+      reference: ref,
+      amount: numAmount,
+      customerName: customerName || "ObPay customer",
+      customerEmail: customerEmail || "payments@obpay.online",
+      phone: wallet,
+      bankCode,
+      description: description || "Collection via ObPay",
+      notifyUrl: callbackUrl(),
     });
 
     const txnId = crypto.randomUUID();
-    if (!res.ok) {
+    const now = new Date().toISOString();
+
+    if (!out.ok) {
+      const message = friendlyError(out.res, "collection");
       await rest(accessToken, `/transactions`, {
         method: "POST",
         body: JSON.stringify({
           id: txnId, user_id: userId, reference: ref, type: "collection", amount: numAmount,
-          currency, status: "failed", customer_phone: phoneNumber,
-          metadata: { error: res.error, httpStatus: res.httpStatus },
+          currency, status: "failed", customer_phone: wallet,
+          metadata: { error: out.res.error, code: out.res.code },
         }),
       });
-      return { success: false, error: await friendlyProviderError(res, "collection"), data: { reference: ref, transaction_id: txnId, status: "failed" } };
+      return { success: false, error: message, data: { reference: ref, transaction_id: txnId, status: "failed" } };
     }
 
-    const d = res.data?.data || {};
-    const lpRef = d.transaction?.reference || providerRef;
-    const internalRef = d.transaction?.uuid || "";
     await rest(accessToken, `/transactions`, {
       method: "POST",
       body: JSON.stringify({
         id: txnId, user_id: userId, reference: ref, type: "collection", amount: numAmount,
-        currency, status: "pending", customer_phone: phoneNumber, customer_name: customerName || "",
-        description: description || "", merchant_reference: lpRef,
-        metadata: { lp_reference: lpRef, lp_internal_ref: internalRef, network: (d.collection?.provider || mapNetwork(network)).toUpperCase() },
-        created_at: new Date().toISOString(),
+        currency, status: "pending", customer_phone: wallet, customer_name: customerName || "",
+        description: description || "", merchant_reference: ref, provider_reference: out.platformReference,
+        metadata: {
+          platform_reference: out.platformReference,
+          checkout_url: out.checkoutUrl,
+          network: bankName(bankCode),
+        },
+        created_at: now,
       }),
+    });
+
+    await mirrorRecord(userId, {
+      reference: ref,
+      provider_reference: out.platformReference,
+      type: "collection",
+      source: "dashboard",
+      amount: numAmount,
+      currency,
+      status: "pending",
+      phone_number: wallet,
+      description: description || null,
     });
 
     return {
       success: true,
       data: {
-        reference: ref, transaction_id: txnId, lp_reference: lpRef, provider_uuid: internalRef,
-        status: "pending", amount: numAmount, currency,
-        message: "Payment request sent. Ask the customer to approve the prompt on their phone.",
+        reference: ref,
+        transaction_id: txnId,
+        provider_reference: out.platformReference,
+        checkout_url: out.checkoutUrl,
+        status: "pending",
+        amount: numAmount,
+        currency,
+        message: out.checkoutUrl
+          ? "Payment started. Open the secure payment page to finish, or ask the customer to approve the prompt on their phone."
+          : "Payment request sent. Ask the customer to approve the prompt on their phone.",
       },
     };
   }
 
   // ── Payout / withdrawal ──────────────────────────────────
   if (action === "payout") {
-    const { phoneNumber, amount, currency, description, network } = body || {};
+    const { phoneNumber, amount, currency, description, network, customerName } = body || {};
     const payoutType = body?.payout_type || body?._payout_type || "send";
-    const numAmount = Number(amount);
+    const numAmount = Math.round(Number(amount));
     if (!phoneNumber || !numAmount || !currency) return { success: false, error: "Phone number, amount and currency are required." };
     if (numAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
+    const wallet = walletNumber(phoneNumber);
+    if (!wallet) return { success: false, error: "Enter a valid mobile money number in the 07XXXXXXXX format." };
 
-    const wallet = first(await rest(accessToken, `/merchant_wallets?user_id=eq.${userId}&select=*`));
-    if (wallet && wallet.withdrawals_enabled === false) {
+    const merchantWallet = first(await rest(accessToken, `/merchant_wallets?user_id=eq.${userId}&select=*`));
+    if (merchantWallet && merchantWallet.withdrawals_enabled === false) {
       return { success: false, error: "Withdrawals are currently disabled on your account. Please contact support." };
     }
 
@@ -483,7 +485,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       : Number(ps?.payout_flat_fee ?? 1020);
     const totalDeduction = numAmount + fee;
 
-    const balance = Number(wallet?.available_balance || 0);
+    const balance = Number(merchantWallet?.available_balance || 0);
     if (balance < totalDeduction) {
       return {
         success: false,
@@ -492,28 +494,29 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     }
 
     const ref = String(body?.reference || `PAY${Date.now().toString(36).toUpperCase()}`).replace(/\s/g, "").slice(0, 30);
-    const providerRef = providerReference();
     const now = new Date().toISOString();
     const txnId = crypto.randomUUID();
+    const bankCode = networkCode(network, wallet);
 
-    const res = await marzFetch(creds, "/send-money", {
-      method: "POST",
-      body: {
-        amount: Math.round(numAmount),
-        phone_number: normalizePhone(phoneNumber, currency),
-        country: marzCountry(currency),
-        reference: providerRef,
-        description: (description || (isWithdraw ? "Withdrawal" : "Payout")).slice(0, 255),
-      },
+    const out = await gatewayPayout(creds, {
+      reference: ref,
+      amount: numAmount,
+      typeTrans: 2,
+      bankCode,
+      accountNumber: wallet,
+      customerName: customerName || "ObPay recipient",
+      customerPhone: wallet,
+      remark: description || (isWithdraw ? "Withdrawal" : "Payout"),
+      notifyUrl: callbackUrl(),
     });
 
-    if (!res.ok) {
-      const message = await friendlyProviderError(res, "payout");
+    if (!out.ok) {
+      const message = friendlyError(out.res, "payout");
       await rest(accessToken, `/payout_requests`, {
         method: "POST",
         body: JSON.stringify({
-          user_id: userId, amount: numAmount, currency, phone_number: phoneNumber,
-          network: mapNetwork(network), status: "failed", fee_amount: fee,
+          user_id: userId, amount: numAmount, currency, phone_number: wallet,
+          network: bankName(bankCode), status: "failed", fee_amount: fee,
           rejection_reason: message, requested_at: now,
         }),
       });
@@ -521,27 +524,20 @@ export async function runObpayAction(action: string, accessToken: string, body: 
         method: "POST",
         body: JSON.stringify({
           id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
-          currency, status: "failed", customer_phone: phoneNumber, fee_amount: fee,
-          metadata: { error: res.error, httpStatus: res.httpStatus },
+          currency, status: "failed", customer_phone: wallet, fee_amount: fee,
+          metadata: { error: out.res.error, code: out.res.code },
         }),
       });
       // Nothing was deducted, so the wallet stays untouched.
       return { success: false, error: message, data: { reference: ref, transaction_id: txnId, status: "failed" } };
     }
 
-    const d = res.data?.data || {};
-    const lpRef = d.transaction?.reference || providerRef;
-    const internalRef = d.transaction?.uuid || "";
-    const providerStatus = normalizeStatus(d.transaction?.status || "") || "pending";
-    const dbStatus = providerStatus === "success" ? "success" : "pending";
-
     await rest(accessToken, `/payout_requests`, {
       method: "POST",
       body: JSON.stringify({
-        user_id: userId, amount: numAmount, currency, phone_number: phoneNumber,
-        network: mapNetwork(network), status: dbStatus === "success" ? "completed" : "processing",
-        fee_amount: fee, provider_reference: lpRef, requested_at: now, processed_at: now,
-        ...(dbStatus === "success" ? { completed_at: now } : {}),
+        user_id: userId, amount: numAmount, currency, phone_number: wallet,
+        network: bankName(bankCode), status: "processing",
+        fee_amount: fee, provider_reference: out.platformReference, requested_at: now, processed_at: now,
       }),
     });
 
@@ -549,21 +545,32 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       method: "POST",
       body: JSON.stringify({
         id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
-        currency, status: dbStatus, customer_phone: phoneNumber, provider_reference: internalRef || lpRef,
-        fee_amount: fee, net_amount: numAmount, merchant_reference: lpRef,
-        ...(dbStatus === "success" ? { completed_at: now } : {}),
-        metadata: { lp_reference: lpRef, lp_internal_ref: internalRef, payout_type: payoutType },
+        currency, status: "pending", customer_phone: wallet, provider_reference: out.platformReference,
+        fee_amount: fee, net_amount: numAmount, merchant_reference: ref,
+        metadata: { platform_reference: out.platformReference, payout_type: payoutType, network: bankName(bankCode) },
         created_at: now,
       }),
     });
 
-    // Funds leave the wallet as soon as MarzPay accepts the disbursement; a later
-    // failure is refunded by the pending-transaction sync.
+    await mirrorRecord(userId, {
+      reference: ref,
+      provider_reference: out.platformReference,
+      type: "payout",
+      source: "dashboard",
+      amount: numAmount,
+      currency,
+      status: "pending",
+      phone_number: wallet,
+      description: description || null,
+    });
+
+    // Funds leave the wallet as soon as the payout is accepted; a later failure
+    // is refunded by the pending-transaction sync.
     await rest(accessToken, `/merchant_wallets?user_id=eq.${userId}`, {
       method: "PATCH",
       body: JSON.stringify({
         available_balance: balance - totalDeduction,
-        total_payouts: Number(wallet?.total_payouts || 0) + numAmount,
+        total_payouts: Number(merchantWallet?.total_payouts || 0) + numAmount,
         updated_at: now,
       }),
     });
@@ -571,11 +578,67 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     return {
       success: true,
       data: {
-        transaction_id: txnId, reference: ref, lp_reference: lpRef, status: dbStatus,
+        transaction_id: txnId, reference: ref, provider_reference: out.platformReference, status: "pending",
         amount: numAmount, currency, fee_amount: fee, total_deducted: totalDeduction,
       },
     };
   }
 
   return { success: false, error: `Unsupported action: ${action}` };
+}
+
+/** Applies a gateway callback to a dashboard transaction (no session involved).
+ *  Only possible when a service key for the merchant database is configured;
+ *  otherwise the dashboard settles the row on its next sync. */
+export async function applyCallbackToDashboard(
+  reference: string,
+  status: "success" | "failed",
+): Promise<boolean> {
+  const key = SERVICE_KEY();
+  if (!key || !reference) return false;
+  const rows = await restWrite("", `/transactions?reference=eq.${encodeURIComponent(reference)}&select=*`);
+  const txn = first(rows);
+  if (!txn || txn.status !== "pending") return false;
+  const patched = await resolveTransactionWithStatus(txn, status);
+  return patched;
+}
+
+async function resolveTransactionWithStatus(txn: any, status: "success" | "failed"): Promise<boolean> {
+  const now = new Date().toISOString();
+  const fee = Number(txn.fee_amount || 0);
+  const upd = await restWrite("", `/transactions?id=eq.${txn.id}&status=eq.pending`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      status,
+      ...(status === "success" ? { completed_at: now, net_amount: Number(txn.amount) - fee } : {}),
+    }),
+  });
+  if (!upd.ok || !Array.isArray(upd.data) || upd.data.length === 0) return false;
+
+  const wallet = first(await restWrite("", `/merchant_wallets?user_id=eq.${txn.user_id}&select=*`));
+  if (status === "success" && txn.type === "collection") {
+    const credit = Number(txn.amount) - fee;
+    if (wallet) {
+      await restWrite("", `/merchant_wallets?user_id=eq.${txn.user_id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          available_balance: Number(wallet.available_balance || 0) + credit,
+          total_collections: Number(wallet.total_collections || 0) + credit,
+          updated_at: now,
+        }),
+      });
+    }
+  }
+  if (status === "failed" && txn.type === "payout" && wallet) {
+    const refund = Number(txn.amount) + fee;
+    await restWrite("", `/merchant_wallets?user_id=eq.${txn.user_id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        available_balance: Number(wallet.available_balance || 0) + refund,
+        total_payouts: Math.max(0, Number(wallet.total_payouts || 0) - Number(txn.amount)),
+        updated_at: now,
+      }),
+    });
+  }
+  return true;
 }

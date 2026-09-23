@@ -538,19 +538,15 @@ export async function listPayments(id: Identity, limit = 100) {
 
 // ─── public hosted checkout ───────────────────────────────────
 // A payer is not signed in, so these run without a merchant session. The
-// payment link itself identifies the merchant. Collections go straight to
-// MarzPay from this server, and the result is stored in ObPay's own records —
+// payment link itself identifies the merchant. Collections go straight to the
+// gateway from this server, and the result is stored in ObPay's own records —
 // nothing here touches the merchant account backend.
 
-function marzCountry(currency: string): string {
-  const c = String(currency || "UGX").toUpperCase();
-  const map: Record<string, string> = { UGX: "UG", KES: "KE", TZS: "TZ", GHS: "GH", XAF: "CM" };
-  return map[c] || "UG";
-}
-
 export async function publicCollect(body: Record<string, any>) {
-  const { getMarzCreds, marzFetch, normalizePhone } = await import("./marz.server");
-  const creds = await getMarzCreds();
+  const { getGatewayCreds, gatewayCollect, walletNumber, networkCode, friendlyError, callbackUrl } = await import(
+    "./gateway.server"
+  );
+  const creds = await getGatewayCreds();
   if (!creds) return fail("Payments are temporarily unavailable. Please try again shortly.");
 
   const slug = String(body.slug || "").trim();
@@ -562,28 +558,25 @@ export async function publicCollect(body: Record<string, any>) {
   if (!link) return fail("This payment link does not exist.");
   if (link.status !== "active") return fail("This payment link is no longer accepting payments.");
 
-  const amount = Number(link.fixed_amount && link.amount != null ? link.amount : body.amount);
+  const amount = Math.round(Number(link.fixed_amount && link.amount != null ? link.amount : body.amount));
   if (!Number.isFinite(amount) || amount <= 0) return fail("Enter a valid amount to pay.");
-  const phone = normalizePhone(body.phoneNumber, link.currency);
-  if (!phone) return fail("Enter the mobile money number that will pay.");
+  const phone = walletNumber(body.phoneNumber);
+  if (!phone) return fail("Enter the mobile money number that will pay, e.g. 0772123456.");
 
   const reference = `OBP${Date.now().toString(36).toUpperCase()}${randomToken(4).toUpperCase()}`;
-  // MarzPay requires the provider reference to be a UUID; we keep our own
-  // human-readable reference locally and map it via provider_reference.
-  const marzRef = crypto.randomUUID();
-  const res = await marzFetch(creds, "/collect-money", {
-    method: "POST",
-    body: {
-      amount: Math.round(amount),
-      phone_number: phone,
-      method: "mobile_money",
-      country: marzCountry(link.currency),
-      reference: marzRef,
-      description: String(link.description || link.title || "ObPay payment").slice(0, 255),
-    },
+  const out = await gatewayCollect(creds, {
+    reference,
+    amount,
+    customerName: String(body.customerName || body.name || "ObPay customer"),
+    customerEmail: String(body.customerEmail || body.email || "payments@obpay.online"),
+    phone,
+    bankCode: networkCode(body.network, phone),
+    description: String(link.description || link.title || "ObPay payment"),
+    redirectUrl: `https://obpay.online/pay/${slug}?ref=${reference}`,
+    notifyUrl: callbackUrl(),
   });
 
-  if (!res.ok) {
+  if (!out.ok) {
     await recordPayment(link.merchant_id, {
       reference,
       payment_link_id: link.id,
@@ -595,13 +588,12 @@ export async function publicCollect(body: Record<string, any>) {
       phone_number: phone,
       description: link.title,
     });
-    return fail(res.error || "The mobile money request could not be started. Please try again.");
+    return fail(friendlyError(out.res, "collection"));
   }
 
-  const providerRef = res.data?.data?.transaction?.reference || marzRef;
   await recordPayment(link.merchant_id, {
     reference,
-    provider_reference: providerRef,
+    provider_reference: out.platformReference,
     payment_link_id: link.id,
     type: "collection",
     source: "payment_link",
@@ -610,6 +602,7 @@ export async function publicCollect(body: Record<string, any>) {
     status: "pending",
     phone_number: phone,
     description: link.title,
+    metadata: { checkout_url: out.checkoutUrl },
   });
   await db()
     .from("payment_links")
@@ -618,11 +611,14 @@ export async function publicCollect(body: Record<string, any>) {
 
   return done({
     reference,
-    provider_reference: providerRef,
+    provider_reference: out.platformReference,
+    checkout_url: out.checkoutUrl,
     amount,
     currency: link.currency,
     status: "pending",
-    message: "Approve the prompt on your phone to complete the payment.",
+    message: out.checkoutUrl
+      ? "Continue on the secure payment page to approve the payment."
+      : "Approve the prompt on your phone to complete the payment.",
   });
 }
 
