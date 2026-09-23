@@ -250,9 +250,10 @@ export default function DocsPage() {
             <section>
               <Header icon="ri-download-cloud-line" label="Receive money" subtitle={`POST ${BASE}/collect`} />
               <p className="text-sm text-foreground-600">
-                Sends a payment prompt to the customer's phone. The response returns immediately with{" "}
-                <code className="font-mono text-xs">status: "pending"</code> — the customer still has to approve on
-                their handset. Confirm with a webhook or by polling the transaction.
+                Starts a collection and returns a secure <code className="font-mono text-xs">checkout_url</code>.
+                Send the payer there (redirect, or open it in a new tab) to approve the payment on their phone. The
+                response returns immediately with <code className="font-mono text-xs">status: "pending"</code> —
+                confirm with a webhook or by polling the transaction.
               </p>
               <Table
                 rows={[
@@ -261,6 +262,10 @@ export default function DocsPage() {
                   { name: "currency", type: "string", required: "No", desc: "UGX (default), KES or TZS." },
                   { name: "reference", type: "string", required: "No", desc: "Your unique reference, max 40 chars. Auto-generated if omitted." },
                   { name: "description", type: "string", required: "No", desc: "Shown on your statement and receipts." },
+                  { name: "customer_name", type: "string", required: "No", desc: "Payer's name shown on the checkout page." },
+                  { name: "customer_email", type: "string", required: "No", desc: "Payer's email for the receipt." },
+                  { name: "network", type: "string", required: "No", desc: "MTN or Airtel. Detected from the number when omitted." },
+                  { name: "redirect_url", type: "string", required: "No", desc: "Where to send the payer after they pay." },
                   { name: "metadata", type: "object", required: "No", desc: "Any JSON you want returned with the transaction." },
                 ]}
               />
@@ -277,7 +282,8 @@ export default function DocsPage() {
   "success": true,
   "data": {
     "reference": "ORDER-1001",
-    "provider_reference": "87f2e5b0-48db-4d58-9bee-9348565fe444",
+    "provider_reference": "WECK203715000000006208",
+    "checkout_url": "https://checkout.obpay.online/c/WECK203715000000006208",
     "amount": 5000,
     "currency": "UGX",
     "status": "pending",
@@ -292,7 +298,8 @@ export default function DocsPage() {
             <section>
               <Header icon="ri-upload-cloud-line" label="Send money" subtitle={`POST ${BASE}/payouts`} />
               <p className="text-sm text-foreground-600">
-                Pays a mobile money wallet from your ObPay balance. <code className="font-mono text-xs">/send</code>,{" "}
+                Pays a mobile money wallet or any Ugandan bank account from your ObPay balance.{" "}
+                <code className="font-mono text-xs">/send</code>,{" "}
                 <code className="font-mono text-xs">/send-money</code> and{" "}
                 <code className="font-mono text-xs">/withdraw</code> are accepted aliases. Payouts start as{" "}
                 <code className="font-mono text-xs">pending</code> and settle within seconds.
@@ -304,6 +311,9 @@ export default function DocsPage() {
                   { name: "currency", type: "string", required: "No", desc: "UGX (default), KES or TZS." },
                   { name: "reference", type: "string", required: "No", desc: "Your unique reference. Auto-generated if omitted." },
                   { name: "description", type: "string", required: "No", desc: "Reason shown on your statement." },
+                  { name: "bank_code", type: "string", required: "Bank only", desc: "Bank code, e.g. UG0023 for Stanbic. Turns the request into a bank payout." },
+                  { name: "account_number", type: "string", required: "Bank only", desc: "Bank account number to credit." },
+                  { name: "customer_name", type: "string", required: "Bank only", desc: "Account holder name, exactly as the bank has it." },
                 ]}
               />
               <CodeBlock
@@ -326,6 +336,18 @@ export default function DocsPage() {
   }
 }`}
               />
+              <CodeBlock
+                title="Bank payout"
+                code={`curl -X POST "${BASE}/payouts" \\
+  -H "Authorization: Bearer sk_live_your_secret_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"amount":250000,"bank_code":"UG0023","account_number":"9030001234567","customer_name":"Acme Ltd","reference":"BANK-114"}'`}
+              />
+              <p className="text-sm text-foreground-600">
+                Bank codes: UG0001 Absa · UG0004 Centenary · UG0006 DFCU · UG0008 Equity · UG0015 Housing Finance ·
+                UG0017 KCB · UG0019 NCBA · UG0022 PostBank · UG0023 Stanbic · UG0024 Standard Chartered · UG0028 UBA.
+                The full list is returned by your dashboard's bank transfer page.
+              </p>
               <p className="text-sm text-foreground-600">
                 If you try to send more than you hold you get{" "}
                 <em>“Insufficient balance. Available: … UGX.”</em> — check{" "}
