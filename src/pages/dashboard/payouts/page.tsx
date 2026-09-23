@@ -6,6 +6,10 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
 
+const PAYOUT_BANKS = [
+  ["UG0001", "Absa Bank Uganda"], ["UG0002", "Bank of Africa Uganda"], ["UG0003", "BRAC Uganda Bank"], ["UG0004", "Centenary Bank"], ["UG0005", "Cairo Bank Uganda"], ["UG0006", "DFCU Bank"], ["UG0007", "Diamond Trust Bank"], ["UG0008", "Equity Bank Uganda"], ["UG0009", "Ecobank Uganda"], ["UG0010", "Exim Bank Uganda"], ["UG0011", "EFC Uganda"], ["UG0012", "Finance Trust Bank"], ["UG0013", "FINCA Uganda"], ["UG0014", "Guaranty Trust Bank Uganda"], ["UG0015", "Housing Finance Bank"], ["UG0016", "I&M Bank Uganda"], ["UG0017", "KCB Bank Uganda"], ["UG0018", "Mercantile Credit Bank"], ["UG0019", "NCBA Bank Uganda"], ["UG0020", "Opportunity Bank Uganda"], ["UG0021", "Pride Microfinance"], ["UG0022", "PostBank Uganda"], ["UG0023", "Stanbic Bank Uganda"], ["UG0024", "Standard Chartered Uganda"], ["UG0025", "Tropical Bank"], ["UG0026", "Salaam Bank Uganda"], ["UG0027", "UGAFODE Microfinance"], ["UG0028", "United Bank for Africa"], ["UG0029", "Wazalendo SACCO"],
+] as const;
+
 interface Payout {
   id: string;
   amount: number;
@@ -69,7 +73,7 @@ export default function PayoutsPage() {
   const [wallet, setWallet] = useState({ available_balance: 0, pending_balance: 0 });
   const [withdrawalLimit, setWithdrawalLimit] = useState<{ daily_limit: number; used_24h: number; remaining: number; resets_in_hours: number } | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ phoneNumber: "", amount: "", currency: activeCurrency, network: "mtn", description: "", reference: "" });
+  const [form, setForm] = useState({ destinationType: "mobile", phoneNumber: "", accountNumber: "", bankCode: "", customerName: "", customerEmail: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [merchantSlug, setMerchantSlug] = useState<string | null>(null);
@@ -99,11 +103,6 @@ export default function PayoutsPage() {
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
-
-  // Update form currency when activeCurrency changes
-  useEffect(() => {
-    setForm((prev) => ({ ...prev, currency: activeCurrency }));
-  }, [activeCurrency]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -220,8 +219,9 @@ export default function PayoutsPage() {
     setSubmitting(true); setSubmitStatus(null);
     try {
       const amount = parseFloat(form.amount);
-      if (!form.phoneNumber || isNaN(amount) || amount <= 0) {
-        setSubmitStatus({ ok: false, message: "Please check all fields and try again." });
+      const destination = form.destinationType === "bank" ? form.accountNumber : form.phoneNumber;
+      if (!form.customerName.trim() || !destination.trim() || isNaN(amount) || amount <= 0 || !Number.isInteger(amount) || (form.destinationType === "bank" && !form.bankCode)) {
+        setSubmitStatus({ ok: false, message: "Complete all required fields and enter a whole UGX amount." });
         setSubmitting(false); return;
       }
 
@@ -248,9 +248,14 @@ export default function PayoutsPage() {
       const apiData = await callObPayAPI({
         _action: "payout",
         payout_type: "send",
+        destinationType: form.destinationType,
         phoneNumber: form.phoneNumber,
+        accountNumber: form.accountNumber,
+        bankCode: form.bankCode,
+        customerName: form.customerName.trim(),
+        customerEmail: form.customerEmail.trim(),
         amount,
-        currency: form.currency,
+        currency: "UGX",
         network: form.network,
         description: form.description,
         reference: ref,
@@ -279,7 +284,7 @@ export default function PayoutsPage() {
           }).then(() => {}, (e: any) => console.warn("[Payouts] Confirmation email failed silently:", e));
         }
 
-        setForm({ phoneNumber: "", amount: "", currency: activeCurrency, network: "mtn", description: "", reference: "" });
+        setForm({ destinationType: "mobile", phoneNumber: "", accountNumber: "", bankCode: "", customerName: "", customerEmail: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
         fetchData();
       } else {
         const errMsg = apiData?.error || apiData?.message || "Payout could not be processed.";
@@ -346,9 +351,12 @@ export default function PayoutsPage() {
       const apiData = await callObPayAPI({
         _action: "payout",
         payout_type: "withdraw",
+        destinationType: "mobile",
         phoneNumber: profile.phone_number,
+        customerName: profile.full_name || profile.company_name || "Account holder",
+        customerEmail: user.email || "",
         amount,
-        currency: activeCurrency,
+        currency: "UGX",
         network: withdrawNetwork,
         description: withdrawDesc || "Withdrawal to my mobile",
         reference: ref,
@@ -864,35 +872,25 @@ export default function PayoutsPage() {
                 </div>
               )}
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-foreground-600 mb-1">Recipient Phone *</label>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <input type="text" value={form.phoneNumber} onChange={(e) => handlePayoutPhoneChange(e.target.value)} placeholder="e.g. +256771234567" className="min-w-0 flex-1 px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required />
-                    <button
-                      type="button"
-                      onClick={handleVerifyPayoutNumber}
-                      disabled={payoutVerifying || !form.phoneNumber || form.phoneNumber.length < 9}
-                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary-100 hover:bg-secondary-200 disabled:opacity-40 text-secondary-700 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
-                    >
-                      {payoutVerifying ? <><i className="ri-loader-4-line animate-spin" />Checking...</> : <><i className="ri-user-search-line" />Verify</>}
-                    </button>
-                  </div>
-                  {payoutVerifiedName && payoutVerifiedPhone === form.phoneNumber && (
-                    <p className="text-xs text-emerald-600 mt-1.5 flex items-center gap-1">
-                      <i className="ri-check-line" />
-                      <span className="font-medium">{payoutVerifiedName}</span>
-                    </p>
-                  )}
-                  {payoutVerifyError && (
-                    <p className="text-xs text-accent-600 mt-1.5 flex items-center gap-1">
-                      <i className="ri-error-warning-line" />
-                      {payoutVerifyError}
-                    </p>
-                  )}
+                <div className="grid grid-cols-2 gap-2 rounded-lg bg-background-100 p-1">
+                  <button type="button" onClick={() => setForm({ ...form, destinationType: "mobile" })} className={`py-2 rounded-md text-xs font-semibold ${form.destinationType === "mobile" ? "bg-background-50 text-primary-700 shadow-sm" : "text-foreground-500"}`}>Mobile Money</button>
+                  <button type="button" onClick={() => setForm({ ...form, destinationType: "bank" })} className={`py-2 rounded-md text-xs font-semibold ${form.destinationType === "bank" ? "bg-background-50 text-primary-700 shadow-sm" : "text-foreground-500"}`}>Bank Account</button>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label className="block text-xs font-medium text-foreground-600 mb-1">Recipient full name *</label><input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} placeholder="Name on the account" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm" required /></div>
+                  <div><label className="block text-xs font-medium text-foreground-600 mb-1">Recipient email (optional)</label><input type="email" value={form.customerEmail} onChange={(e) => setForm({ ...form, customerEmail: e.target.value })} placeholder="recipient@example.com" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm" /></div>
+                </div>
+                {form.destinationType === "mobile" ? (
+                  <div><label className="block text-xs font-medium text-foreground-600 mb-1">Mobile money number *</label><input type="tel" inputMode="numeric" value={form.phoneNumber} onChange={(e) => handlePayoutPhoneChange(e.target.value)} placeholder="0772123456" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm" required /><p className="text-[11px] text-foreground-500 mt-1">Use 0 followed by the 9-digit Uganda number.</p></div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label className="block text-xs font-medium text-foreground-600 mb-1">Bank *</label><select value={form.bankCode} onChange={(e) => setForm({ ...form, bankCode: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm" required><option value="">Select bank</option>{PAYOUT_BANKS.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></div>
+                    <div><label className="block text-xs font-medium text-foreground-600 mb-1">Account number *</label><input inputMode="numeric" value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value.replace(/\D/g, "") })} placeholder="Bank account number" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm" required /></div>
+                  </div>
+                )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({form.currency}) *</label><input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minPayout > 0 ? `Min ${formatCurrency(minPayout, form.currency)}` : "50000"} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required min={minPayout || 1000} max={maxPayout || undefined} />
+                    <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({form.currency}) *</label><input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minPayout > 0 ? `Min ${formatCurrency(minPayout, form.currency)}` : "50000"} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required min={minPayout || 1} max={maxPayout || undefined} step={1} />
                     {(minPayout > 0 || maxPayout > 0) && (
                       <p className="text-[11px] text-foreground-500 mt-1">
                         {minPayout > 0 && `Min: ${formatCurrency(minPayout, form.currency)}`}
@@ -901,24 +899,17 @@ export default function PayoutsPage() {
                       </p>
                     )}
                   </div>
-                  <div><label className="block text-xs font-medium text-foreground-600 mb-1">Currency</label>
-                    <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400">
-                      {SUPPORTED_CURRENCIES.map((c) => (
-                        <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
-                      ))}
-                    </select>
-                    <p className="text-[11px] text-foreground-500 mt-1">Select the payout currency</p>
-                  </div>
+                  <div><label className="block text-xs font-medium text-foreground-600 mb-1">Currency</label><div className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-100 text-sm font-medium text-foreground-700">UGX — Uganda</div><p className="text-[11px] text-foreground-500 mt-1">Whole shillings only.</p></div>
                 </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <div><label className="block text-xs font-medium text-foreground-600 mb-1">Network</label>
+                {form.destinationType === "mobile" && <div className="grid grid-cols-1 gap-3">
+                  <div><label className="block text-xs font-medium text-foreground-600 mb-1">Network *</label>
                     <select value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400">
                       <option value="mtn">MTN Mobile Money</option>
                       <option value="airtel">Airtel Money</option>
                     </select>
-                    <p className="text-[11px] text-foreground-500 mt-1">Mobile money networks supported by our payment provider</p>
+                    <p className="text-[11px] text-foreground-500 mt-1">Choose the network registered to this number.</p>
                   </div>
-                </div>
+                </div>}
                 {form.amount && parseFloat(form.amount) > 0 && (() => {
                   const pAmt = parseFloat(form.amount);
                   const pFee = pAmt <= 70000 ? payoutFlatFee : Math.round(pAmt * (withdrawFeePercent / 100) * 100) / 100;
