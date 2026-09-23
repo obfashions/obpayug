@@ -211,9 +211,13 @@ export async function gatewayFetch(
 
   try {
     const hasProxy = !!proxyConfig();
-    const res = await run(hasProxy);
+    let res = await run(hasProxy);
     // If the relay itself is down, retry directly so nothing breaks because of it.
-    if (hasProxy && !res.ok && (res.httpStatus === 0 || res.httpStatus >= 500)) return await run(false);
+    if (hasProxy && !res.ok && (res.httpStatus === 0 || res.httpStatus >= 500)) res = await run(false);
+    if (!res.ok && isIpBlocked(res)) {
+      // The partner no longer recognises this server's address — alert the admin.
+      void import("./egress-monitor.server").then((m) => m.noteIpBlocked()).catch(() => {});
+    }
     return res;
   } catch (err: any) {
     try {
