@@ -1,1 +1,3 @@
 project_id = "rpivflptcksnafymmvlr"
+[functions.marz-webhook]
+verify_jwt = false
