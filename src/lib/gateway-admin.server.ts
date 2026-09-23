@@ -1,20 +1,25 @@
-// Admin-only management of the MarzPay credential sets that power every
-// collection, payout and service call on ObPay. Several sets can be stored;
-// exactly one is selected as live.
+// Admin-only management of the banking-partner credential sets that power every
+// collection, payout and transfer on ObPay. Several sets can be stored; exactly
+// one is selected as live.
 
 import { requireAdmin } from "./identity.server";
 import {
-  MARZ_CRED_ID,
+  GATEWAY_CRED_ID,
+  GATEWAY_BASE,
+  callbackUrl,
   decodeBasic,
-  getMarzCreds,
-  invalidateMarzCredsCache,
-  isIpWhitelistError,
-  listStoredMarzCreds,
-  marzCredsSource,
-  marzFetch,
-  readMarzCreds,
-  type MarzCreds,
-} from "./marz.server";
+  friendlyError,
+  gatewayBalance,
+  gatewayCredsSource,
+  getEgressIp,
+  getGatewayCreds,
+  invalidateGatewayCredsCache,
+  isIpBlocked,
+  listStoredGatewayCreds,
+  proxyConfig,
+  readEnvCreds,
+  type GatewayCreds,
+} from "./gateway.server";
 
 const db = async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -25,53 +30,51 @@ function mask(value: string, keep = 4): string {
   const v = String(value || "");
   if (!v) return "";
   if (v.length <= keep + 3) return "•".repeat(v.length);
-  return `${v.slice(0, keep)}${"•".repeat(Math.max(4, v.length - keep - 4))}${v.slice(-4)}`;
+  return `${v.slice(0, keep)}${"•".repeat(Math.max(4, Math.min(24, v.length - keep - 4)))}${v.slice(-4)}`;
 }
 
-function credsFromInput(body: Record<string, unknown>): MarzCreds | null {
-  const key = String(body?.["apiKey"] || "").trim();
-  const secret = String(body?.["apiSecret"] || "").trim();
+function credsFromInput(body: Record<string, unknown>): GatewayCreds | null {
+  const key = String(body?.["apiKey"] || "").replace(/\s+/g, "").trim();
+  const secret = String(body?.["apiSecret"] || "").replace(/\s+/g, "").trim();
   if (key && secret) return { key, secret, basic: btoa(`${key}:${secret}`) };
 
-  const basic = String(body?.["apiBasic"] || "").trim();
+  const basic = String(body?.["apiBasic"] || "").replace(/\s+/g, "").trim();
   if (basic) return decodeBasic(basic);
   return null;
 }
 
-async function probe(creds: MarzCreds) {
-  const res = await marzFetch(creds, "/transactions?per_page=1");
-  if (res.ok) {
-    const account = res.data?.data?.account || null;
-    return {
-      success: true,
-      data: {
-        status: "connected",
-        balance: account?.current_balance ?? null,
-        account,
-      },
-    };
+async function probe(creds: GatewayCreds) {
+  const bal = await gatewayBalance(creds);
+  if (bal.ok) {
+    return { success: true, data: { status: "connected", balance: bal.balance?.available ?? null, float: bal.balance } };
   }
-  if (isIpWhitelistError(res)) {
+  if (isIpBlocked(bal.res)) {
+    const ip = await getEgressIp();
     return {
       success: true,
       data: {
-        status: "connected",
+        status: "ip_blocked",
         ip_restricted: true,
-        note: "Credentials accepted. MarzPay hides the balance endpoint from non-whitelisted IPs, collections and payouts still work.",
+        ip,
+        note: `The application ID was recognised, but the partner refused the request because this server's address is not approved (they saw ${ip}). Ask them to approve it, or run the static-egress relay so every call leaves from one fixed address.`,
       },
     };
   }
-  return { success: false, error: res.error || "MarzPay rejected these credentials.", data: res.data };
+  return { success: false, error: friendlyError(bal.res, "request"), data: bal.res.raw };
 }
 
 async function statusPayload() {
-  const rows = await listStoredMarzCreds();
-  const env = readMarzCreds();
-  const active = await getMarzCreds();
+  const rows = await listStoredGatewayCreds();
+  const env = readEnvCreds();
+  const active = await getGatewayCreds();
   return {
     success: true,
     data: {
-      source: await marzCredsSource(),
+      source: await gatewayCredsSource(),
+      base_url: GATEWAY_BASE(),
+      callback_url: callbackUrl(),
+      static_egress: !!proxyConfig(),
+      server_ip: await getEgressIp(),
       active: active ? { key: mask(active.key, 10), secretMasked: mask(active.secret, 4) } : null,
       credentials: rows.map((r) => ({
         id: r.id,
@@ -87,7 +90,7 @@ async function statusPayload() {
   };
 }
 
-export async function runMarzAdminAction(
+export async function runGatewayAdminAction(
   action: string,
   accessToken: string,
   body: Record<string, unknown> = {},
@@ -99,22 +102,22 @@ export async function runMarzAdminAction(
 
   if (action === "test") {
     const typed = credsFromInput(body);
-    let creds: MarzCreds | null = typed;
+    let creds: GatewayCreds | null = typed;
     if (!creds && rowId) {
-      const row = (await listStoredMarzCreds()).find((r) => r.id === rowId);
+      const row = (await listStoredGatewayCreds()).find((r) => r.id === rowId);
       if (row?.key && row.secret) creds = { key: row.key, secret: row.secret, basic: btoa(`${row.key}:${row.secret}`) };
     }
-    if (!creds) creds = await getMarzCreds();
-    if (!creds) return { success: false, error: "No MarzPay credentials to test." };
+    if (!creds) creds = await getGatewayCreds();
+    if (!creds) return { success: false, error: "No gateway credentials to test." };
     return probe(creds);
   }
 
   if (action === "save") {
     const creds = credsFromInput(body);
     if (!creds) {
-      return { success: false, error: "Enter both an API key and secret, or a valid base64 Authorization value." };
+      return { success: false, error: "Enter both an application ID and application key, or a valid base64 Authorization value." };
     }
-    const label = String(body?.["label"] || "").trim() || "MarzPay keys";
+    const label = String(body?.["label"] || "").trim() || "Gateway keys";
     const makeActive = body?.["activate"] !== false;
 
     if (body?.["skipVerify"] !== true) {
@@ -123,7 +126,7 @@ export async function runMarzAdminAction(
     }
 
     const client = await db();
-    const id = rowId || `${MARZ_CRED_ID}:${crypto.randomUUID().slice(0, 8)}`;
+    const id = rowId || `${GATEWAY_CRED_ID}:${crypto.randomUUID().slice(0, 8)}`;
     const { error } = await client.from("platform_credentials").upsert(
       {
         id,
@@ -139,7 +142,7 @@ export async function runMarzAdminAction(
     if (error) return { success: false, error: error.message };
 
     if (makeActive) await deactivateOthers(client, id);
-    invalidateMarzCredsCache();
+    invalidateGatewayCredsCache();
     return { success: true, data: { saved: true, id } };
   }
 
@@ -152,7 +155,7 @@ export async function runMarzAdminAction(
       .eq("id", rowId);
     if (error) return { success: false, error: error.message };
     await deactivateOthers(client, rowId);
-    invalidateMarzCredsCache();
+    invalidateGatewayCredsCache();
     return { success: true, data: { active: rowId } };
   }
 
@@ -161,8 +164,8 @@ export async function runMarzAdminAction(
     const client = await db();
     const { error } = await client.from("platform_credentials").delete().eq("id", rowId);
     if (error) return { success: false, error: error.message };
-    invalidateMarzCredsCache();
-    return { success: true, data: { removed: rowId, source: await marzCredsSource() } };
+    invalidateGatewayCredsCache();
+    return { success: true, data: { removed: rowId, source: await gatewayCredsSource() } };
   }
 
   if (action === "disable" || action === "reset") {
@@ -170,10 +173,10 @@ export async function runMarzAdminAction(
     const { error } = await client
       .from("platform_credentials")
       .update({ enabled: false, updated_at: new Date().toISOString() })
-      .or(`id.eq.${MARZ_CRED_ID},id.like.${MARZ_CRED_ID}:%`);
+      .or(`id.eq.${GATEWAY_CRED_ID},id.like.${GATEWAY_CRED_ID}:%`);
     if (error) return { success: false, error: error.message };
-    invalidateMarzCredsCache();
-    return { success: true, data: { reverted: true, source: await marzCredsSource() } };
+    invalidateGatewayCredsCache();
+    return { success: true, data: { reverted: true, source: await gatewayCredsSource() } };
   }
 
   return { success: false, error: `Unsupported action: ${action}` };
@@ -183,6 +186,6 @@ async function deactivateOthers(client: any, keepId: string) {
   await client
     .from("platform_credentials")
     .update({ enabled: false })
-    .or(`id.eq.${MARZ_CRED_ID},id.like.${MARZ_CRED_ID}:%`)
+    .or(`id.eq.${GATEWAY_CRED_ID},id.like.${GATEWAY_CRED_ID}:%`)
     .neq("id", keepId);
 }
