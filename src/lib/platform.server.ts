@@ -558,8 +558,14 @@ export async function publicCollect(body: Record<string, any>) {
   if (!link) return fail("This payment link does not exist.");
   if (link.status !== "active") return fail("This payment link is no longer accepting payments.");
 
-  const amount = Math.round(Number(link.fixed_amount && link.amount != null ? link.amount : body.amount));
-  if (!Number.isFinite(amount) || amount <= 0) return fail("Enter a valid amount to pay.");
+  const numericAmount = Number(link.fixed_amount && link.amount != null ? link.amount : body.amount);
+  const amount = Math.round(numericAmount);
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) return fail("Enter a valid amount to pay.");
+  if (!Number.isInteger(numericAmount)) return fail("Enter a whole UGX amount without decimals.");
+  const customerName = String(body.customerName || body.name || "").trim();
+  const customerEmail = String(body.customerEmail || body.email || "").trim();
+  if (!customerName) return fail("Enter your full name.");
+  if (!/^\S+@\S+\.\S+$/.test(customerEmail)) return fail("Enter a valid email address.");
   const phone = walletNumber(body.phoneNumber);
   if (!phone) return fail("Enter the mobile money number that will pay, e.g. 0772123456.");
 
@@ -567,8 +573,8 @@ export async function publicCollect(body: Record<string, any>) {
   const out = await gatewayCollect(creds, {
     reference,
     amount,
-    customerName: String(body.customerName || body.name || "ObPay customer"),
-    customerEmail: String(body.customerEmail || body.email || "payments@obpay.online"),
+    customerName,
+    customerEmail,
     phone,
     bankCode: networkCode(body.network, phone),
     description: String(link.description || link.title || "ObPay payment"),
