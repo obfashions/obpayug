@@ -406,6 +406,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       phone: wallet,
       bankCode,
       description: description || "Collection via ObPay",
+      redirectUrl: `${(process.env["PUBLIC_SITE_URL"] || "https://obpay.online").trim().replace(/\/+$/, "")}/dashboard?paid=${encodeURIComponent(ref)}`,
       notifyUrl: callbackUrl(),
     });
 
