@@ -9,9 +9,21 @@ import { createFileRoute } from "@tanstack/react-router";
  * uppercase `SUCCESS` so the notification is not retried.
  */
 
+/** Notification source addresses used by our banking partner. */
+const KNOWN_NOTIFY_IPS = new Set(["8.208.34.242", "8.208.84.60"]);
+
+function sourceIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for") || "";
+  return (fwd.split(",")[0] || request.headers.get("cf-connecting-ip") || "").trim();
+}
+
 async function handle(request: Request): Promise<Response> {
   const raw = await request.text();
   const signature = request.headers.get("x-sign") || "";
+  const ip = sourceIp(request);
+  if (ip && !KNOWN_NOTIFY_IPS.has(ip)) {
+    console.warn("[gateway-callback] notification from unexpected address", ip);
+  }
 
   const gateway = await import("@/lib/gateway.server");
   const creds = await gateway.getGatewayCreds();
