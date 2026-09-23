@@ -20,7 +20,7 @@ import { createServer } from "node:http";
 const PORT = Number(process.env.PORT || 8787);
 const TOKEN = process.env.RELAY_TOKEN || "";
 // Only these hosts may ever be reached through the relay.
-const ALLOWED_HOSTS = new Set(["wallet.wearepartner.com", "api.ipify.org"]);
+const ALLOWED_HOSTS = new Set(["api.liralinkpay.com", "api.ipify.org"]);
 
 const server = createServer(async (req, res) => {
   const send = (status, body) => {
