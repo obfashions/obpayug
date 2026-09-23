@@ -67,6 +67,13 @@ async function statusPayload() {
   const rows = await listStoredGatewayCreds();
   const env = readEnvCreds();
   const active = await getGatewayCreds();
+  const { egressState } = await import("./egress-monitor.server");
+  let egress: any = null;
+  try {
+    egress = await egressState();
+  } catch {
+    egress = null;
+  }
   return {
     success: true,
     data: {
