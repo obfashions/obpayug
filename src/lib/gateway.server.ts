@@ -156,7 +156,7 @@ async function proxiedFetch(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(proxy.token ? { Authorization: `Bearer ${proxy.token}` } : {}),
+      ...(proxy.token ? { Authorization: `Bearer ${proxy.token}`, "x-relay-token": proxy.token } : {}),
     },
     body: JSON.stringify({ url: target, method: init.method, headers: init.headers, body: init.body ?? null }),
   });
@@ -210,21 +210,13 @@ export async function gatewayFetch(
   };
 
   try {
-    const hasProxy = !!proxyConfig();
-    let res = await run(hasProxy);
-    // If the relay itself is down, retry directly so nothing breaks because of it.
-    if (hasProxy && !res.ok && (res.httpStatus === 0 || res.httpStatus >= 500)) res = await run(false);
+    // Fail closed: when the fixed-IP route is configured, never fall back to a rotating address.
+    const res = await run(!!proxyConfig());
     if (!res.ok && isIpBlocked(res)) {
-      // The partner no longer recognises this server's address — alert the admin.
       void import("./egress-monitor.server").then((m) => m.noteIpBlocked()).catch(() => {});
     }
     return res;
   } catch (err: any) {
-    try {
-      if (proxyConfig()) return await run(false);
-    } catch {
-      /* ignore */
-    }
     return { ok: false, httpStatus: 0, code: "0", data: null, raw: null, error: err?.message || "Network error" };
   }
 }
