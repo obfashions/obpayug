@@ -44,7 +44,7 @@ export default function BankTransferPage() {
   async function validate() {
     setValidating(true);
     setValidated(null);
-    const res = await invokeObpay({ action: "bank-validate", bankName: form.bankName, accountNumber: form.accountNumber });
+    const res = await invokeObpay({ action: "bank-validate", bankCode: form.bankName, accountNumber: form.accountNumber });
     setValidating(false);
     if (res?.success) {
       const name = res.data?.account_name || res.data?.account?.account_name || res.data?.name || "";
@@ -59,7 +59,7 @@ export default function BankTransferPage() {
     e.preventDefault();
     setSubmitting(true);
     setResult(null);
-    const res = await invokeObpay({ action: "bank-transfer", ...form, amount });
+    const res = await invokeObpay({ action: "bank-transfer", ...form, bankCode: form.bankName, amount });
     setSubmitting(false);
     if (res?.success) {
       setResult({ ok: true, message: `Transfer submitted. Reference ${res.data.reference}. Charge ${res.data.fee?.toLocaleString()} UGX.` });
@@ -111,7 +111,7 @@ export default function BankTransferPage() {
               >
                 <option value="">{loading ? "Loading banks…" : "Select bank"}</option>
                 {banks.map((b) => (
-                  <option key={b.code} value={b.name}>
+                  <option key={b.code} value={b.code}>
                     {b.name}
                   </option>
                 ))}
@@ -202,7 +202,7 @@ export default function BankTransferPage() {
             <input
               value={lookupRef}
               onChange={(e) => setLookupRef(e.target.value)}
-              placeholder="Provider reference"
+              placeholder="Transfer reference"
               className="flex-1 rounded-lg border border-border bg-background p-2.5 text-sm"
             />
             <button onClick={checkStatus} className="rounded-lg bg-secondary px-4 py-2.5 text-sm text-secondary-foreground">
