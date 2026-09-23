@@ -1,14 +1,14 @@
 # ObPay static-egress relay
 
-MarzPay's `/send-money` and `/balance` endpoints only accept calls from IP
-addresses on your MarzPay whitelist. ObPay runs on a serverless edge platform
+ObPay's banking partner only accepts calls from network addresses they have
+approved in advance. ObPay runs on a serverless edge platform
 whose outbound IP **changes on every request**, so no fixed set of addresses can
-ever be whitelisted — that is why payouts kept failing while collections (which
-are not IP-restricted) worked.
+ever be whitelisted — that is why partner calls can fail with an
+"address not supported" error.
 
-The fix is to send MarzPay traffic through one small server that owns a
+The fix is to send the payment partner traffic through one small server that owns a
 permanent IP. ObPay already supports this: when `EGRESS_PROXY_URL` is set, every
-MarzPay call is tunnelled through the relay automatically, with an automatic
+the payment partner call is tunnelled through the relay automatically, with an automatic
 direct fallback if the relay is ever unreachable (so collections never break).
 
 ## 1. Get a host with a fixed IP
@@ -64,18 +64,18 @@ so the URL is `https://relay.yourdomain.com/`.
 Send Lovable the relay URL and token; they are stored as the secrets
 `EGRESS_PROXY_URL` and `EGRESS_PROXY_TOKEN`.
 
-## 4. Whitelist the relay IP in MarzPay
+## 4. Whitelist the relay IP in the payment partner
 
 ```bash
 curl https://obpay.online/api/public/egress-ip
 ```
 
-Returns `proxy_ip` — add exactly that address in **MarzPay → Security → IP
+Returns `proxy_ip` — add exactly that address in **the payment partner → Security → IP
 Whitelist**. It never changes, so payouts stay working.
 
 ## Security
 
-- The relay only forwards to `wallet.wearemarz.com` (and `api.ipify.org` for the
+- The relay only forwards to `wallet.wearepartner.com` (and `api.ipify.org` for the
   IP diagnostic); everything else is rejected with 403.
 - Requests without the bearer token are rejected with 401.
 - No credentials are stored on the relay — they are passed per request by ObPay

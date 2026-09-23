@@ -101,8 +101,8 @@ const endpointList: Array<{ m: string; p: string; d: string }> = [
   { m: "GET", p: "/ping", d: "Check that your key works." },
   { m: "GET", p: "/account", d: "Merchant id and object counts." },
   { m: "GET", p: "/balance", d: "Collected, paid out and net balance." },
-  { m: "POST", p: "/collect", d: "Charge a mobile money wallet." },
-  { m: "POST", p: "/payouts", d: "Send money to a mobile money wallet." },
+  { m: "POST", p: "/collect", d: "Charge a mobile money wallet and get a secure payment link." },
+  { m: "POST", p: "/payouts", d: "Send money to a mobile money wallet or any Ugandan bank account." },
   { m: "GET", p: "/transactions", d: "List with filters and pagination." },
   { m: "GET", p: "/transactions/{reference}", d: "One transaction, re-checked live." },
   { m: "GET", p: "/payments", d: "Latest 100 records (shortcut)." },
@@ -135,7 +135,7 @@ export default function DocsPage() {
           "@type": "TechArticle",
           headline: "ObPay API documentation",
           description:
-            "Integrate mobile money collections, payouts, payment links and webhooks with the ObPay REST API.",
+            "Integrate mobile money collections, bank and mobile money payouts, payment links and webhooks with the ObPay REST API.",
         }}
       />
       <Navbar />
@@ -174,8 +174,8 @@ export default function DocsPage() {
               <div className="grid sm:grid-cols-2 gap-3 mt-5">
                 {[
                   { t: "1. Create an API key", d: "Dashboard → API keys. Copy the secret once; it is never shown again." },
-                  { t: "2. Receive money", d: "POST /collect with the payer's number and the amount." },
-                  { t: "3. Send money", d: "POST /payouts to pay a customer, supplier or staff member." },
+                  { t: "2. Receive money", d: "POST /collect, then send the payer to the checkout_url you get back." },
+                  { t: "3. Send money", d: "POST /payouts to pay a wallet or bank account." },
                   { t: "4. Confirm the result", d: "Listen for a webhook, or poll GET /transactions/{reference}." },
                 ].map((c) => (
                   <div key={c.t} className="rounded-xl border border-background-200 p-4">
@@ -204,7 +204,7 @@ export default function DocsPage() {
   -d '{
     "amount": 5000,
     "currency": "UGX",
-    "phone_number": "+256700000000",
+    "phone_number": "0772123456",
     "reference": "ORDER-1001",
     "description": "Order 1001"
   }'`}
@@ -250,17 +250,22 @@ export default function DocsPage() {
             <section>
               <Header icon="ri-download-cloud-line" label="Receive money" subtitle={`POST ${BASE}/collect`} />
               <p className="text-sm text-foreground-600">
-                Sends a payment prompt to the customer's phone. The response returns immediately with{" "}
-                <code className="font-mono text-xs">status: "pending"</code> — the customer still has to approve on
-                their handset. Confirm with a webhook or by polling the transaction.
+                Starts a collection and returns a secure <code className="font-mono text-xs">checkout_url</code>.
+                Send the payer there (redirect, or open it in a new tab) to approve the payment on their phone. The
+                response returns immediately with <code className="font-mono text-xs">status: "pending"</code> —
+                confirm with a webhook or by polling the transaction.
               </p>
               <Table
                 rows={[
-                  { name: "amount", type: "number", required: "Yes", desc: "Amount in the major unit, e.g. 5000 for UGX 5,000." },
-                  { name: "phone_number", type: "string", required: "Yes", desc: "Payer's number. Local or +256… both work." },
+                  { name: "amount", type: "number", required: "Yes", desc: "Whole number in UGX, e.g. 5000. Decimals are rejected." },
+                  { name: "phone_number", type: "string", required: "Yes", desc: "Payer's mobile money number, e.g. 0772123456. +256… is accepted too." },
                   { name: "currency", type: "string", required: "No", desc: "UGX (default), KES or TZS." },
                   { name: "reference", type: "string", required: "No", desc: "Your unique reference, max 40 chars. Auto-generated if omitted." },
                   { name: "description", type: "string", required: "No", desc: "Shown on your statement and receipts." },
+                  { name: "customer_name", type: "string", required: "No", desc: "Payer's name shown on the checkout page." },
+                  { name: "customer_email", type: "string", required: "No", desc: "Payer's email for the receipt." },
+                  { name: "network", type: "string", required: "No", desc: "MTN or Airtel. Detected from the number when omitted." },
+                  { name: "redirect_url", type: "string", required: "No", desc: "Where to send the payer after they pay." },
                   { name: "metadata", type: "object", required: "No", desc: "Any JSON you want returned with the transaction." },
                 ]}
               />
@@ -269,7 +274,7 @@ export default function DocsPage() {
                 code={`curl -X POST "${BASE}/collect" \\
   -H "Authorization: Bearer sk_live_your_secret_key" \\
   -H "Content-Type: application/json" \\
-  -d '{"amount":5000,"currency":"UGX","phone_number":"+256700000000","reference":"ORDER-1001","metadata":{"order_id":1001}}'`}
+  -d '{"amount":5000,"currency":"UGX","phone_number":"0772123456","reference":"ORDER-1001","metadata":{"order_id":1001}}'`}
               />
               <CodeBlock
                 title="Response 200"
@@ -277,7 +282,8 @@ export default function DocsPage() {
   "success": true,
   "data": {
     "reference": "ORDER-1001",
-    "provider_reference": "87f2e5b0-48db-4d58-9bee-9348565fe444",
+    "provider_reference": "WECK203715000000006208",
+    "checkout_url": "https://checkout.obpay.online/c/WECK203715000000006208",
     "amount": 5000,
     "currency": "UGX",
     "status": "pending",
@@ -292,18 +298,22 @@ export default function DocsPage() {
             <section>
               <Header icon="ri-upload-cloud-line" label="Send money" subtitle={`POST ${BASE}/payouts`} />
               <p className="text-sm text-foreground-600">
-                Pays a mobile money wallet from your ObPay balance. <code className="font-mono text-xs">/send</code>,{" "}
+                Pays a mobile money wallet or any Ugandan bank account from your ObPay balance.{" "}
+                <code className="font-mono text-xs">/send</code>,{" "}
                 <code className="font-mono text-xs">/send-money</code> and{" "}
                 <code className="font-mono text-xs">/withdraw</code> are accepted aliases. Payouts start as{" "}
                 <code className="font-mono text-xs">pending</code> and settle within seconds.
               </p>
               <Table
                 rows={[
-                  { name: "amount", type: "number", required: "Yes", desc: "Must not exceed your available balance." },
-                  { name: "phone_number", type: "string", required: "Yes", desc: "Recipient's mobile money number." },
+                  { name: "amount", type: "number", required: "Yes", desc: "Whole number in UGX. Must not exceed your available balance." },
+                  { name: "phone_number", type: "string", required: "Yes", desc: "Recipient's mobile money number, e.g. 0772123456. For a bank payout send bank_code, account_number and customer_name instead." },
                   { name: "currency", type: "string", required: "No", desc: "UGX (default), KES or TZS." },
                   { name: "reference", type: "string", required: "No", desc: "Your unique reference. Auto-generated if omitted." },
                   { name: "description", type: "string", required: "No", desc: "Reason shown on your statement." },
+                  { name: "bank_code", type: "string", required: "Bank only", desc: "Bank code, e.g. UG0023 for Stanbic. Turns the request into a bank payout." },
+                  { name: "account_number", type: "string", required: "Bank only", desc: "Bank account number to credit." },
+                  { name: "customer_name", type: "string", required: "Bank only", desc: "Account holder name, exactly as the bank has it." },
                 ]}
               />
               <CodeBlock
@@ -326,6 +336,18 @@ export default function DocsPage() {
   }
 }`}
               />
+              <CodeBlock
+                title="Bank payout"
+                code={`curl -X POST "${BASE}/payouts" \\
+  -H "Authorization: Bearer sk_live_your_secret_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"amount":250000,"bank_code":"UG0023","account_number":"9030001234567","customer_name":"Acme Ltd","reference":"BANK-114"}'`}
+              />
+              <p className="text-sm text-foreground-600">
+                Bank codes: UG0001 Absa · UG0004 Centenary · UG0006 DFCU · UG0008 Equity · UG0015 Housing Finance ·
+                UG0017 KCB · UG0019 NCBA · UG0022 PostBank · UG0023 Stanbic · UG0024 Standard Chartered · UG0028 UBA.
+                The full list is returned by your dashboard's bank transfer page.
+              </p>
               <p className="text-sm text-foreground-600">
                 If you try to send more than you hold you get{" "}
                 <em>“Insufficient balance. Available: … UGX.”</em> — check{" "}
@@ -356,7 +378,7 @@ export default function DocsPage() {
     "amount": 5000,
     "currency": "UGX",
     "status": "success",
-    "phone_number": "+256700000000",
+    "phone_number": "0772123456",
     "created_at": "2026-08-02T09:14:11.000Z"
   }
 }`}
@@ -520,7 +542,7 @@ X-ObPay-Signature: 6f1c…   (HMAC-SHA256 of the raw body, using your endpoint s
     "status": "success",
     "amount": 5000,
     "currency": "UGX",
-    "phone_number": "+256700000000"
+    "phone_number": "0772123456"
   }
 }`}
               />
@@ -636,7 +658,7 @@ r = requests.post(
     json={
         "amount": 5000,
         "currency": "UGX",
-        "phone_number": "+256700000000",
+        "phone_number": "0772123456",
         "reference": "ORDER-1001",
     },
     timeout=30,

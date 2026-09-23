@@ -1,8 +1,8 @@
 // ObPay static-egress relay
 // -----------------------------------------------------------------------------
 // Deploy this ONE file on any host that has a fixed public IP (a $4–6/month VPS
-// on Hetzner / DigitalOcean / Contabo / Vultr is plenty). Every MarzPay request
-// from ObPay is then forwarded from that single IP, so MarzPay's IP whitelist
+// on Hetzner / DigitalOcean / Contabo / Vultr is plenty). Every payment partner request
+// from ObPay is then forwarded from that single IP, so payment partner's IP whitelist
 // can finally be satisfied.
 //
 //   1. Copy this file to the server:      scp egress-relay/relay.mjs root@SERVER:/opt/relay.mjs
@@ -11,7 +11,7 @@
 //        RELAY_TOKEN=<token> PORT=8787 nohup node /opt/relay.mjs > /var/log/obpay-relay.log 2>&1 &
 //      (or use the systemd unit in egress-relay/README.md)
 //   4. Send Lovable the relay URL (https://your-domain-or-ip:8787/relay) and token.
-//   5. Whitelist the server's public IP in MarzPay → Security → IP Whitelist.
+//   5. Whitelist the server's public IP in payment partner → Security → IP Whitelist.
 //
 // Requires Node 18+ (global fetch). No npm install, no dependencies.
 
@@ -20,7 +20,7 @@ import { createServer } from "node:http";
 const PORT = Number(process.env.PORT || 8787);
 const TOKEN = process.env.RELAY_TOKEN || "";
 // Only these hosts may ever be reached through the relay.
-const ALLOWED_HOSTS = new Set(["wallet.wearemarz.com", "api.ipify.org"]);
+const ALLOWED_HOSTS = new Set(["wallet.wearepartner.com", "api.ipify.org"]);
 
 const server = createServer(async (req, res) => {
   const send = (status, body) => {

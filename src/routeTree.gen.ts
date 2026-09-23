@@ -23,6 +23,7 @@ import { Route as AdminApiMonitoringRouteImport } from './routes/admin.api-monit
 import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
 import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.company-documents'
 import { Route as AdminEmailCampaignsRouteImport } from './routes/admin.email-campaigns'
+import { Route as AdminGatewayApiRouteImport } from './routes/admin.gateway-api'
 import { Route as AdminKycReviewRouteImport } from './routes/admin.kyc-review'
 import { Route as AdminLoansRouteImport } from './routes/admin.loans'
 import { Route as AdminMerchantsRouteImport } from './routes/admin.merchants'
@@ -127,6 +128,11 @@ const AdminCompanyDocumentsRoute = AdminCompanyDocumentsRouteImport.update({
 const AdminEmailCampaignsRoute = AdminEmailCampaignsRouteImport.update({
   id: '/admin/email-campaigns',
   path: '/admin/email-campaigns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminGatewayApiRoute = AdminGatewayApiRouteImport.update({
+  id: '/admin/gateway-api',
+  path: '/admin/gateway-api',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminKycReviewRoute = AdminKycReviewRouteImport.update({
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
+  '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
@@ -372,6 +379,7 @@ export interface FileRoutesByTo {
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
+  '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
@@ -424,6 +432,7 @@ export interface FileRoutesById {
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
+  '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
@@ -477,6 +486,7 @@ export interface FileRouteTypes {
     | '/admin/audit-logs'
     | '/admin/company-documents'
     | '/admin/email-campaigns'
+    | '/admin/gateway-api'
     | '/admin/kyc-review'
     | '/admin/loans'
     | '/admin/merchants'
@@ -528,6 +538,7 @@ export interface FileRouteTypes {
     | '/admin/audit-logs'
     | '/admin/company-documents'
     | '/admin/email-campaigns'
+    | '/admin/gateway-api'
     | '/admin/kyc-review'
     | '/admin/loans'
     | '/admin/merchants'
@@ -579,6 +590,7 @@ export interface FileRouteTypes {
     | '/admin/audit-logs'
     | '/admin/company-documents'
     | '/admin/email-campaigns'
+    | '/admin/gateway-api'
     | '/admin/kyc-review'
     | '/admin/loans'
     | '/admin/merchants'
@@ -631,6 +643,7 @@ export interface RootRouteChildren {
   AdminAuditLogsRoute: typeof AdminAuditLogsRoute
   AdminCompanyDocumentsRoute: typeof AdminCompanyDocumentsRoute
   AdminEmailCampaignsRoute: typeof AdminEmailCampaignsRoute
+  AdminGatewayApiRoute: typeof AdminGatewayApiRoute
   AdminKycReviewRoute: typeof AdminKycReviewRoute
   AdminLoansRoute: typeof AdminLoansRoute
   AdminMerchantsRoute: typeof AdminMerchantsRoute
@@ -767,6 +780,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/email-campaigns'
       fullPath: '/admin/email-campaigns'
       preLoaderRoute: typeof AdminEmailCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/gateway-api': {
+      id: '/admin/gateway-api'
+      path: '/admin/gateway-api'
+      fullPath: '/admin/gateway-api'
+      preLoaderRoute: typeof AdminGatewayApiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/kyc-review': {
@@ -1031,6 +1051,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAuditLogsRoute: AdminAuditLogsRoute,
   AdminCompanyDocumentsRoute: AdminCompanyDocumentsRoute,
   AdminEmailCampaignsRoute: AdminEmailCampaignsRoute,
+  AdminGatewayApiRoute: AdminGatewayApiRoute,
   AdminKycReviewRoute: AdminKycReviewRoute,
   AdminLoansRoute: AdminLoansRoute,
   AdminMerchantsRoute: AdminMerchantsRoute,

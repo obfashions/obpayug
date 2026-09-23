@@ -275,13 +275,16 @@ export default function CollectionsPage() {
         setLastRef(refNum);
         setLastStatus(immediateSuccess ? "success" : "pending");
         setLastAmount(amount);
+        const checkoutUrl = apiData.checkout_url;
         setSubmitStatus({
           ok: true,
           message: immediateSuccess
             ? `Collection successful! ${formatCurrency(amount, form.currency)} credited to your wallet.`
             : (providerMsg || "Collection request sent. Awaiting customer confirmation."),
-          livepayResponse: `Ref: ${refNum} | Status: ${apiData.status || "pending"}${immediateSuccess ? " | Paid immediately" : ""}`,
+          livepayResponse: `Ref: ${refNum} | Status: ${apiData.status || "pending"}${immediateSuccess ? " | Paid immediately" : ""}${checkoutUrl ? ` | Payment page: ${checkoutUrl}` : ""}`,
         });
+        // Open the secure payment page so the customer can approve right away.
+        if (checkoutUrl) window.open(checkoutUrl, "_blank", "noopener");
         setForm({ phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
         setVerifiedName(null); setVerifyError("");
         silentRefresh();

@@ -143,8 +143,11 @@ export default function PayPage() {
 
   // `window` does not exist during server rendering — read the URL after mount.
   const [currentUrl, setCurrentUrl] = useState("");
+  const [returnedRef, setReturnedRef] = useState("");
   useEffect(() => {
     setCurrentUrl(window.location.href);
+    const ref = new URLSearchParams(window.location.search).get("ref") || "";
+    if (ref) setReturnedRef(ref);
   }, [slug]);
 
   const copyUrl = () => {
@@ -193,6 +196,14 @@ export default function PayPage() {
       setPollMessage(`Payment request sent. If your mobile money was charged, the merchant will be notified once confirmed. Reference: ${ref}`);
     }
   }, [link, amount, managedLink]);
+
+  // A payer coming back from the secure payment page: pick the payment back up.
+  useEffect(() => {
+    if (!returnedRef) return;
+    setTxnRef(returnedRef);
+    setPollMessage("Confirming your payment…");
+    pollForStatus(returnedRef);
+  }, [returnedRef, pollForStatus]);
 
   // Realtime: watch transaction status updates from webhooks
   useEffect(() => {
@@ -257,10 +268,19 @@ export default function PayPage() {
 
         if (apiData?.success) {
           const edgeTxnRef = apiData?.data?.reference || ref;
+          const checkoutUrl = apiData?.data?.checkout_url;
           setTxnRef(edgeTxnRef);
           setPollStatus("polling");
-          setPollMessage(`Payment of ${formatCurrency(payAmount)} is being processed. Waiting for confirmation from the mobile money provider...`);
           setSubmitting(false);
+
+          // The secure payment page finishes the payment and sends the payer back here.
+          if (checkoutUrl) {
+            setPollMessage(`Taking you to the secure payment page to approve ${formatCurrency(payAmount)}…`);
+            window.location.href = checkoutUrl;
+            return;
+          }
+
+          setPollMessage(`Payment of ${formatCurrency(payAmount)} is being processed. Waiting for confirmation from your mobile money provider...`);
           await pollForStatus(edgeTxnRef);
           return;
         }
