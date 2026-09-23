@@ -156,7 +156,7 @@ async function proxiedFetch(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(proxy.token ? { Authorization: `Bearer ${proxy.token}`, "x-relay-token": proxy.token } : {}),
+      ...(proxy.token ? { "x-relay-token": proxy.token } : {}),
     },
     body: JSON.stringify({ url: target, method: init.method, headers: init.headers, body: init.body ?? null }),
   });
