@@ -265,6 +265,7 @@ export const LOCAL_ACTIONS = [
   "test-connection",
   "server-ip",
   "payout-preflight",
+  "admin-adjust-balance",
   ...SERVICE_ACTIONS,
 ];
 
