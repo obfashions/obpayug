@@ -89,6 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
+      if (data && (data as any).status === "deactivated") {
+        await supabase.auth.signOut().catch(() => {});
+        if (typeof window !== "undefined") window.location.replace("/login?removed=1");
+        return null;
+      }
       if (data) return data as Profile;
 
       // No profile — auto-create with plain INSERT

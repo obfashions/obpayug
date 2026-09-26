@@ -10,7 +10,7 @@ async function collectMerchants(accessToken: string, provided: Array<{ email: st
   const key = ((import.meta.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] as string) || "").trim();
   if (base && key) {
     try {
-      const resp = await fetch(`${base}/rest/v1/profiles?select=email,full_name,company_name&status=neq.deleted&limit=5000`, {
+      const resp = await fetch(`${base}/rest/v1/profiles?select=email,full_name,company_name&status=neq.deactivated&limit=5000`, {
         headers: { apikey: key, Authorization: `Bearer ${accessToken}` },
       });
       if (resp.ok) {
