@@ -377,12 +377,13 @@ print(r.json())`}
             <section className="space-y-3">
               <Header icon="ri-upload-cloud-line" label="Send money" subtitle={`POST ${BASE}/payouts`} />
               <p className={P}>
-                Sends money from your ObPay balance to an MTN or Airtel mobile money number. The recipient receives the
-                exact amount you send. Minimum payout is <strong>UGX 10,000</strong>. Bank payouts are not available yet.
+                Sends money from your ObPay balance to an MTN or Airtel mobile money number. The transfer fee is taken
+                out of the amount, so sending 10,000 deducts 10,000 from your balance and the recipient gets 10,000 minus the fee.
+                The response shows <code>fee</code> and <code>recipient_gets</code>. Minimum payout is <strong>UGX 10,000</strong>. Bank payouts are not available yet.
               </p>
               <Table
                 rows={[
-                  { name: "amount", type: "integer", required: "Yes", desc: "Whole UGX amount the recipient receives." },
+                  { name: "amount", type: "integer", required: "Yes", desc: "Whole UGX amount taken from your balance (fee included)." },
                   { name: "phone_number", type: "string", required: "Yes", desc: "Recipient's MTN or Airtel number, e.g. 0772123456." },
                   { name: "customer_name", type: "string", required: "Yes", desc: "Recipient's name as registered on the wallet." },
                   { name: "reference", type: "string", required: "No", desc: "Your unique payout id." },
