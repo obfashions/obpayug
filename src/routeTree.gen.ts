@@ -50,8 +50,6 @@ import { Route as DashboardReportsRouteImport } from './routes/dashboard.reports
 import { Route as DashboardServicesRouteImport } from './routes/dashboard.services'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardTransactionsRouteImport } from './routes/dashboard.transactions'
-import { Route as DashboardWebhookTestRouteImport } from './routes/dashboard.webhook-test'
-import { Route as DashboardWebhooksRouteImport } from './routes/dashboard.webhooks'
 import { Route as PaySlugRouteImport } from './routes/pay.$slug'
 import { Route as ApiPublicEgressIpRouteImport } from './routes/api/public/egress-ip'
 import { Route as ApiPublicGatewayCallbackRouteImport } from './routes/api/public/gateway-callback'
@@ -266,16 +264,6 @@ const DashboardTransactionsRoute = DashboardTransactionsRouteImport.update({
   path: '/dashboard/transactions',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardWebhookTestRoute = DashboardWebhookTestRouteImport.update({
-  id: '/dashboard/webhook-test',
-  path: '/dashboard/webhook-test',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardWebhooksRoute = DashboardWebhooksRouteImport.update({
-  id: '/dashboard/webhooks',
-  path: '/dashboard/webhooks',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PaySlugRoute = PaySlugRouteImport.update({
   id: '/pay/$slug',
   path: '/pay/$slug',
@@ -353,8 +341,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
-  '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
-  '/dashboard/webhooks': typeof DashboardWebhooksRoute
   '/pay/$slug': typeof PaySlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -405,8 +391,6 @@ export interface FileRoutesByTo {
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
-  '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
-  '/dashboard/webhooks': typeof DashboardWebhooksRoute
   '/pay/$slug': typeof PaySlugRoute
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -458,8 +442,6 @@ export interface FileRoutesById {
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
-  '/dashboard/webhook-test': typeof DashboardWebhookTestRoute
-  '/dashboard/webhooks': typeof DashboardWebhooksRoute
   '/pay/$slug': typeof PaySlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -512,8 +494,6 @@ export interface FileRouteTypes {
     | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
-    | '/dashboard/webhook-test'
-    | '/dashboard/webhooks'
     | '/pay/$slug'
     | '/admin/'
     | '/dashboard/'
@@ -564,8 +544,6 @@ export interface FileRouteTypes {
     | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
-    | '/dashboard/webhook-test'
-    | '/dashboard/webhooks'
     | '/pay/$slug'
     | '/admin'
     | '/dashboard'
@@ -616,8 +594,6 @@ export interface FileRouteTypes {
     | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
-    | '/dashboard/webhook-test'
-    | '/dashboard/webhooks'
     | '/pay/$slug'
     | '/admin/'
     | '/dashboard/'
@@ -669,8 +645,6 @@ export interface RootRouteChildren {
   DashboardServicesRoute: typeof DashboardServicesRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardTransactionsRoute: typeof DashboardTransactionsRoute
-  DashboardWebhookTestRoute: typeof DashboardWebhookTestRoute
-  DashboardWebhooksRoute: typeof DashboardWebhooksRoute
   PaySlugRoute: typeof PaySlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -971,20 +945,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardTransactionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/webhook-test': {
-      id: '/dashboard/webhook-test'
-      path: '/dashboard/webhook-test'
-      fullPath: '/dashboard/webhook-test'
-      preLoaderRoute: typeof DashboardWebhookTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/webhooks': {
-      id: '/dashboard/webhooks'
-      path: '/dashboard/webhooks'
-      fullPath: '/dashboard/webhooks'
-      preLoaderRoute: typeof DashboardWebhooksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/pay/$slug': {
       id: '/pay/$slug'
       path: '/pay/$slug'
@@ -1077,8 +1037,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardServicesRoute: DashboardServicesRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardTransactionsRoute: DashboardTransactionsRoute,
-  DashboardWebhookTestRoute: DashboardWebhookTestRoute,
-  DashboardWebhooksRoute: DashboardWebhooksRoute,
   PaySlugRoute: PaySlugRoute,
   AdminIndexRoute: AdminIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,

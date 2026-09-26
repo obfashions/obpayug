@@ -30,7 +30,7 @@ export default function Footer() {
   const developerLinks = [
     { label: "API Reference", href: "/docs" },
     { label: "SDKs", href: "/docs/sdk" },
-    { label: "Webhooks", href: "/docs/webhooks" },
+    { label: "Webhooks", href: "/docs#webhooks" },
     { label: "Status Page", href: "#" },
     { label: "Changelog", href: "#" },
   ];

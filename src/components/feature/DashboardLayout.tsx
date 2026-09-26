@@ -20,7 +20,6 @@ const navItems = [
   { label: "Reports", href: "/dashboard/reports", icon: "ri-file-chart-line", group: "main" },
   { label: "API Keys", href: "/dashboard/api-keys", icon: "ri-key-2-line", group: "dev" },
   { label: "API Sandbox", href: "/dashboard/api-sandbox", icon: "ri-terminal-box-line", group: "dev" },
-  { label: "Webhooks", href: "/dashboard/webhooks", icon: "ri-webhook-line", group: "dev" },
   { label: "Compliance", href: "/dashboard/company-documents", icon: "ri-government-line", group: "account" },
   { label: "Support", href: "/support", icon: "ri-customer-service-2-line", group: "account" },
   { label: "Settings", href: "/dashboard/settings", icon: "ri-settings-4-line", group: "account" },
