@@ -12,6 +12,7 @@ interface Submission {
   address: string | null;
   id_type: string | null;
   id_number: string | null;
+  account_type?: string | null;
   status: string;
   review_notes: string | null;
   reviewed_at: string | null;
@@ -126,6 +127,7 @@ export default function KycReviewPage() {
                 <li key={s.id} className="p-4 sm:p-5 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-foreground-900">{s.business_name || s.full_name || s.email}</span>
+                    <span className="ml-2 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-secondary-100 text-secondary-700">{s.account_type === "business" ? "Business" : "Personal"}</span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] ${
                         s.status === "approved"
