@@ -377,6 +377,12 @@ export interface CollectionRequest {
   notifyUrl?: string;
   merchant?: import("./merchant-identity.server").MerchantTag;
   channel?: string;
+  /** UGX (default), KES, RWF or USD. */
+  currency?: string;
+  /** KES only: "airtel_money" skips the M-Pesa prompt. */
+  network?: string;
+  /** Send the payer to the crypto checkout. */
+  crypto?: boolean;
 }
 
 /**
@@ -386,10 +392,12 @@ export interface CollectionRequest {
  */
 export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest) {
   const { tagDescription, tagMetadata } = await import("./merchant-identity.server");
-  const phone = intlNumber(req.phone);
+  const { intlPhone } = await import("./countries");
+  const currency = String(req.currency || "UGX").toUpperCase();
+  const phone = currency === "USD" ? "" : intlPhone(req.phone, currency);
   const body: Record<string, unknown> = {
-    amount: Math.round(req.amount),
-    currency: "UGX",
+    amount: currency === "USD" ? Math.round(req.amount * 100) / 100 : Math.round(req.amount),
+    currency,
     reference: req.reference,
     description: tagDescription(req.merchant, String(req.description || req.reference)),
     customer: {
@@ -398,6 +406,7 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
       ...(phone ? { phone } : {}),
     },
     callback_url: req.notifyUrl || callbackUrl(),
+    ...(currency === "KES" ? { stk_push: req.network !== "airtel_money" } : {}),
     ...(req.redirectUrl ? { redirect_url: req.redirectUrl, cancel_url: req.redirectUrl } : {}),
     metadata: { ...tagMetadata(req.merchant, req.channel || "dashboard"), obpay_reference: req.reference },
   };
@@ -405,12 +414,15 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
   if (!res.ok) return { ok: false as const, res };
 
   const reference = String(res.data?.reference || req.reference);
+  const cryptoUrl = String(res.data?.crypto_payment_url || "");
   let promptSent = false;
-  if (phone) {
+  if (currency === "KES") {
+    promptSent = res.data?.stk_sent === true;
+  } else if (phone && !req.crypto) {
     const push = await gatewayFetch(creds, "/payment/pawapay-process", {
       method: "POST",
       auth: false,
-      body: { reference, currency: "UGX", phone },
+      body: { reference, currency, phone },
     });
     promptSent = push.ok && (push.raw?.pending === true || push.raw?.success === true);
     if (!promptSent) console.warn("[gateway] phone prompt not sent", push.httpStatus, push.error);
@@ -421,7 +433,30 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
     res,
     promptSent,
     platformReference: reference,
-    checkoutUrl: promptSent ? "" : String(res.data?.payment_url || ""),
+    cryptoUrl,
+    checkoutUrl: req.crypto ? cryptoUrl : promptSent ? "" : String(res.data?.payment_url || ""),
+  };
+}
+
+/** Records a refund with the partner (bookkeeping only — it moves no money). */
+export async function gatewayRefund(creds: GatewayCreds, reference: string, amount?: number, reason?: string) {
+  return gatewayFetch(creds, "/api/v1/refund", {
+    method: "POST",
+    body: { reference, ...(amount ? { amount } : {}), ...(reason ? { reason } : {}) },
+  });
+}
+
+/** Payout rules (minimum, fee, methods) for one currency, live from the partner. */
+export async function gatewayPayoutMethods(creds: GatewayCreds, currency: string) {
+  const res = await gatewayFetch(creds, `/api/v1/payout-methods?currency=${encodeURIComponent(currency)}`);
+  const pm = res.raw?.payout_methods || {};
+  return {
+    ok: res.ok,
+    currency,
+    available: res.ok && pm.available !== false && Array.isArray(pm.methods) && pm.methods.length > 0,
+    minimum: Number(pm.minimum_withdrawal) || 0,
+    fee: pm.fee || null,
+    methods: (pm.methods || []).map((m: any) => ({ value: String(m.value), label: String(m.label) })),
   };
 }
 
