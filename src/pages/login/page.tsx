@@ -110,7 +110,12 @@ export default function Login() {
     setSubmitting(true);
     setServerError("");
 
-    const email = identifier.trim();
+    // Phones add capitals, hidden characters and spaces (autocorrect/paste),
+    // which the account service rejects as an "invalid email".
+    const email = identifier
+      .normalize("NFKC")
+      .replace(/[\s\u200B-\u200D\u2060\uFEFF\u00A0]/g, "")
+      .toLowerCase();
     const maxAttempts = 3;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
