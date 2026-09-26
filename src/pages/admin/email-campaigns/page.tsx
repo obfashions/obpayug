@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase, safeGetSession } from "@/lib/supabase";
+import MerchantNoticesCard from "./MerchantNoticesCard";
 
 interface CampaignLog {
   id: number;
@@ -275,6 +276,7 @@ export default function AdminEmailCampaigns() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        <MerchantNoticesCard />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="font-heading font-bold text-2xl text-foreground-900">Email Campaigns</h1>

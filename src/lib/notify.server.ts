@@ -200,5 +200,14 @@ export async function notifySettlement(info: SettlementInfo): Promise<void> {
       }).catch((e) => console.error("merchant receipt email failed", e?.code || e?.message)),
     );
   }
+  // Also send through Mailjet at the same time.
+  try {
+    const { sendMailjet, brandedHtml } = await import("./mailjet.server");
+    const mj = [{ to: ADMIN_ALERT_EMAIL(), name: "ObPay Admin", subject: `[ObPay] ${heading} — ${money(info.amount, info.currency)}`, html: brandedHtml(heading, adminHtml), customId: `admin-${info.reference}` }];
+    if (email) mj.push({ to: email, name: name || email, subject: `[ObPay] ${heading} — ${money(info.amount, info.currency)}`, html: brandedHtml(heading, merchantHtml), customId: `merchant-${info.reference}` });
+    tasks.push(sendMailjet(mj).then((r) => { if (r.failed) console.error("mailjet receipt failed", r.errors); }));
+  } catch (e: any) {
+    console.error("mailjet receipt failed", e?.message);
+  }
   await Promise.allSettled(tasks);
 }
