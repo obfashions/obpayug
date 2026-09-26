@@ -24,7 +24,16 @@ export async function platform<T = any>(
   body: Record<string, unknown> = {},
 ): Promise<PlatformResult<T>> {
   try {
-    const { platformCall } = await import("@/lib/platform.functions");
+    const { platformCall: rawCall } = await import("@/lib/platform.functions");
+    // The server can briefly refuse calls while it restarts; retry once instead of failing the page.
+    const platformCall: typeof rawCall = (async (arg: any) => {
+      try {
+        return await rawCall(arg);
+      } catch {
+        await new Promise((r) => setTimeout(r, 1500));
+        return await rawCall(arg);
+      }
+    }) as any;
 
     if (PUBLIC_ACTIONS.has(action)) {
       return (await platformCall({ data: { action, accessToken: "", body } })) as PlatformResult<T>;
