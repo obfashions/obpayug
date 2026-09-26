@@ -176,11 +176,29 @@ export async function notifySettlement(info: SettlementInfo): Promise<void> {
     </p>
     ${detailsTable(info)}`;
 
+  const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+  const common = {
+    kind: isPayout ? "payout" : "collection",
+    amount: money(info.amount, info.currency),
+    reference: String(info.reference),
+    phone: info.phone_number ? String(info.phone_number) : undefined,
+    description: info.description ? String(info.description) : undefined,
+    date: new Date().toLocaleString("en-GB", { timeZone: "Africa/Kampala" }),
+  };
+  void merchantHtml; void adminHtml; void heading;
   const tasks: Array<Promise<unknown>> = [
-    sendMail(ADMIN_ALERT_EMAIL(), `[ObPay] ${heading} — ${money(info.amount, info.currency)}`, adminHtml, "admin_transaction_success"),
+    sendTemplateEmail("transaction-receipt", ADMIN_ALERT_EMAIL(), {
+      templateData: { ...common, forAdmin: true, merchant: `${name || info.merchantId}${email ? ` (${email})` : ""}` },
+      idempotencyKey: `receipt-admin-${info.reference}`,
+    }).catch((e) => console.error("admin receipt email failed", e?.code || e?.message)),
   ];
   if (email) {
-    tasks.push(sendMail(email, `${heading} — ${money(info.amount, info.currency)}`, merchantHtml, "transaction_success"));
+    tasks.push(
+      sendTemplateEmail("transaction-receipt", email, {
+        templateData: { ...common, name: name || undefined },
+        idempotencyKey: `receipt-merchant-${info.reference}`,
+      }).catch((e) => console.error("merchant receipt email failed", e?.code || e?.message)),
+    );
   }
   await Promise.allSettled(tasks);
 }

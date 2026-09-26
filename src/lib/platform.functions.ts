@@ -7,4 +7,11 @@ export const platformCall = createServerFn({ method: "POST" })
     accessToken: String(data?.accessToken || ""),
     body: (data?.body || {}) as Record<string, unknown>,
   }))
-  .handler(async ({ data }) => runPlatformAction(data.action, data.accessToken, data.body));
+  .handler(async ({ data }) => {
+    try {
+      return await runPlatformAction(data.action, data.accessToken, data.body);
+    } catch (err: any) {
+      console.error("platformCall failed", data.action, err?.message);
+      return { success: false, error: err?.message || "Something went wrong. Please try again." } as any;
+    }
+  });

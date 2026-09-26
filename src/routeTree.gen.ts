@@ -57,6 +57,7 @@ import { Route as ApiPublicPlatformHealthRouteImport } from './routes/api/public
 import { Route as ApiPublicSupportChatRouteImport } from './routes/api/public/support-chat'
 import { Route as FunctionsV1SplatRouteImport } from './routes/functions.v1.$'
 import { Route as ApiPublicV1SplatRouteImport } from './routes/api/public/v1.$'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -300,6 +301,12 @@ const ApiPublicV1SplatRoute = ApiPublicV1SplatRouteImport.update({
   path: '/api/public/v1/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -350,6 +357,7 @@ export interface FileRoutesByFullPath {
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
   '/api/public/v1/$': typeof ApiPublicV1SplatRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -400,6 +408,7 @@ export interface FileRoutesByTo {
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
   '/api/public/v1/$': typeof ApiPublicV1SplatRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -451,6 +460,7 @@ export interface FileRoutesById {
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
   '/api/public/v1/$': typeof ApiPublicV1SplatRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -503,6 +513,7 @@ export interface FileRouteTypes {
     | '/api/public/support-chat'
     | '/functions/v1/$'
     | '/api/public/v1/$'
+    | '/lovable/email/transactional/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -553,6 +564,7 @@ export interface FileRouteTypes {
     | '/api/public/support-chat'
     | '/functions/v1/$'
     | '/api/public/v1/$'
+    | '/lovable/email/transactional/preview'
   id:
     | '__root__'
     | '/'
@@ -603,6 +615,7 @@ export interface FileRouteTypes {
     | '/api/public/support-chat'
     | '/functions/v1/$'
     | '/api/public/v1/$'
+    | '/lovable/email/transactional/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -654,6 +667,7 @@ export interface RootRouteChildren {
   ApiPublicSupportChatRoute: typeof ApiPublicSupportChatRoute
   FunctionsV1SplatRoute: typeof FunctionsV1SplatRoute
   ApiPublicV1SplatRoute: typeof ApiPublicV1SplatRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -994,6 +1008,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1046,6 +1067,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSupportChatRoute: ApiPublicSupportChatRoute,
   FunctionsV1SplatRoute: FunctionsV1SplatRoute,
   ApiPublicV1SplatRoute: ApiPublicV1SplatRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
