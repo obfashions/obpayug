@@ -1,0 +1,1 @@
+ALTER TABLE public.kyc_submissions ADD COLUMN IF NOT EXISTS account_type text NOT NULL DEFAULT 'personal';
