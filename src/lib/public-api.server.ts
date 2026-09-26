@@ -83,6 +83,29 @@ export async function apiBalance(merchantId: string) {
   });
 }
 
+// ─── shared input helpers ─────────────────────────────────────
+
+function pick(body: Record<string, any>, ...keys: string[]): string {
+  const c = body.customer && typeof body.customer === "object" ? body.customer : {};
+  for (const k of keys) {
+    const v = body[k] ?? c[k.replace(/^customer_/, "")];
+    if (v !== undefined && v !== null && String(v).trim()) return String(v).trim();
+  }
+  return "";
+}
+
+async function callbackFrom(body: Record<string, any>): Promise<{ url: string | null; error?: string }> {
+  const raw = String(body.callback_url || body.callbackUrl || "").trim();
+  if (!raw) return { url: null };
+  const { isSafeWebhookUrl } = await import("./platform.server");
+  if (!isSafeWebhookUrl(raw)) return { url: null, error: "`callback_url` must be a public https:// address." };
+  return { url: raw };
+}
+
+function merchantMeta(body: Record<string, any>) {
+  return body.metadata && typeof body.metadata === "object" ? body.metadata : null;
+}
+
 // ─── collections ──────────────────────────────────────────────
 
 export async function apiCollect(merchantId: string, body: Record<string, any>) {
@@ -95,11 +118,13 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
   if (currency !== "UGX") return err("`currency` must be `UGX`.");
-  const customerName = String(body.customer_name || body.customerName || "").trim();
-  const customerEmail = String(body.customer_email || body.customerEmail || "").trim();
+  const customerName = pick(body, "customer_name", "customerName", "customer_name");
+  const customerEmail = pick(body, "customer_email", "customerEmail");
+  const cb = await callbackFrom(body);
+  if (cb.error) return err(cb.error);
   if (!customerName) return err("`customer_name` is required.");
   if (!/^\S+@\S+\.\S+$/.test(customerEmail)) return err("`customer_email` must be a valid email address.");
-  const phone = walletNumber(body.phone_number ?? body.phoneNumber);
+  const phone = walletNumber(pick(body, "phone_number", "phoneNumber", "customer_phone"));
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
   if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
   if (!phone) return err("`phone_number` must be a Ugandan mobile money number, e.g. 0772123456.");
@@ -142,7 +167,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
       status: "failed",
       phone_number: phone,
       description: body.description || null,
-      metadata: body.metadata && typeof body.metadata === "object" ? body.metadata : {},
+      metadata: { merchant_metadata: merchantMeta(body) },
     });
     return err(friendlyError(out.res, "collection"));
   }
@@ -157,16 +182,17 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
     status: "pending",
     phone_number: phone,
     description: body.description || null,
-    metadata: {
-      ...(body.metadata && typeof body.metadata === "object" ? body.metadata : {}),
-      checkout_url: out.checkoutUrl,
-    },
+    metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, checkout_url: out.checkoutUrl },
   });
 
   return ok({
     reference,
-    provider_reference: out.platformReference,
-    checkout_url: out.checkoutUrl,
+    prompt_sent: out.promptSent,
+    message: out.promptSent
+      ? "A PIN prompt was sent to the customer's phone. They approve it to complete the payment."
+      : "Send the customer to checkout_url to complete the payment.",
+    checkout_url: out.checkoutUrl || null,
+    callback_url: cb.url,
     amount,
     currency,
     status: "pending",
@@ -188,23 +214,17 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
   if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
 
-  // Bank payout when a bank_code is supplied, mobile money otherwise.
-  const rawBankCode = String(body.bank_code || body.bankCode || "").toUpperCase();
-  const isBank = UG_BANKS.some((b) => b.code === rawBankCode);
-  if (rawBankCode && !isBank && !["UG0030", "UG0031"].includes(rawBankCode)) {
-    return err("`bank_code` is not a supported Ugandan bank or mobile money code.");
+  if (body.bank_code || body.bankCode) {
+    return err("Bank payouts are not available yet. Send to an MTN or Airtel mobile money number.");
   }
-  const accountNumber = isBank
-    ? String(body.account_number || body.accountNumber || "").replace(/\s/g, "")
-    : walletNumber(body.phone_number ?? body.phoneNumber ?? body.account_number);
-
-  if (isBank && !/^\d+$/.test(accountNumber)) return err("`account_number` must contain digits only for bank payouts.");
-  if (!isBank && !accountNumber) {
-    return err("`phone_number` must be a Ugandan mobile money number, e.g. 0772123456.");
-  }
-  const recipientName = String(body.customer_name || body.customerName || body.recipient_name || "").trim();
+  const cb = await callbackFrom(body);
+  if (cb.error) return err(cb.error);
+  const isBank = false;
+  const accountNumber = walletNumber(pick(body, "phone_number", "phoneNumber", "account_number"));
+  if (!accountNumber) return err("`phone_number` must be a Ugandan mobile money number, e.g. 0772123456.");
+  const recipientName = pick(body, "customer_name", "customerName", "recipient_name");
   if (!recipientName) return err("`customer_name` is required for every payout.");
-  const recipientEmail = String(body.customer_email || body.customerEmail || "").trim();
+  const recipientEmail = pick(body, "customer_email", "customerEmail");
   if (recipientEmail && !/^\S+@\S+\.\S+$/.test(recipientEmail)) return err("`customer_email` must be a valid email address.");
 
   const reference = String(body.reference || `OBW${Date.now().toString(36).toUpperCase()}`).slice(0, 40);
@@ -230,7 +250,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     reference,
     amount,
     typeTrans: isBank ? 3 : 2,
-    bankCode: isBank ? rawBankCode : networkCode(body.network, accountNumber),
+    bankCode: networkCode(body.network, accountNumber),
     accountNumber,
     customerName: recipientName || "ObPay recipient",
     ...(isBank ? {} : { customerPhone: accountNumber }),
@@ -263,11 +283,12 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     status: "pending",
     phone_number: accountNumber,
     description: body.description || null,
+    metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName },
   });
 
   return ok({
     reference,
-    provider_reference: out.platformReference,
+    callback_url: cb.url,
     amount,
     currency,
     status: "pending",
