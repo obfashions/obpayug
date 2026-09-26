@@ -31,6 +31,64 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
   );
 }
 
+function SigningSecretCard() {
+  const [secret, setSecret] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    platform<{ secret: string }>("signing-secret.get").then((r) => {
+      if (r.success && r.data) setSecret(r.data.secret);
+      else setMsg(r.error || "Could not load your signing secret.");
+    });
+  }, []);
+
+  const rotate = async () => {
+    if (!confirm("Regenerate the signing secret? Your server must use the new one right away.")) return;
+    setBusy(true);
+    const r = await platform<{ secret: string }>("signing-secret.rotate");
+    setBusy(false);
+    if (r.success && r.data) {
+      setSecret(r.data.secret);
+      setShow(true);
+      setMsg("New secret created. Update OBPAY_WEBHOOK_SECRET on your server.");
+    } else setMsg(r.error || "Could not regenerate the secret.");
+  };
+
+  const masked = secret ? `whsec_••••••••${secret.slice(-6)}` : "Loading…";
+  return (
+    <div className="rounded-xl border border-background-200 bg-white p-4 sm:p-5 space-y-3">
+      <div>
+        <h2 className="text-sm font-semibold text-foreground-900">Webhook signing secret</h2>
+        <p className="text-xs text-foreground-500 mt-1">
+          Send a <code>callback_url</code> with each collection or payout. ObPay posts the result there with an{" "}
+          <code>X-ObPay-Signature</code> header: HMAC-SHA256 of the raw body, signed with this secret. No webhook setup is needed.
+        </p>
+      </div>
+      <div className="flex items-center gap-2 min-w-0">
+        <code className="flex-1 truncate rounded-md bg-background-50 px-3 py-2 text-xs font-mono">{show ? secret : masked}</code>
+        <button onClick={() => setShow(!show)} className="text-xs text-primary-600 shrink-0 cursor-pointer px-2">
+          {show ? "Hide" : "Show"}
+        </button>
+        {secret && <CopyBtn text={secret} label="signing secret" />}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        {secret && <CopyBtn text={`OBPAY_WEBHOOK_SECRET=${secret}`} label=".env line" />}
+        <span className="text-xs text-foreground-500">Copy as .env line</span>
+        <button
+          onClick={rotate}
+          disabled={busy}
+          className="ml-auto text-xs font-medium text-red-600 hover:text-red-700 cursor-pointer disabled:opacity-50"
+        >
+          {busy ? "Regenerating…" : "Regenerate"}
+        </button>
+      </div>
+      {msg && <p className="text-xs text-foreground-600">{msg}</p>}
+    </div>
+  );
+}
+
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +150,8 @@ export default function ApiKeysPage() {
         {error && (
           <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">{error}</div>
         )}
+
+        <SigningSecretCard />
 
         {freshSecret && (
           <div className="rounded-lg border border-primary-200 bg-primary-50 px-4 py-4 space-y-2">

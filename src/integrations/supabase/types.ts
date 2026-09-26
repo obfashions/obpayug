@@ -229,6 +229,27 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_signing_secrets: {
+        Row: {
+          created_at: string
+          merchant_id: string
+          rotated_at: string | null
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          merchant_id: string
+          rotated_at?: string | null
+          secret: string
+        }
+        Update: {
+          created_at?: string
+          merchant_id?: string
+          rotated_at?: string | null
+          secret?: string
+        }
+        Relationships: []
+      }
       payment_links: {
         Row: {
           amount: number | null

@@ -102,7 +102,7 @@ export default function HeroSection() {
               {/* Small label */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background-50/20 backdrop-blur-sm text-background-50 text-xs font-medium mb-4 md:mb-5 border border-background-50/20">
                 <i className="ri-shield-check-line" />
-                Licensed by Bank of Uganda
+                ObPay (PawaPay Ptn)
               </div>
 
               {/* Headline */}

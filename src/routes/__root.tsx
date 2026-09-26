@@ -86,7 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ObPay — Powering Business Payments Across East Africa" },
+      { title: "ObPay (PawaPay Ptn) — Powering Business Payments Across East Africa" },
       {
         name: "description",
         content:

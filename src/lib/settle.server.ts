@@ -58,7 +58,20 @@ export async function settlePaymentRecord(
   const kind = record.type === "payout" ? "payout" : "collection";
 
   try {
-    const { dispatchWebhook } = await import("./platform.server");
+    const { dispatchWebhook, deliverCallback } = await import("./platform.server");
+    const evtPayload = {
+      reference: record.reference,
+      amount,
+      fee,
+      net_amount: row.net_amount,
+      currency: record.currency,
+      phone_number: record.phone_number,
+      status: next,
+      type: kind,
+      metadata: record.metadata?.merchant_metadata ?? null,
+    };
+    const cb = String(record.metadata?.callback_url || "").trim();
+    if (cb) await deliverCallback(record.merchant_id, cb, `${kind}.${next}`, evtPayload);
     await dispatchWebhook(record.merchant_id, `${kind}.${next}`, {
       reference: record.reference,
       provider_reference: row.provider_reference ?? null,

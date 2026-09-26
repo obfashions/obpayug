@@ -484,7 +484,7 @@ export default function DashboardPage() {
               { label: "Transactions", icon: "ri-exchange-line", href: "/dashboard/transactions", color: "text-primary-600 bg-primary-100" },
               { label: "Statements", icon: "ri-file-chart-line", href: "/dashboard/reports", color: "text-secondary-600 bg-secondary-100" },
               { label: "API Keys", icon: "ri-key-2-line", href: "/dashboard/api-keys", color: "text-accent-600 bg-accent-100" },
-              { label: "Webhooks", icon: "ri-broadcast-line", href: "/dashboard/webhooks", color: "text-emerald-600 bg-emerald-100" },
+              { label: "API Keys", icon: "ri-key-2-line", href: "/dashboard/api-keys", color: "text-emerald-600 bg-emerald-100" },
               { label: "Verification", icon: "ri-shield-user-line", href: "/dashboard/kyc", color: "text-indigo-600 bg-indigo-100" },
               { label: "Settings", icon: "ri-settings-3-line", href: "/dashboard/settings", color: "text-foreground-700 bg-background-200" },
             ].map((s) => (
