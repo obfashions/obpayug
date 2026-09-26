@@ -53,6 +53,7 @@ import { Route as DashboardTransactionsRouteImport } from './routes/dashboard.tr
 import { Route as PaySlugRouteImport } from './routes/pay.$slug'
 import { Route as ApiPublicEgressIpRouteImport } from './routes/api/public/egress-ip'
 import { Route as ApiPublicGatewayCallbackRouteImport } from './routes/api/public/gateway-callback'
+import { Route as ApiPublicMailjetEventsRouteImport } from './routes/api/public/mailjet-events'
 import { Route as ApiPublicPlatformHealthRouteImport } from './routes/api/public/platform-health'
 import { Route as ApiPublicSupportChatRouteImport } from './routes/api/public/support-chat'
 import { Route as FunctionsV1SplatRouteImport } from './routes/functions.v1.$'
@@ -281,6 +282,11 @@ const ApiPublicGatewayCallbackRoute =
     path: '/api/public/gateway-callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMailjetEventsRoute = ApiPublicMailjetEventsRouteImport.update({
+  id: '/api/public/mailjet-events',
+  path: '/api/public/mailjet-events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPlatformHealthRoute = ApiPublicPlatformHealthRouteImport.update({
   id: '/api/public/platform-health',
   path: '/api/public/platform-health',
@@ -353,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
+  '/api/public/mailjet-events': typeof ApiPublicMailjetEventsRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
@@ -404,6 +411,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
+  '/api/public/mailjet-events': typeof ApiPublicMailjetEventsRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
@@ -456,6 +464,7 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
+  '/api/public/mailjet-events': typeof ApiPublicMailjetEventsRoute
   '/api/public/platform-health': typeof ApiPublicPlatformHealthRoute
   '/api/public/support-chat': typeof ApiPublicSupportChatRoute
   '/functions/v1/$': typeof FunctionsV1SplatRoute
@@ -509,6 +518,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/public/egress-ip'
     | '/api/public/gateway-callback'
+    | '/api/public/mailjet-events'
     | '/api/public/platform-health'
     | '/api/public/support-chat'
     | '/functions/v1/$'
@@ -560,6 +570,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/public/egress-ip'
     | '/api/public/gateway-callback'
+    | '/api/public/mailjet-events'
     | '/api/public/platform-health'
     | '/api/public/support-chat'
     | '/functions/v1/$'
@@ -611,6 +622,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/public/egress-ip'
     | '/api/public/gateway-callback'
+    | '/api/public/mailjet-events'
     | '/api/public/platform-health'
     | '/api/public/support-chat'
     | '/functions/v1/$'
@@ -663,6 +675,7 @@ export interface RootRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiPublicEgressIpRoute: typeof ApiPublicEgressIpRoute
   ApiPublicGatewayCallbackRoute: typeof ApiPublicGatewayCallbackRoute
+  ApiPublicMailjetEventsRoute: typeof ApiPublicMailjetEventsRoute
   ApiPublicPlatformHealthRoute: typeof ApiPublicPlatformHealthRoute
   ApiPublicSupportChatRoute: typeof ApiPublicSupportChatRoute
   FunctionsV1SplatRoute: typeof FunctionsV1SplatRoute
@@ -980,6 +993,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGatewayCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mailjet-events': {
+      id: '/api/public/mailjet-events'
+      path: '/api/public/mailjet-events'
+      fullPath: '/api/public/mailjet-events'
+      preLoaderRoute: typeof ApiPublicMailjetEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/platform-health': {
       id: '/api/public/platform-health'
       path: '/api/public/platform-health'
@@ -1063,6 +1083,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
   ApiPublicEgressIpRoute: ApiPublicEgressIpRoute,
   ApiPublicGatewayCallbackRoute: ApiPublicGatewayCallbackRoute,
+  ApiPublicMailjetEventsRoute: ApiPublicMailjetEventsRoute,
   ApiPublicPlatformHealthRoute: ApiPublicPlatformHealthRoute,
   ApiPublicSupportChatRoute: ApiPublicSupportChatRoute,
   FunctionsV1SplatRoute: FunctionsV1SplatRoute,
