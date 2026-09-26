@@ -62,11 +62,15 @@ export default function AdminDashboard() {
           { count: activeMerchants },
           { count: pendingKYC },
           { data: txns },
+          { count: txCount },
+          { data: okTx },
         ] = await Promise.all([
-          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "merchant"),
+          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "merchant").neq("status", "deactivated"),
           supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "merchant").eq("status", "active"),
           supabase.from("merchant_profiles").select("*", { count: "exact", head: true }).eq("verification_status", "pending"),
           supabase.from("transactions").select("*, profiles!transactions_user_id_fkey(full_name)").order("created_at", { ascending: false }).limit(50),
+          supabase.from("transactions").select("*", { count: "exact", head: true }),
+          supabase.from("transactions").select("amount, created_at").eq("status", "success").limit(20000),
         ]);
 
         const txnList = txns as TxnRow[] || [];
@@ -76,12 +80,11 @@ export default function AdminDashboard() {
         let todayVolume = 0;
         let successCount = 0;
 
-        txnList.forEach((t) => {
-          if (t.status === "success") {
-            totalVolume += t.amount;
-            successCount++;
-            if (new Date(t.created_at) >= today) todayVolume += t.amount;
-          }
+        ((okTx as any[]) || []).forEach((t) => {
+          const amt = Number(t.amount) || 0;
+          totalVolume += amt;
+          successCount++;
+          if (new Date(t.created_at) >= today) todayVolume += amt;
         });
 
         setStats({
@@ -90,8 +93,8 @@ export default function AdminDashboard() {
           pendingKYC: pendingKYC || 0,
           totalVolume,
           todayVolume,
-          totalTransactions: txnList.length,
-          successRate: txnList.length > 0 ? Math.round((successCount / txnList.length) * 100) : 0,
+          totalTransactions: txCount || txnList.length,
+          successRate: (txCount || 0) > 0 ? Math.round((successCount / (txCount || 1)) * 100) : 0,
         });
 
         setRecentTxns(txnList);
