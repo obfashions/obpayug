@@ -1,3 +1,5 @@
+import { sendVerificationCode, checkVerificationCode } from "@/lib/verification.functions";
+import { getAccessToken } from "@/lib/session-token";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
@@ -103,9 +105,7 @@ export default function VerifyLogin() {
     setError("");
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("send-verification-code", {
-        body: { user_id: user.id, email, type: "login" },
-      });
+      const { data, error: fnError } = await (async () => { try { const data = await sendVerificationCode({ data: { accessToken: await getAccessToken(), type: "login" } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })();
 
       if (!fnError && data?.success) {
         setOtpMode(false);
@@ -198,9 +198,7 @@ export default function VerifyLogin() {
         }
         await supabase.from("profiles").update({ login_verified_at: new Date().toISOString() }).eq("id", user.id);
       } else {
-        const { data, error: fnError } = await supabase.functions.invoke("verify-code", {
-          body: { user_id: user.id, email, type: "login", code: fullCode },
-        });
+        const { data, error: fnError } = await (async () => { try { const data = await checkVerificationCode({ data: { accessToken: await getAccessToken(), type: "login", code: fullCode } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })();
 
         if (fnError || !data?.success) {
           setError(friendlyError(data?.error || fnError?.message, "That code didn't work. Please check it and try again."));

@@ -6,7 +6,6 @@ const adminNavItems = [
   { label: "Dashboard", href: "/admin", icon: "ri-dashboard-line" },
   { label: "Merchants", href: "/admin/merchants", icon: "ri-store-3-line" },
   { label: "KYC Review", href: "/admin/kyc-review", icon: "ri-shield-check-line" },
-  { label: "Loans", href: "/admin/loans", icon: "ri-bank-line" },
   { label: "Transactions", href: "/admin/transactions", icon: "ri-exchange-line" },
   { label: "Txn Lookup", href: "/admin/transaction-lookup", icon: "ri-search-line" },
   { label: "Payout Requests", href: "/admin/payout-requests", icon: "ri-upload-cloud-line" },

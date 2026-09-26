@@ -1,3 +1,5 @@
+import { sendVerificationCode, checkVerificationCode } from "@/lib/verification.functions";
+import { getAccessToken } from "@/lib/session-token";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
@@ -81,9 +83,7 @@ export default function VerifyEmail() {
 
     try {
       const result = await withTimeout(
-        supabase.functions.invoke("send-verification-code", {
-          body: { user_id: user.id, email, type: "registration" },
-        }),
+        (async () => { try { const data = await sendVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration" } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
         15000,
         "send-code"
       );
@@ -165,9 +165,7 @@ export default function VerifyEmail() {
 
     try {
       const result = await withTimeout(
-        supabase.functions.invoke("verify-code", {
-          body: { user_id: user.id, email, type: "registration", code: fullCode },
-        }),
+        (async () => { try { const data = await checkVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration", code: fullCode } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
         15000,
         "verify-code"
       );
