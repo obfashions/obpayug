@@ -17,7 +17,7 @@ const RULES: Array<{ match: RegExp; message: string }> = [
     message: "That took too long to respond. Please try again in a moment." },
 
   // Auth
-  { match: /invalid login credentials|invalid email or password/i,
+  { match: /invalid login credentials|invalid email or password|invalid credentials/i,
     message: "Incorrect email or password. Please try again." },
   { match: /email not confirmed/i,
     message: "Please verify your email address before signing in." },
