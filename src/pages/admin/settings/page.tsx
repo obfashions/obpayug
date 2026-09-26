@@ -1,3 +1,5 @@
+import { revokeAllApiKeys } from "@/lib/admin-insights.functions";
+import { getAccessToken } from "@/lib/session-token";
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase } from "@/lib/supabase";
@@ -230,18 +232,11 @@ export default function AdminSettings() {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => {
-                if (window.confirm("Are you sure you want to reset ALL platform data? This includes transactions, wallets, payout requests, and merchant profiles. This CANNOT be undone.")) {
-                  alert("Platform data reset is a manual operation. Please contact your system administrator to execute this safely.");
-                }
-              }}
-              className="px-4 py-2 rounded-lg border border-accent-300/60 text-accent-600 hover:bg-accent-50 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
-            >
-              Reset Platform Data
-            </button>
-            <button
-              onClick={() => {
                 if (window.confirm("Are you sure you want to revoke ALL merchant API keys? This will immediately break all API integrations. This CANNOT be undone.")) {
-                  alert("API key revocation is a manual operation. Please contact your system administrator to execute this safely.");
+                  (async () => {
+                    const r: any = await revokeAllApiKeys({ data: { accessToken: await getAccessToken() } }).catch((e: any) => ({ success: false, error: e?.message }));
+                    window.alert(r?.success ? `${r.count} API key(s) revoked.` : r?.error || "Could not revoke keys.");
+                  })();
                 }
               }}
               className="px-4 py-2 rounded-lg border border-accent-300/60 text-accent-600 hover:bg-accent-50 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
