@@ -904,8 +904,8 @@ export default function AdminMerchants() {
                   <label className="block text-xs font-medium text-foreground-600 mb-1">New Password (min 6 chars)</label>
                   <input type="text" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="Enter new password" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" minLength={6} required />
                 </div>
+                  {resetPwError && <p role="alert" className="text-xs text-accent-700 bg-accent-100 rounded-lg p-2">{resetPwError}</p>}
                 <div className="flex gap-3 pt-2">
-                  {resetPwError && <p role="alert" className="basis-full text-xs text-accent-700 bg-accent-100 rounded-lg p-2">{resetPwError}</p>}
                   <button onClick={() => { setResetPwModal(null); setNewUserPassword(""); setResetPwError(""); }} className="flex-1 border border-background-300/60 text-foreground-700 font-medium py-2 rounded-lg hover:bg-background-100 transition-colors cursor-pointer whitespace-nowrap text-sm">Cancel</button>
                   <button onClick={handleResetPassword} disabled={resetPwSubmitting || newUserPassword.length < 6} className="flex-1 bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-background-50 font-medium py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap text-sm">{resetPwSubmitting ? "Resetting..." : "Reset Password"}</button>
                 </div>
