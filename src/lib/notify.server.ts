@@ -211,3 +211,21 @@ export async function notifySettlement(info: SettlementInfo): Promise<void> {
   }
   await Promise.allSettled(tasks);
 }
+
+/** Emails the ObPay admin about any merchant activity. Best effort, never throws. */
+export async function sendAdminActivityAlert(title: string, details: Record<string, unknown> = {}) {
+  try {
+    const { sendMailjet, brandedHtml } = await import("./mailjet.server");
+    const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const rows = Object.entries(details)
+      .filter(([, v]) => v !== undefined && v !== null && v !== "" && typeof v !== "object")
+      .slice(0, 25)
+      .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">${esc(k.replace(/_/g, " "))}</td><td style="padding:4px 0;color:#111827;">${esc(String(v).slice(0, 300))}</td></tr>`)
+      .join("");
+    const html = brandedHtml(title, `<p style="margin:0 0 12px;">${esc(title)} on ObPay.</p><table>${rows}</table><p style="margin-top:16px;color:#6b7280;font-size:12px;">${new Date().toUTCString()}</p>`);
+    const r = await sendMailjet([{ to: ADMIN_ALERT_EMAIL(), name: "ObPay Admin", subject: `[ObPay] ${title}`, html, customId: "admin-alert" }]);
+    if (r.failed) console.error("admin alert failed", r.errors);
+  } catch (e: any) {
+    console.error("admin alert failed", e?.message);
+  }
+}
