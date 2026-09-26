@@ -28,8 +28,13 @@ export async function invokeEdgeFunction(
     // The old account service can reject a token that expired between opening
     // the admin screen and pressing Save. Refresh once, then retry the 401 only.
     if (resp.status === 401) {
-      const { data, error } = await supabase.auth.refreshSession();
-      const fresh = error ? "" : data.session?.access_token || "";
+      let fresh = "";
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        fresh = error ? "" : data.session?.access_token || "";
+      } catch {
+        // A revoked refresh token really does require signing in again.
+      }
       if (fresh && fresh !== token) {
         token = fresh;
         resp = await request(token);
