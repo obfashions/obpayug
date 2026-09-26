@@ -100,7 +100,7 @@ export default function MerchantAccountPanel({ userId }: Props) {
       const [mpRes, keyRes, txRes, poRes, plRes] = await Promise.all([
         supabase.from("merchant_profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("api_keys").select("public_key, environment, status, created_at").eq("user_id", userId).maybeSingle(),
-        supabase.from("transactions").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(8),
+        supabase.from("transactions").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(300),
         supabase.from("payout_requests").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
         supabase.from("payment_links").select("id", { count: "exact", head: true }).eq("user_id", userId),
       ]);
@@ -120,6 +120,29 @@ export default function MerchantAccountPanel({ userId }: Props) {
     };
   }, [userId]);
 
+  const ok = (s?: string | null) => s === "successful" || s === "completed" || s === "success";
+  const settled = txs.filter((t) => ok(t.status));
+  const failed = txs.filter((t) => t.status === "failed");
+  const pending = txs.filter((t) => t.status === "pending" || t.status === "processing");
+  const sum = (rows: TxRow[]) => rows.reduce((a, t) => a + Number(t.amount || 0), 0);
+  const inflow = sum(settled.filter((t) => t.type !== "payout" && t.type !== "withdrawal"));
+  const outflow = sum(settled.filter((t) => t.type === "payout" || t.type === "withdrawal"));
+  const today = new Date().toDateString();
+  const todayCount = txs.filter((t) => new Date(t.created_at).toDateString() === today).length;
+  const decided = settled.length + failed.length;
+  const rate = decided ? Math.round((settled.length / decided) * 100) : 0;
+  const risk = failed.length >= 5 && rate < 50 ? "High" : failed.length >= 3 || todayCount > 30 ? "Medium" : "Low";
+  const stats: Array<[string, string, string]> = [
+    ["Money in (settled)", money(inflow), "text-primary-600"],
+    ["Money out (settled)", money(outflow), "text-accent-600"],
+    ["Success rate", `${rate}%`, "text-foreground-900"],
+    ["Transactions", String(txs.length), "text-foreground-900"],
+    ["Pending", String(pending.length), "text-secondary-700"],
+    ["Failed", String(failed.length), "text-accent-600"],
+    ["Today", String(todayCount), "text-foreground-900"],
+    ["Risk level", risk, risk === "High" ? "text-accent-600" : risk === "Medium" ? "text-secondary-700" : "text-primary-600"],
+  ];
+
   if (loading) {
     return (
       <div className="bg-background-100 rounded-lg p-6 text-center text-sm text-foreground-500">
@@ -130,6 +153,18 @@ export default function MerchantAccountPanel({ userId }: Props) {
 
   return (
     <div className="space-y-5">
+      <div className="bg-background-100 rounded-lg p-4">
+        <h4 className="text-sm font-semibold text-foreground-900 mb-3"><i className="ri-line-chart-line mr-1.5 text-foreground-500" />Account Tracking</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {stats.map(([label, value, cls]) => (
+            <div key={label} className="bg-background-50 rounded-lg border border-background-200/70 p-3">
+              <p className="text-[11px] text-foreground-500">{label}</p>
+              <p className={`text-sm font-bold mt-0.5 ${cls}`}>{value}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-foreground-500 mt-2">Last activity: {fmtDate(txs[0]?.created_at)}</p>
+      </div>
       {/* Verification documents */}
       <div className="bg-background-100 rounded-lg p-4">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -232,7 +267,7 @@ export default function MerchantAccountPanel({ userId }: Props) {
             <p className="text-xs text-foreground-500">No transactions yet.</p>
           ) : (
             <ul className="space-y-2">
-              {txs.map((t) => (
+              {txs.slice(0, 15).map((t) => (
                 <li key={t.id} className="flex items-center justify-between gap-3 text-xs">
                   <div className="min-w-0">
                     <p className="font-medium text-foreground-900 truncate">

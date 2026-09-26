@@ -591,7 +591,7 @@ export default function AdminMerchants() {
           <div className="fixed inset-0 z-50 flex justify-end">
             <div className="absolute inset-0 bg-foreground-900/40" onClick={() => setSelectedMerchantId(null)} />
             <div className="relative w-full max-w-4xl h-full bg-background-50 shadow-2xl flex flex-col">
-            <div className="sticky top-0 z-10 bg-background-50 border-b border-background-200/70 p-4 sm:p-5 space-y-3">
+            <div className="sticky top-0 z-10 bg-background-50 border-b border-background-200/70 p-4 sm:p-5 space-y-3 max-h-[50vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="font-heading font-semibold text-foreground-900 truncate">
                 {selected.merchant_profiles?.[0]?.company_name || selected.full_name}
