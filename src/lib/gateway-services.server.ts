@@ -17,9 +17,9 @@ import {
 } from "./gateway.server";
 
 const SUPA_URL = () =>
-  (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+  (process.env["SUPABASE_URL"] || import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPA_ANON = () =>
-  process.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] || import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || "";
+  process.env["SUPABASE_PUBLISHABLE_KEY"] || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
 async function rest(token: string, path: string, init?: RequestInit) {
   const resp = await fetch(`${SUPA_URL()}/rest/v1${path}`, {

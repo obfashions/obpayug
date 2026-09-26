@@ -25,9 +25,9 @@ import {
 import { runServiceAction, SERVICE_ACTIONS, SERVICE_PUBLIC_ACTIONS } from "./gateway-services.server";
 
 const SUPA_URL = () =>
-  (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+  (process.env["SUPABASE_URL"] || import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPA_ANON = () =>
-  process.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] || import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || "";
+  process.env["SUPABASE_PUBLISHABLE_KEY"] || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
 async function rest(token: string, path: string, init?: RequestInit) {
   const resp = await fetch(`${SUPA_URL()}/rest/v1${path}`, {
@@ -53,7 +53,7 @@ async function rest(token: string, path: string, init?: RequestInit) {
 // Service key for the merchant database (the uploaded Supabase project that
 // holds transactions + merchant_wallets). This is NOT the Lovable Cloud key.
 const SERVICE_KEY = () =>
-  (process.env["LEGACY_SUPABASE_SERVICE_ROLE_KEY"] || process.env["MERCHANT_DB_SERVICE_KEY"] || "").trim();
+  (process.env["SUPABASE_SERVICE_ROLE_KEY"] || "").trim();
 
 /**
  * Settlement writes (transaction status + wallet balance) must always succeed,
@@ -66,7 +66,7 @@ async function restWrite(token: string, path: string, init?: RequestInit) {
     ...init,
     headers: {
       apikey: key,
-      Authorization: `Bearer ${key}`,
+      ...(key.startsWith("sb_") ? {} : { Authorization: `Bearer ${key}` }),
       "Content-Type": "application/json",
       Prefer: "return=representation",
       ...((init?.headers as Record<string, string>) || {}),
@@ -266,6 +266,8 @@ export const LOCAL_ACTIONS = [
   "server-ip",
   "payout-preflight",
   "admin-adjust-balance",
+  "impersonate-user",
+  "set-withdrawal-limit",
   ...SERVICE_ACTIONS,
 ];
 
@@ -341,42 +343,63 @@ async function adminAdjustBalance(accessToken: string, body: any) {
   };
 }
 
-/** Admin sets a merchant's password directly — no email is sent. */
-async function adminResetPassword(accessToken: string, body: any) {
+async function adminOnly(accessToken: string) {
   const { resolveIdentity } = await import("./identity.server");
   const me = await resolveIdentity(accessToken);
-  if (!me) return { success: false, error: "Your admin sign-in has ended. Please sign out, sign in again and retry." };
-  if (!me.isAdmin) return { success: false, error: "Your admin account isn't allowed to change passwords." };
+  if (!me) return { error: "Please sign in again to continue." };
+  if (!me.isAdmin) return { error: "You do not have access to this area." };
+  return { me };
+}
 
+/** Admin: one-time sign-in link to view a merchant's dashboard. */
+async function adminImpersonate(accessToken: string, body: any) {
+  const gate = await adminOnly(accessToken);
+  if ("error" in gate) return { success: false, error: gate.error };
   const target = String(body?.target_user_id || "").trim();
-  const pw = String(body?.new_password || "");
   if (!/^[0-9a-f-]{36}$/i.test(target)) return { success: false, error: "Merchant not found." };
-  if (pw.length < 8) return { success: false, error: "The password must be at least 8 characters." };
-
-  const key = SERVICE_KEY();
-  if (!key) {
-    return {
-      success: false,
-      error: "Password changes need the account system's admin key to be added in settings. Please contact support.",
-    };
-  }
-  const resp = await fetch(`${SUPA_URL()}/auth/v1/admin/users/${target}`, {
-    method: "PUT",
-    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ password: pw }),
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: prof } = await supabaseAdmin.from("profiles").select("email").eq("id", target).maybeSingle();
+  if (!prof?.email) return { success: false, error: "This merchant has no email address on file." };
+  const { ensureAuthUser } = await import("./legacy-migrate.server");
+  await ensureAuthUser(target, prof.email);
+  const origin = String(body?.origin || "https://obpay.online");
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "magiclink",
+    email: prof.email.toLowerCase(),
+    options: { redirectTo: `${origin}/dashboard` },
   });
-  if (!resp.ok) {
-    const t = await resp.text().catch(() => "");
-    console.error("[reset-user-password] failed", resp.status, t.slice(0, 300));
-    if (/weak|password/i.test(t)) return { success: false, error: "That password was refused as too weak. Try a longer one." };
-    return { success: false, error: "The password could not be changed. Please try again." };
+  const link = (data as any)?.properties?.action_link;
+  if (error || !link) return { success: false, error: "Could not create a sign-in link. Please try again." };
+  return { success: true, data: { login_url: link } };
+}
+
+/** Admin: turn withdrawals on/off or set a daily limit. */
+async function adminWithdrawalLimit(accessToken: string, body: any) {
+  const gate = await adminOnly(accessToken);
+  if ("error" in gate) return { success: false, error: gate.error };
+  const target = String(body?.target_user_id || "").trim();
+  if (!/^[0-9a-f-]{36}$/i.test(target)) return { success: false, error: "Merchant not found." };
+  const fields: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (typeof body?.withdrawals_enabled === "boolean") fields.withdrawals_enabled = body.withdrawals_enabled;
+  if (body?.daily_withdrawal_limit !== undefined) {
+    const n = body.daily_withdrawal_limit === null ? null : Math.round(Number(body.daily_withdrawal_limit));
+    if (n !== null && (!Number.isFinite(n) || n < 0)) return { success: false, error: "Enter a valid limit." };
+    fields.daily_withdrawal_limit = n;
   }
-  return { success: true, data: { target_user_id: target } };
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("merchant_wallets")
+    .upsert({ user_id: target, ...fields } as any, { onConflict: "user_id" })
+    .select("withdrawals_enabled, daily_withdrawal_limit, available_balance")
+    .maybeSingle();
+  if (error) return { success: false, error: "The change could not be saved. Please try again." };
+  return { success: true, data };
 }
 
 export async function runObpayAction(action: string, accessToken: string, body: any) {
   if (action === "admin-adjust-balance") return adminAdjustBalance(accessToken, body);
-  if (action === "reset-user-password") return adminResetPassword(accessToken, body);
+  if (action === "impersonate-user") return adminImpersonate(accessToken, body);
+  if (action === "set-withdrawal-limit") return adminWithdrawalLimit(accessToken, body);
 
   const creds = await getGatewayCreds();
   if (!creds) return { success: false, error: "Payments are not configured yet. Please contact ObPay support." };

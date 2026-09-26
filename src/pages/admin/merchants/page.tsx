@@ -353,14 +353,16 @@ export default function AdminMerchants() {
   };
 
   const handleResetPassword = async () => {
-    if (!resetPwModal || !newUserPassword || newUserPassword.length < 6) return;
+    if (!resetPwModal) return;
     setResetPwSubmitting(true);
     setResetPwError("");
     try {
-      const data = await invokeObpay({
-        _action: "reset-user-password",
-        target_user_id: resetPwModal.merchantId,
-        new_password: newUserPassword,
+      const { getAccessToken } = await import("@/lib/session-token");
+      const { adminSendResetLink } = await import("@/lib/account.functions");
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error("Please sign in again to continue.");
+      const data: any = await adminSendResetLink({
+        data: { accessToken, targetUserId: resetPwModal.merchantId, origin: window.location.origin },
       });
 
       if (!data?.success) throw new Error(data?.error || "Password reset failed");
@@ -378,7 +380,7 @@ export default function AdminMerchants() {
         },
       });
 
-      setActionMsg({ ok: true, message: `Password for ${resetPwModal.merchantName} has been reset.` });
+      setActionMsg({ ok: true, message: `Reset link emailed to ${resetPwModal.merchantName}.` });
       setTimeout(() => setActionMsg(null), 3000);
       setResetPwModal(null);
       setNewUserPassword("");
@@ -404,6 +406,7 @@ export default function AdminMerchants() {
       const data = await invokeObpay({
         _action: "impersonate-user",
         target_user_id: impersonateModal.merchantId,
+        origin: window.location.origin,
       });
 
       if (!data?.success) throw new Error(data?.error || "Impersonation failed");
@@ -897,17 +900,13 @@ export default function AdminMerchants() {
               </div>
               <h3 className="font-heading font-semibold text-foreground-900 text-center mb-2">Reset Password</h3>
               <p className="text-sm text-foreground-600 text-center mb-4">
-                Set a new password for <strong>{resetPwModal.merchantName}</strong>. They will need to use this new password to log in.
+                We'll email <strong>{resetPwModal.merchantName}</strong> a secure link. The password they choose there becomes their new login.
               </p>
               <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-foreground-600 mb-1">New Password (min 6 chars)</label>
-                  <input type="text" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="Enter new password" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" minLength={6} required />
-                </div>
                   {resetPwError && <p role="alert" className="text-xs text-accent-700 bg-accent-100 rounded-lg p-2">{resetPwError}</p>}
                 <div className="flex gap-3 pt-2">
                   <button onClick={() => { setResetPwModal(null); setNewUserPassword(""); setResetPwError(""); }} className="flex-1 border border-background-300/60 text-foreground-700 font-medium py-2 rounded-lg hover:bg-background-100 transition-colors cursor-pointer whitespace-nowrap text-sm">Cancel</button>
-                  <button onClick={handleResetPassword} disabled={resetPwSubmitting || newUserPassword.length < 6} className="flex-1 bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-background-50 font-medium py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap text-sm">{resetPwSubmitting ? "Resetting..." : "Reset Password"}</button>
+                  <button onClick={handleResetPassword} disabled={resetPwSubmitting} className="flex-1 bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-background-50 font-medium py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap text-sm">{resetPwSubmitting ? "Sending..." : "Send reset link"}</button>
                 </div>
               </div>
             </div>

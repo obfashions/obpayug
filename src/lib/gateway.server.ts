@@ -672,8 +672,8 @@ export async function probeEgressIp(useProxy: boolean): Promise<string | null> {
 
 /** Verifies a Supabase access token and returns the user id (or null). */
 export async function verifySupabaseUser(accessToken: string): Promise<string | null> {
-  const url = (process.env["VITE_PUBLIC_SUPABASE_URL"] || import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
-  const anon = process.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] || import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || "";
+  const url = (process.env["SUPABASE_URL"] || import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
+  const anon = process.env["SUPABASE_PUBLISHABLE_KEY"] || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   if (!url || !anon || !accessToken) return null;
   try {
     const resp = await fetch(`${url}/auth/v1/user`, {

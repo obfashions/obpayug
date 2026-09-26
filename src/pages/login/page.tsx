@@ -74,6 +74,20 @@ export default function Login() {
           password: pwd,
         });
 
+      if (authError && /invalid|credentials|not found/i.test(authError.message)) {
+        // First sign-in since the upgrade: bring the account over, then retry.
+        try {
+          const { migrateLogin } = await import("@/lib/account.functions");
+          const moved = await migrateLogin({ data: { email, password: pwd } });
+          if (moved?.moved) {
+            const retry = await supabase.auth.signInWithPassword({ email, password: pwd });
+            if (!retry.error && retry.data?.user) return { ok: true, userId: retry.data.user.id };
+          }
+        } catch {
+          /* fall through to the normal message */
+        }
+      }
+
       if (authError) {
         const msg = authError.message;
         const retryable = isNetworkError(msg);

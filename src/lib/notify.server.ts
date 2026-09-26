@@ -8,13 +8,13 @@
 // Everything here is best effort: a mail or mirror failure must never break a
 // settlement that already happened at the provider.
 
-const BUILT_IN_URL = (import.meta.env["VITE_PUBLIC_SUPABASE_URL"] as string) || "";
-const BUILT_IN_KEY = (import.meta.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] as string) || "";
+const BUILT_IN_URL = (import.meta.env["VITE_SUPABASE_URL"] as string) || "";
+const BUILT_IN_KEY = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string) || "";
 
 const legacyUrl = () =>
-  (process.env["LEGACY_SUPABASE_URL"] || process.env["VITE_PUBLIC_SUPABASE_URL"] || BUILT_IN_URL || "").replace(/\/+$/, "");
+  (process.env["SUPABASE_URL"] || process.env["SUPABASE_URL"] || BUILT_IN_URL || "").replace(/\/+$/, "");
 const legacyKey = () =>
-  (process.env["LEGACY_SUPABASE_ANON_KEY"] || process.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] || BUILT_IN_KEY || "").trim();
+  (process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["SUPABASE_PUBLISHABLE_KEY"] || BUILT_IN_KEY || "").trim();
 
 export const ADMIN_ALERT_EMAIL = () =>
   (process.env["ADMIN_ALERT_EMAIL"] || "obfashions256@gmail.com").trim();
@@ -83,25 +83,10 @@ async function resolveMerchantEmail(info: SettlementInfo): Promise<{ email: stri
 }
 
 async function sendMail(to: string, subject: string, html: string, type: string) {
-  const base = legacyUrl();
-  const key = legacyKey();
-  if (!base || !key || !to) return false;
-  try {
-    const resp = await fetch(`${base}/functions/v1/send-transactional-email`, {
-      method: "POST",
-      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipient_email: to,
-        subject,
-        html_body: html,
-        notification_type: type,
-      }),
-      signal: AbortSignal.timeout(8000),
-    });
-    return resp.ok;
-  } catch {
-    return false;
-  }
+  if (!to) return false;
+  const { sendMailjet } = await import("./mailjet.server");
+  const res = await sendMailjet([{ to, subject, html, customId: type }]).catch(() => ({ sent: 0 }));
+  return res.sent > 0;
 }
 
 /** Operational alert to the ObPay admin mailbox (not merchant facing). */

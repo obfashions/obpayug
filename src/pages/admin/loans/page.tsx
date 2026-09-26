@@ -88,8 +88,8 @@ export default function AdminLoansPage() {
 
       const enriched = (loans as LoanApplication[]).map((loan) => ({
         ...loan,
-        user_full_name: profileMap.get(loan.user_id)?.full_name || "Unknown",
-        user_email: profileMap.get(loan.user_id)?.email || "",
+        user_full_name: (profileMap.get(loan.user_id) as any)?.full_name || "Unknown",
+        user_email: (profileMap.get(loan.user_id) as any)?.email || "",
       }));
 
       setApplications(enriched);

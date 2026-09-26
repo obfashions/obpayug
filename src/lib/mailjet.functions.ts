@@ -6,11 +6,11 @@ async function collectMerchants(accessToken: string, provided: Array<{ email: st
     const e = String(r?.email || "").trim().toLowerCase();
     if (e) out.set(e, r?.name || null);
   }
-  const base = ((import.meta.env["VITE_PUBLIC_SUPABASE_URL"] as string) || "").replace(/\/+$/, "");
-  const key = ((import.meta.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] as string) || "").trim();
+  const base = ((import.meta.env["VITE_SUPABASE_URL"] as string) || "").replace(/\/+$/, "");
+  const key = ((import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string) || "").trim();
   if (base && key) {
     try {
-      const resp = await fetch(`${base}/rest/v1/profiles?select=email,full_name,company_name&status=neq.deactivated&limit=5000`, {
+      const resp = await fetch(`${base}/rest/v1/profiles?select=email,full_name&status=neq.deactivated&limit=5000`, {
         headers: { apikey: key, Authorization: `Bearer ${accessToken}` },
       });
       if (resp.ok) {

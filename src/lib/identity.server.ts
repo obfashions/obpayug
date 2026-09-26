@@ -11,29 +11,12 @@ export interface Identity {
   isAdmin: boolean;
 }
 
-// `import.meta.env` values are inlined at build time, so they survive even when
-// the serverless runtime does not expose the project's VITE_* variables on
-// `process.env`. That gap was what made every dashboard page say
-// "Please sign in again".
-const BUILT_IN_URL = (import.meta.env["VITE_PUBLIC_SUPABASE_URL"] as string) || "";
-const BUILT_IN_KEY = (import.meta.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] as string) || "";
-
 function legacyUrl(): string {
-  return (
-    process.env["LEGACY_SUPABASE_URL"] ||
-    process.env["VITE_PUBLIC_SUPABASE_URL"] ||
-    BUILT_IN_URL ||
-    ""
-  ).replace(/\/+$/, "");
+  return (process.env["SUPABASE_URL"] || (import.meta.env["VITE_SUPABASE_URL"] as string) || "").replace(/\/+$/, "");
 }
 
 function legacyKey(): string {
-  return (
-    process.env["LEGACY_SUPABASE_ANON_KEY"] ||
-    process.env["VITE_PUBLIC_SUPABASE_ANON_KEY"] ||
-    BUILT_IN_KEY ||
-    ""
-  ).trim();
+  return (process.env["SUPABASE_PUBLISHABLE_KEY"] || (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string) || "").trim();
 }
 
 /** Non-sensitive health info: whether the auth credentials resolved. */
