@@ -65,6 +65,7 @@ export default function AdminMerchants() {
   const [resetPwModal, setResetPwModal] = useState<{ merchantId: string; merchantName: string } | null>(null);
   const [newUserPassword, setNewUserPassword] = useState("");
   const [resetPwSubmitting, setResetPwSubmitting] = useState(false);
+  const [resetPwError, setResetPwError] = useState("");
 
   // Impersonate state
   const [impersonateModal, setImpersonateModal] = useState<{ merchantId: string; merchantName: string; merchantEmail: string } | null>(null);
@@ -354,6 +355,7 @@ export default function AdminMerchants() {
   const handleResetPassword = async () => {
     if (!resetPwModal || !newUserPassword || newUserPassword.length < 6) return;
     setResetPwSubmitting(true);
+    setResetPwError("");
     try {
       const data = await invokeObpay({
         _action: "reset-user-password",
@@ -363,8 +365,8 @@ export default function AdminMerchants() {
 
       if (!data?.success) throw new Error(data?.error || "Password reset failed");
 
-      // Audit log
-      await supabase.from("audit_logs").insert({
+      // Audit log (best effort)
+      void supabase.from("audit_logs").insert({
         user_id: adminProfile?.id,
         user_name: adminProfile?.full_name || "Admin",
         action: "password_reset",
@@ -381,7 +383,9 @@ export default function AdminMerchants() {
       setResetPwModal(null);
       setNewUserPassword("");
     } catch (err: any) {
-      setActionMsg({ ok: false, message: err.message || "Password reset failed" });
+      const m = /admin only|403/i.test(err?.message || "") ? "Your admin account isn't allowed to change passwords." : /unauthor|401|jwt/i.test(err?.message || "") ? "Your admin session expired. Log in again and retry." : err?.message || "Password reset failed";
+      setResetPwError(m);
+      setActionMsg({ ok: false, message: m });
       setTimeout(() => setActionMsg(null), 5000);
     } finally {
       setResetPwSubmitting(false);
@@ -901,7 +905,8 @@ export default function AdminMerchants() {
                   <input type="text" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="Enter new password" className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" minLength={6} required />
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => { setResetPwModal(null); setNewUserPassword(""); }} className="flex-1 border border-background-300/60 text-foreground-700 font-medium py-2 rounded-lg hover:bg-background-100 transition-colors cursor-pointer whitespace-nowrap text-sm">Cancel</button>
+                  {resetPwError && <p role="alert" className="basis-full text-xs text-accent-700 bg-accent-100 rounded-lg p-2">{resetPwError}</p>}
+                  <button onClick={() => { setResetPwModal(null); setNewUserPassword(""); setResetPwError(""); }} className="flex-1 border border-background-300/60 text-foreground-700 font-medium py-2 rounded-lg hover:bg-background-100 transition-colors cursor-pointer whitespace-nowrap text-sm">Cancel</button>
                   <button onClick={handleResetPassword} disabled={resetPwSubmitting || newUserPassword.length < 6} className="flex-1 bg-accent-500 hover:bg-accent-600 disabled:bg-accent-300 text-background-50 font-medium py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap text-sm">{resetPwSubmitting ? "Resetting..." : "Reset Password"}</button>
                 </div>
               </div>
