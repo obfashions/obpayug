@@ -30,8 +30,8 @@ const slides = [
     image: "https://readdy.ai/api/search-image?query=Professional%20African%20woman%20using%20an%20ATM%20machine%20at%20a%20modern%20bank%20in%20East%20Africa%20wearing%20business%20casual%20attire%20natural%20candid%20moment%20soft%20interior%20lighting%20photojournalistic%20style%20realistic%20detail%20warm%20tones&width=1400&height=900&seq=obpay-hero-real-04&orientation=landscape",
     alt: "Professional woman using a bank ATM in East Africa",
     headline: "Withdraw, Pay Out, and Scale",
-    subline: "Send bulk payouts to staff and suppliers. Access working capital loans. All from one dashboard.",
-    cta: "Explore Payouts & Loans",
+    subline: "Send bulk payouts to staff and suppliers, track every transfer, and manage your money from one dashboard.",
+    cta: "Explore Payouts",
     ctaLink: "/register",
   },
 ];
