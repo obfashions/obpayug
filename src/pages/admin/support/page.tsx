@@ -76,7 +76,7 @@ export default function AdminSupportPage() {
 
       const convList: Conversation[] = userIds.map((uid) => {
         const conv = convMap.get(uid)!;
-        const prof = profileMap.get(uid);
+        const prof = profileMap.get(uid) as any;
         return {
           userId: uid,
           userName: prof?.full_name || "Unknown User",

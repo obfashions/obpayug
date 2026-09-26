@@ -1,11 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables. Check VITE_PUBLIC_SUPABASE_URL and VITE_PUBLIC_SUPABASE_ANON_KEY.");
-}
+import { supabase as cloudClient } from "@/integrations/supabase/client";
 
 export function clearCorruptedSession() {
   // Nuke the stored session when the refresh token is dead
@@ -22,13 +15,9 @@ export function clearCorruptedSession() {
   }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+// All accounts and data now live in this project's own backend.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const supabase: any = cloudClient;
 
 /*
   Safe getSession: wraps supabase.auth.getSession() with a catch for

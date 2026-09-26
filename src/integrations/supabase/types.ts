@@ -53,6 +53,75 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: string | null
+          resource: string | null
+          resource_id: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource?: string | null
+          resource_id?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource?: string | null
+          resource_id?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      company_documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          document_name: string
+          document_type: string
+          document_url: string
+          id: string
+          status: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          document_name: string
+          document_type: string
+          document_url: string
+          id?: string
+          status?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          document_name?: string
+          document_type?: string
+          document_url?: string
+          id?: string
+          status?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       currency_exchanges: {
         Row: {
           created_at: string
@@ -86,6 +155,42 @@ export type Database = {
           rate?: number
           to_amount?: number
           to_currency?: string
+        }
+        Relationships: []
+      }
+      email_campaign_logs: {
+        Row: {
+          body_preview: string | null
+          campaign_type: string
+          created_at: string | null
+          id: number
+          recipient_email: string
+          recipient_name: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          body_preview?: string | null
+          campaign_type: string
+          created_at?: string | null
+          id?: number
+          recipient_email: string
+          recipient_name?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          body_preview?: string | null
+          campaign_type?: string
+          created_at?: string | null
+          id?: number
+          recipient_email?: string
+          recipient_name?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
         }
         Relationships: []
       }
@@ -268,6 +373,66 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_profiles: {
+        Row: {
+          business_address: string | null
+          company_name: string | null
+          country: string | null
+          created_at: string | null
+          credentials_generated: boolean | null
+          id: string
+          id_back_url: string | null
+          id_front_url: string | null
+          merchant_id: string | null
+          merchant_slug: string | null
+          national_id: string | null
+          rejection_reason: string | null
+          updated_at: string | null
+          user_id: string
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          business_address?: string | null
+          company_name?: string | null
+          country?: string | null
+          created_at?: string | null
+          credentials_generated?: boolean | null
+          id?: string
+          id_back_url?: string | null
+          id_front_url?: string | null
+          merchant_id?: string | null
+          merchant_slug?: string | null
+          national_id?: string | null
+          rejection_reason?: string | null
+          updated_at?: string | null
+          user_id: string
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          business_address?: string | null
+          company_name?: string | null
+          country?: string | null
+          created_at?: string | null
+          credentials_generated?: boolean | null
+          id?: string
+          id_back_url?: string | null
+          id_front_url?: string | null
+          merchant_id?: string | null
+          merchant_slug?: string | null
+          national_id?: string | null
+          rejection_reason?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       merchant_refunds: {
         Row: {
           amount: number
@@ -328,6 +493,96 @@ export type Database = {
           merchant_id?: string
           rotated_at?: string | null
           secret?: string
+        }
+        Relationships: []
+      }
+      merchant_wallets: {
+        Row: {
+          available_balance: number | null
+          balances_by_currency: Json | null
+          created_at: string | null
+          currency: string | null
+          daily_withdrawal_limit: number | null
+          id: string
+          invested_balance: number | null
+          last_24h_withdrawal_total: number | null
+          last_withdrawal_reset_at: string | null
+          payout_mode: string | null
+          pending_balance: number | null
+          total_collections: number | null
+          total_payouts: number | null
+          updated_at: string | null
+          user_id: string
+          welcome_bonus_credited: boolean | null
+          withdrawals_enabled: boolean | null
+        }
+        Insert: {
+          available_balance?: number | null
+          balances_by_currency?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          daily_withdrawal_limit?: number | null
+          id?: string
+          invested_balance?: number | null
+          last_24h_withdrawal_total?: number | null
+          last_withdrawal_reset_at?: string | null
+          payout_mode?: string | null
+          pending_balance?: number | null
+          total_collections?: number | null
+          total_payouts?: number | null
+          updated_at?: string | null
+          user_id: string
+          welcome_bonus_credited?: boolean | null
+          withdrawals_enabled?: boolean | null
+        }
+        Update: {
+          available_balance?: number | null
+          balances_by_currency?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          daily_withdrawal_limit?: number | null
+          id?: string
+          invested_balance?: number | null
+          last_24h_withdrawal_total?: number | null
+          last_withdrawal_reset_at?: string | null
+          payout_mode?: string | null
+          pending_balance?: number | null
+          total_collections?: number | null
+          total_payouts?: number | null
+          updated_at?: string | null
+          user_id?: string
+          welcome_bonus_credited?: boolean | null
+          withdrawals_enabled?: boolean | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          title: string | null
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          title?: string | null
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          title?: string | null
+          type?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -456,6 +711,57 @@ export type Database = {
           },
         ]
       }
+      payout_requests: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          currency: string | null
+          description: string | null
+          fee_amount: number | null
+          id: string
+          network: string | null
+          phone_number: string | null
+          processed_at: string | null
+          provider_reference: string | null
+          rejection_reason: string | null
+          requested_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          currency?: string | null
+          description?: string | null
+          fee_amount?: number | null
+          id?: string
+          network?: string | null
+          phone_number?: string | null
+          processed_at?: string | null
+          provider_reference?: string | null
+          rejection_reason?: string | null
+          requested_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          currency?: string | null
+          description?: string | null
+          fee_amount?: number | null
+          id?: string
+          network?: string | null
+          phone_number?: string | null
+          processed_at?: string | null
+          provider_reference?: string | null
+          rejection_reason?: string | null
+          requested_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       platform_credentials: {
         Row: {
           api_key: string | null
@@ -489,6 +795,138 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          auto_approve_threshold: number | null
+          created_at: string | null
+          id: string
+          kyc_required: boolean | null
+          maintenance_mode: boolean | null
+          max_payout_amount: number | null
+          min_collection_amount: number | null
+          min_payout_amount: number | null
+          payout_flat_fee: number | null
+          payout_processing_time: string | null
+          platform_airtel_number: string | null
+          platform_fee_percent: number | null
+          require_login_verification: boolean | null
+          support_email: string | null
+          support_phone: string | null
+          support_whatsapp: string | null
+          supported_currencies: string[] | null
+          supported_payment_methods: string[] | null
+          updated_at: string | null
+          welcome_bonus_amount: number | null
+          withdraw_fee_percent: number | null
+          withdraw_from_julypay: boolean | null
+          withdraw_from_livepay: boolean | null
+        }
+        Insert: {
+          auto_approve_threshold?: number | null
+          created_at?: string | null
+          id?: string
+          kyc_required?: boolean | null
+          maintenance_mode?: boolean | null
+          max_payout_amount?: number | null
+          min_collection_amount?: number | null
+          min_payout_amount?: number | null
+          payout_flat_fee?: number | null
+          payout_processing_time?: string | null
+          platform_airtel_number?: string | null
+          platform_fee_percent?: number | null
+          require_login_verification?: boolean | null
+          support_email?: string | null
+          support_phone?: string | null
+          support_whatsapp?: string | null
+          supported_currencies?: string[] | null
+          supported_payment_methods?: string[] | null
+          updated_at?: string | null
+          welcome_bonus_amount?: number | null
+          withdraw_fee_percent?: number | null
+          withdraw_from_julypay?: boolean | null
+          withdraw_from_livepay?: boolean | null
+        }
+        Update: {
+          auto_approve_threshold?: number | null
+          created_at?: string | null
+          id?: string
+          kyc_required?: boolean | null
+          maintenance_mode?: boolean | null
+          max_payout_amount?: number | null
+          min_collection_amount?: number | null
+          min_payout_amount?: number | null
+          payout_flat_fee?: number | null
+          payout_processing_time?: string | null
+          platform_airtel_number?: string | null
+          platform_fee_percent?: number | null
+          require_login_verification?: boolean | null
+          support_email?: string | null
+          support_phone?: string | null
+          support_whatsapp?: string | null
+          supported_currencies?: string[] | null
+          supported_payment_methods?: string[] | null
+          updated_at?: string | null
+          welcome_bonus_amount?: number | null
+          withdraw_fee_percent?: number | null
+          withdraw_from_julypay?: boolean | null
+          withdraw_from_livepay?: boolean | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          default_currency: string | null
+          email: string | null
+          email_verified: boolean | null
+          full_name: string | null
+          id: string
+          login_verification_enabled: boolean | null
+          login_verified_at: string | null
+          migrated_from_legacy_at: string | null
+          phone_number: string | null
+          role: string | null
+          role_tag: string | null
+          status: string | null
+          support_agent: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_currency?: string | null
+          email?: string | null
+          email_verified?: boolean | null
+          full_name?: string | null
+          id: string
+          login_verification_enabled?: boolean | null
+          login_verified_at?: string | null
+          migrated_from_legacy_at?: string | null
+          phone_number?: string | null
+          role?: string | null
+          role_tag?: string | null
+          status?: string | null
+          support_agent?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_currency?: string | null
+          email?: string | null
+          email_verified?: boolean | null
+          full_name?: string | null
+          id?: string
+          login_verification_enabled?: boolean | null
+          login_verified_at?: string | null
+          migrated_from_legacy_at?: string | null
+          phone_number?: string | null
+          role?: string | null
+          role_tag?: string | null
+          status?: string | null
+          support_agent?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           key: string
@@ -507,6 +945,191 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           value?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          created_at: string | null
+          id: number
+          is_read: boolean | null
+          message: string
+          receiver_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          is_read?: boolean | null
+          message: string
+          receiver_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          is_read?: boolean | null
+          message?: string
+          receiver_id?: string | null
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      support_ticket_replies: {
+        Row: {
+          created_at: string
+          id: number
+          is_internal: boolean
+          message: string
+          ticket_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          is_internal?: boolean
+          message: string
+          ticket_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          is_internal?: boolean
+          message?: string
+          ticket_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_replies_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          description: string
+          id: number
+          priority: string
+          resolved_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          description: string
+          id?: number
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string
+          id?: number
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string | null
+          currency: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          description: string | null
+          fee_amount: number | null
+          id: string
+          merchant_reference: string | null
+          metadata: Json | null
+          net_amount: number | null
+          payment_method: string | null
+          provider_reference: string | null
+          reference: string
+          status: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          fee_amount?: number | null
+          id?: string
+          merchant_reference?: string | null
+          metadata?: Json | null
+          net_amount?: number | null
+          payment_method?: string | null
+          provider_reference?: string | null
+          reference: string
+          status?: string | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          fee_amount?: number | null
+          id?: string
+          merchant_reference?: string | null
+          metadata?: Json | null
+          net_amount?: number | null
+          payment_method?: string | null
+          provider_reference?: string | null
+          reference?: string
+          status?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -618,6 +1241,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       settle_payment_record_and_balance: {
         Args: {
           p_fee?: number
@@ -629,7 +1259,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -756,6 +1386,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

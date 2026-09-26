@@ -140,42 +140,31 @@ function MonthlyReport({ userId, mp, txs }: { userId: string; mp: MerchantProfil
 }
 
 function PasswordReset({ userId, email }: { userId: string; email: string | null }) {
-  const [pw, setPw] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const save = async () => {
+  const send = async () => {
     setMsg(null);
-    if (pw.length < 8) return setMsg({ ok: false, text: "Use at least 8 characters." });
-    if (pw !== confirm) return setMsg({ ok: false, text: "The two passwords do not match." });
-    if (!window.confirm(`Set a new password for ${email || "this merchant"}?`)) return;
+    if (!window.confirm(`Email a password reset link to ${email || "this merchant"}?`)) return;
     setBusy(true);
     try {
-      const { invokeObpay } = await import("@/lib/edge-function");
-      const res: any = await invokeObpay({ action: "reset-user-password", target_user_id: userId, new_password: pw });
-      if (res?.success === false || res?.error) throw new Error(res?.error || "Could not change the password.");
-      setMsg({ ok: true, text: `Password changed. The merchant can now log in${email ? ` as ${email}` : ""} with the new password.` });
-      setPw(""); setConfirm("");
+      const { getAccessToken } = await import("@/lib/session-token");
+      const { adminSendResetLink } = await import("@/lib/account.functions");
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error("Please sign in again to continue.");
+      const res: any = await adminSendResetLink({ data: { accessToken, targetUserId: userId, origin: window.location.origin } });
+      if (!res?.success) throw new Error(res?.error || "Could not send the reset link.");
+      setMsg({ ok: true, text: `Reset link sent to ${res.email || email}. The password they choose there is their new login.` });
     } catch (e: any) {
-      setMsg({ ok: false, text: e?.message || "Could not change the password." });
+      setMsg({ ok: false, text: e?.message || "Could not send the reset link." });
     } finally { setBusy(false); }
   };
-  const input = "px-3 py-2 text-sm rounded-lg border border-background-300 bg-background-50 w-full";
   return (
     <div className="bg-background-100 rounded-lg p-4">
-      <h4 className="text-sm font-semibold text-foreground-900 mb-1"><i className="ri-key-2-line mr-1.5 text-foreground-500" />Change Password</h4>
-      <p className="text-[11px] text-foreground-500 mb-3">Set a new login password for this merchant, then share it with them privately.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
-        <input type={show ? "text" : "password"} autoComplete="new-password" placeholder="New password" value={pw} onChange={(e) => setPw(e.target.value)} className={input} />
-        <input type={show ? "text" : "password"} autoComplete="new-password" placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={input} />
-        <button onClick={save} disabled={busy} className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary-600 text-background-50 hover:bg-primary-700 disabled:opacity-60 whitespace-nowrap">
-          {busy ? "Saving…" : "Save password"}
-        </button>
-      </div>
-      <label className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-foreground-600">
-        <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} /> Show passwords
-      </label>
+      <h4 className="text-sm font-semibold text-foreground-900 mb-1"><i className="ri-key-2-line mr-1.5 text-foreground-500" />Reset Password</h4>
+      <p className="text-[11px] text-foreground-500 mb-3">Emails the merchant a secure link to choose a new password.</p>
+      <button onClick={send} disabled={busy} className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary-600 text-background-50 hover:bg-primary-700 disabled:opacity-60 whitespace-nowrap">
+        {busy ? "Sending…" : "Send reset link"}
+      </button>
       {msg && <p className={`text-[11px] mt-2 ${msg.ok ? "text-primary-700" : "text-accent-700"}`}>{msg.text}</p>}
     </div>
   );

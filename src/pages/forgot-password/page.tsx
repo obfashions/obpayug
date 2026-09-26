@@ -23,9 +23,10 @@ export default function ForgotPassword() {
     try {
       const redirectUrl = `${window.location.origin}/reset-password`;
       const cleanEmail = email.normalize("NFKC").replace(/[\s\u200B-\u200D\u2060\uFEFF\u00A0]/g, "").toLowerCase();
-      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo: redirectUrl,
-      });
+      void redirectUrl;
+      const { requestPasswordReset } = await import("@/lib/account.functions");
+      const res: any = await requestPasswordReset({ data: { email: cleanEmail, origin: window.location.origin } });
+      const resetErr = res?.success ? null : res?.error || "failed";
 
       if (resetErr) {
         setError(friendlyError(resetErr, "We couldn't send the reset email. Please try again in a moment."));

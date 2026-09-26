@@ -350,7 +350,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut({ scope: "local" });
       } catch {
         // If even local fails, manually nuke stored session
-        try { localStorage.removeItem("sb-" + import.meta.env.VITE_PUBLIC_SUPABASE_URL + "-auth-token"); } catch { /* noop */ }
+        try { localStorage.removeItem("sb-" + import.meta.env.VITE_SUPABASE_URL + "-auth-token"); } catch { /* noop */ }
       }
     } finally {
       // Always clear React state regardless of network success
