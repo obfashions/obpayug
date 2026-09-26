@@ -13,7 +13,6 @@ import TestimonialsSection from "./components/TestimonialsSection";
 import FAQSection from "./components/FAQSection";
 import CTASection from "./components/CTASection";
 import ContactSection from "./components/ContactSection";
-import LoansSection from "./components/LoansSection";
 import TrustSection from "./components/TrustSection";
 import PartnersSection from "./components/PartnersSection";
 import InstallPWA from "./components/InstallPWA";
@@ -173,7 +172,6 @@ export default function Home() {
         <QuickActionsSection />
         <PaymentMethodsSection />
         <FeaturesSection />
-        <LoansSection />
         <HowItWorksSection />
         <RealStoriesSection />
         <StatsSection />

@@ -8,7 +8,6 @@ const BANNER_DISMISSED_KEY = "obpay_verify_banner_dismissed";
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: "ri-dashboard-line", group: "main" },
   { label: "Collections", href: "/dashboard/collections", icon: "ri-download-cloud-line", group: "main" },
-  { label: "Loans", href: "/dashboard/loans", icon: "ri-bank-line", group: "main" },
   { label: "Payouts", href: "/dashboard/payouts", icon: "ri-upload-cloud-line", group: "main" },
   { label: "Bank Transfer", href: "/dashboard/bank-transfer", icon: "ri-bank-card-line", group: "main" },
   { label: "Bill Payments", href: "/dashboard/bill-payments", icon: "ri-flashlight-line", group: "main" },

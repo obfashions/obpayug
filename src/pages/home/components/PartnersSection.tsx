@@ -16,7 +16,7 @@ export default function PartnersSection() {
 
   const testimonials = [
     {
-      quote: "ObPay has been instrumental in scaling our retail operations. Their loan program helped us open three new locations in Kampala within six months.",
+      quote: "ObPay has been instrumental in simplifying payments across our retail locations. Collections are easier to track and reconcile every day.",
       name: "Patrick Tumwine",
       role: "Managing Director, Fresh Mart Uganda",
       location: "Kampala, Uganda",
@@ -28,7 +28,7 @@ export default function PartnersSection() {
       location: "Nairobi, Kenya",
     },
     {
-      quote: "As a growing logistics company, ObPay's working capital loans have been a game changer. We can now pay our drivers instantly and scale operations without cash flow stress.",
+      quote: "As a growing logistics company, ObPay helps us pay drivers quickly and keep every supplier payment clearly recorded.",
       name: "Samuel Owino",
       role: "Founder, Swift Logistics",
       location: "Kampala, Uganda",

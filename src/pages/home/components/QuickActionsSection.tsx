@@ -9,9 +9,9 @@ const actions = [
     color: "bg-primary-100 text-primary-600",
   },
   {
-    icon: "ri-hand-coin-line",
-    title: "I need a Business Loan",
-    desc: "Up to UGX 500M, same-day approval",
+    icon: "ri-link-m",
+    title: "I need Payment Links",
+    desc: "Share secure links with customers",
     link: "/register",
     color: "bg-accent-100 text-accent-600",
   },

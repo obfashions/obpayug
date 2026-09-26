@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useNavigate } from "@/lib/router-compat";
 import CollectionBreakdown from "./components/CollectionBreakdown";
-import SavingsCalculator from "./components/SavingsCalculator";
 import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
 
@@ -635,8 +634,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-
-            <SavingsCalculator />
 
             {/* System status */}
             <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
