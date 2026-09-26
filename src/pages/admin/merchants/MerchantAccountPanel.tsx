@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "@/lib/router-compat";
 import { supabase } from "@/lib/supabase";
+import { getAccessToken } from "@/lib/session-token";
+import { merchantMonthRecords } from "@/lib/merchant-report.functions";
 
 interface Props {
   userId: string;
@@ -85,6 +87,58 @@ function DocCard({ label, url }: { label: string; url?: string | null }) {
   );
 }
 
+function MonthlyReport({ userId, mp, txs }: { userId: string; mp: MerchantProfileRow | null; txs: TxRow[] }) {
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const run = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const accessToken = (await getAccessToken()) || "";
+      const res: any = await merchantMonthRecords({ data: { merchantId: userId, month, accessToken } });
+      const inMonth = (d: string) => String(d || "").slice(0, 7) === month;
+      const rows: string[][] = [];
+      for (const t of txs.filter((t) => inMonth(t.created_at)))
+        rows.push([t.created_at, t.reference || "", t.type || "", String(t.amount ?? 0), String((t as any).fee_amount ?? 0), t.status || "", t.customer_phone || "", "dashboard"]);
+      for (const r of res?.rows || [])
+        rows.push([r.created_at, r.reference, r.type, String(r.amount), String(r.fee_amount ?? 0), r.status, r.phone_number || "", r.source]);
+      rows.sort((a, b) => a[0].localeCompare(b[0]));
+      const ok = (s: string) => ["success", "successful", "completed"].includes(s);
+      const total = (type: (t: string) => boolean) => rows.filter((r) => ok(r[5]) && type(r[2])).reduce((a, r) => a + Number(r[3] || 0), 0);
+      const name = mp?.company_name || res?.kyc?.business_name || res?.kyc?.full_name || "—";
+      const kyc = mp?.verification_status || res?.kyc?.status || "not submitted";
+      const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+      const lines = [
+        ["ObPay merchant monthly report"], ["Month", month], ["Merchant", name], ["Merchant ID", userId],
+        ["Verification status", kyc], ["Transactions", String(rows.length)],
+        ["Money in (successful)", String(total((t) => t === "collection"))],
+        ["Money out (successful)", String(total((t) => t === "payout" || t === "withdrawal"))], [],
+        ["Date", "Reference", "Type", "Amount (UGX)", "Fee", "Status", "Phone", "Channel"], ...rows,
+      ].map((r) => r.map(esc).join(",")).join("\n");
+      const url = URL.createObjectURL(new Blob([lines], { type: "text/csv" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = `obpay-${String(name).replace(/\W+/g, "-")}-${month}.csv`; a.click();
+      URL.revokeObjectURL(url);
+      setMsg(res?.success === false ? `Downloaded dashboard payments only (${res.error}).` : `Downloaded ${rows.length} payments.`);
+    } catch (e: any) {
+      setMsg(e?.message || "Could not build the report.");
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="bg-background-100 rounded-lg p-4">
+      <h4 className="text-sm font-semibold text-foreground-900 mb-1"><i className="ri-file-chart-line mr-1.5 text-foreground-500" />Monthly Report</h4>
+      <p className="text-[11px] text-foreground-500 mb-3">Every payment this merchant made in a month, with their ID and verification status. Share it if the payment partner reviews the account.</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-background-300 bg-background-50" />
+        <button onClick={run} disabled={busy} className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary-600 text-background-50 hover:bg-primary-700 disabled:opacity-60">
+          {busy ? "Preparing…" : "Download report"}
+        </button>
+      </div>
+      {msg && <p className="text-[11px] text-foreground-600 mt-2">{msg}</p>}
+    </div>
+  );
+}
+
 export default function MerchantAccountPanel({ userId }: Props) {
   const [loading, setLoading] = useState(true);
   const [mp, setMp] = useState<MerchantProfileRow | null>(null);
@@ -165,6 +219,7 @@ export default function MerchantAccountPanel({ userId }: Props) {
         </div>
         <p className="text-[11px] text-foreground-500 mt-2">Last activity: {fmtDate(txs[0]?.created_at)}</p>
       </div>
+      <MonthlyReport userId={userId} mp={mp} txs={txs} />
       {/* Verification documents */}
       <div className="bg-background-100 rounded-lg p-4">
         <div className="flex items-center justify-between gap-3 mb-3">
