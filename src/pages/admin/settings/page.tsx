@@ -205,7 +205,7 @@ export default function AdminSettings() {
             <div className="bg-background-50 rounded-xl border border-background-200/70 p-6">
               <h3 className="font-heading font-semibold text-foreground-900 mb-4">Supported Currencies</h3>
               <div className="flex flex-wrap gap-2">
-                {settings.supported_currencies.map((c: string) => (
+                {(settings.supported_currencies || []).map((c: string) => (
                   <span key={c} className="text-xs font-medium bg-secondary-100 text-secondary-700 px-3 py-1.5 rounded-full">{c}</span>
                 ))}
               </div>
@@ -214,7 +214,7 @@ export default function AdminSettings() {
             <div className="bg-background-50 rounded-xl border border-background-200/70 p-6">
               <h3 className="font-heading font-semibold text-foreground-900 mb-4">Payment Methods</h3>
               <div className="flex flex-wrap gap-2">
-                {settings.supported_payment_methods.map((m: string) => (
+                {(settings.supported_payment_methods || []).map((m: string) => (
                   <span key={m} className="text-xs font-medium bg-secondary-100 text-secondary-700 px-3 py-1.5 rounded-full">{m}</span>
                 ))}
               </div>
