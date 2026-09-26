@@ -19,7 +19,7 @@ export default function ResetPassword() {
     let mounted = true;
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const query = new URLSearchParams(window.location.search);
-    const recovery = hash.get("type") === "recovery" || query.get("type") === "recovery" || Boolean(query.get("token_hash"));
+    const recovery = hash.get("type") === "recovery" || query.get("type") === "recovery" || Boolean(query.get("token_hash")) || Boolean(query.get("code"));
     const accessToken = hash.get("access_token");
     const refreshToken = hash.get("refresh_token");
 
@@ -43,6 +43,11 @@ export default function ResetPassword() {
         } else if (query.get("token_hash")) {
           const { data, error: verifyError } = await supabase.auth.verifyOtp({ token_hash: query.get("token_hash") || "", type: "recovery" });
           if (verifyError) throw verifyError;
+          sessionReady = Boolean(data.session);
+          window.history.replaceState(null, "", window.location.pathname);
+        } else if (query.get("code")) {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(query.get("code") || "");
+          if (exchangeError) throw exchangeError;
           sessionReady = Boolean(data.session);
           window.history.replaceState(null, "", window.location.pathname);
         } else {
