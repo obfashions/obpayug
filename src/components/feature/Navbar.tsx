@@ -58,7 +58,7 @@ export default function Navbar({ onToggleTheme, theme = "light" }: NavbarProps) 
                 overHero ? "text-background-50" : "text-foreground-900"
               }`}
             >
-              ObPay
+              ObPay <span className="font-medium text-xs md:text-sm opacity-80">(PawaPay Ptn)</span>
             </span>
           </Link>
 

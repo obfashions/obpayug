@@ -57,7 +57,7 @@ export default function Footer() {
                 </span>
               </div>
               <span className="font-heading font-bold text-lg text-foreground-900">
-                ObPay
+                ObPay <span className="font-medium text-sm opacity-80">(PawaPay Ptn)</span>
               </span>
             </Link>
             <p className="text-sm text-foreground-600 leading-relaxed max-w-xs">
@@ -179,7 +179,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-background-200/70 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-foreground-500">
-            &copy; 2026 ObPay. All rights reserved.
+            &copy; 2026 ObPay (PawaPay Ptn). All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-foreground-500">
             <Link to="#" className="hover:text-foreground-700 transition-colors">
