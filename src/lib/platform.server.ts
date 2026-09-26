@@ -732,7 +732,42 @@ export async function publicPaymentStatus(reference: string) {
 
 // ─── action router ────────────────────────────────────────────
 
+// Merchant activity the ObPay admin is emailed about.
+const ALERT_ACTIONS: Record<string, string> = {
+  "kyc.save": "Verification details submitted",
+  "kyc.upload": "Verification document uploaded",
+  "links.create": "Payment link created",
+  "api-keys.create": "API key created",
+  "api-keys.revoke": "API key revoked",
+  "signing-secret.rotate": "Signing secret rotated",
+  "intl.payout": "Payout requested",
+  "refunds.create": "Refund requested",
+  "refunds.log": "Refund recorded",
+  "exchange.convert": "Currency exchange made",
+};
+
 export async function runPlatformAction(
+  action: string,
+  accessToken: string,
+  body: Record<string, any>,
+): Promise<any> {
+  const result = await runPlatformActionInner(action, accessToken, body);
+  const title = ALERT_ACTIONS[action];
+  if (title && result?.success) {
+    try {
+      const who = await requireIdentity(accessToken);
+      const details: Record<string, unknown> = { ...body };
+      delete details.file_data;
+      const { sendAdminAlert } = await import("./notify.server");
+      await sendAdminAlert(title, { Merchant: who.email || who.userId, "Merchant ID": who.userId, ...details });
+    } catch (e: any) {
+      console.error("admin alert failed", e?.message);
+    }
+  }
+  return result;
+}
+
+async function runPlatformActionInner(
   action: string,
   accessToken: string,
   body: Record<string, any>,
