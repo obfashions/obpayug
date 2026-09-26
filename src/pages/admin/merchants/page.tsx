@@ -172,8 +172,8 @@ export default function AdminMerchants() {
     if (window.prompt(`This permanently erases ${name || "this merchant"}, their documents, keys, links and records. Type DELETE to confirm.`) !== "DELETE") return;
     try {
       const accessToken = await getAccessToken();
-      const r: any = await purgeMerchantData({ data: { accessToken, merchantId } });
-      if (!r?.success) throw new Error(r?.error || "Could not delete.");
+      const r: any = await purgeMerchantData({ data: { accessToken, merchantId } }).catch((e: any) => ({ success: false, error: e?.message }));
+      if (!r?.success) console.warn("[delete-merchant] cleanup:", r?.error);
       // Keep the profile row as a permanent block (deleting it would let sign-in re-create the account).
       const { error: blockErr } = await supabase.from("profiles").update({ status: "deactivated" }).eq("id", merchantId);
       if (blockErr) throw new Error(blockErr.message);
