@@ -403,8 +403,15 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     const currency = "UGX";
 
     const ref = String(body?.reference || `COL${Date.now().toString(36).toUpperCase()}`).replace(/\s/g, "").slice(0, 30);
-    const dup = first(await rest(accessToken, `/transactions?reference=eq.${encodeURIComponent(ref)}&select=id`));
-    if (dup) return { success: false, error: `Reference "${ref}" has already been used.` };
+    const dup = first(await rest(accessToken, `/transactions?reference=eq.${encodeURIComponent(ref)}&select=id,status,amount,type`));
+    if (dup) {
+      // Same request arriving twice (double tap / network retry): return the existing
+      // payment instead of an error so the merchant sees its real status.
+      if (dup.type === "collection" && Number(dup.amount) === numAmount) {
+        return { success: true, data: { reference: ref, transaction_id: dup.id, status: dup.status, immediate_success: dup.status === "success", duplicate: true, message: dup.status === "success" ? "Payment already received." : "This collection was already sent. Waiting for the customer to approve." } };
+      }
+      return { success: false, error: `Reference "${ref}" has already been used. Leave the reference empty to generate a new one.` };
+    }
 
     const bankCode = networkCode(network, wallet);
     const { merchantTag } = await import("./merchant-identity.server");

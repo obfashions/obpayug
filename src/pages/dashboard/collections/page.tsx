@@ -45,6 +45,9 @@ export default function CollectionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [successNote, setSuccessNote] = useState<string | null>(null);
+  const submitLockRef = useRef(false);
+  const showSuccess = (msg: string) => { setShowModal(false); setSubmitStatus(null); setSuccessNote(msg); };
   const [form, setForm] = useState({ customerName: "", customerEmail: "", phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
 
   const networkOptions = [
@@ -88,11 +91,7 @@ export default function CollectionsPage() {
     if (tracked.status !== currentStatus && tracked.status !== "pending") {
       if (tracked.status === "success") {
         setLastStatus("success");
-        setSubmitStatus({
-          ok: true,
-          message: `Payment received! ${formatCurrency(tracked.amount || lastAmountRef.current || 0, tracked.currency || activeCurrency)} has been credited to your wallet.`,
-          livepayResponse: `Ref: ${trackedRef} | Status: success`,
-        });
+        showSuccess(`Payment received! ${formatCurrency(tracked.amount || lastAmountRef.current || 0, tracked.currency || activeCurrency)} has been credited to your wallet. Ref: ${trackedRef}`);
       } else if (tracked.status === "failed") {
         setLastStatus("failed");
         setSubmitStatus({
@@ -200,11 +199,7 @@ export default function CollectionsPage() {
         if (ref === trackedRef && newStatus !== oldStatus && newStatus !== "pending" && newStatus !== currentTrackedStatus) {
           if (newStatus === "success") {
             setLastStatus("success");
-            setSubmitStatus({
-              ok: true,
-              message: `Payment received! ${formatCurrency(txnAmount || lastAmountRef.current || 0, activeCurrency)} has been credited to your wallet.`,
-              livepayResponse: `Ref: ${ref} | Status: success`,
-            });
+            showSuccess(`Payment received! ${formatCurrency(txnAmount || lastAmountRef.current || 0, activeCurrency)} has been credited to your wallet. Ref: ${ref}`);
           } else if (newStatus === "failed") {
             setLastStatus("failed");
             setSubmitStatus({
@@ -233,7 +228,9 @@ export default function CollectionsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || submitLockRef.current) return;
+    submitLockRef.current = true;
+    setTimeout(() => { submitLockRef.current = false; }, 3000);
     setSubmitting(true); setSubmitStatus(null);
     try {
       const amount = parseFloat(form.amount);
@@ -267,6 +264,7 @@ export default function CollectionsPage() {
             : (providerMsg || "Collection request sent. Awaiting customer confirmation."),
           livepayResponse: `Ref: ${refNum} | Status: ${apiData.status || "pending"}${immediateSuccess ? " | Paid immediately" : ""}${checkoutUrl ? ` | Payment page: ${checkoutUrl}` : ""}`,
         });
+        if (immediateSuccess) showSuccess(`Collection successful! ${formatCurrency(amount, form.currency)} credited to your wallet. Ref: ${refNum}`);
         // Open the secure payment page so the customer can approve right away.
         if (checkoutUrl) window.open(checkoutUrl, "_blank", "noopener");
         setForm({ customerName: "", customerEmail: "", phoneNumber: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
@@ -289,7 +287,7 @@ export default function CollectionsPage() {
                   clearInterval(pollInterval);
                 }
               }
-              if (pollCount >= 10) clearInterval(pollInterval);
+              if (pollCount >= 45) clearInterval(pollInterval);
             })
             .then(undefined, () => {});
         }, 2000);
@@ -442,6 +440,18 @@ export default function CollectionsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {successNote && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-foreground-900/40" onClick={() => setSuccessNote(null)} />
+            <div role="dialog" aria-label="Payment successful" className="relative bg-background-50 rounded-xl border border-background-200/70 p-6 w-full max-w-sm text-center">
+              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 flex items-center justify-center mb-3"><i className="ri-check-line text-3xl text-emerald-600" /></div>
+              <h3 className="font-heading font-semibold text-lg text-foreground-900 mb-1">Payment successful</h3>
+              <p className="text-sm text-foreground-600 break-words mb-5">{successNote}</p>
+              <button onClick={() => setSuccessNote(null)} className="w-full bg-primary-500 hover:bg-primary-600 text-background-50 font-medium py-2.5 rounded-lg text-sm cursor-pointer">Close</button>
             </div>
           </div>
         )}
