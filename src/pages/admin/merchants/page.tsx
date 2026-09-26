@@ -588,9 +588,12 @@ export default function AdminMerchants() {
 
         {/* Detail Panel */}
         {selected && (
-          <div className="bg-background-50 rounded-xl border border-background-200/70 p-6 space-y-5">
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <div className="absolute inset-0 bg-foreground-900/40" onClick={() => setSelectedMerchantId(null)} />
+            <div className="relative w-full max-w-4xl h-full bg-background-50 shadow-2xl flex flex-col">
+            <div className="sticky top-0 z-10 bg-background-50 border-b border-background-200/70 p-4 sm:p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-heading font-semibold text-foreground-900">
+              <h3 className="font-heading font-semibold text-foreground-900 truncate">
                 {selected.merchant_profiles?.[0]?.company_name || selected.full_name}
               </h3>
               <div className="flex items-center gap-2">
@@ -619,88 +622,15 @@ export default function AdminMerchants() {
                 </span>
               </div>
             </div>
-
-            {/* User Info Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Full Name</p>
-                <p className="font-medium text-foreground-900">{selected.full_name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Email</p>
-                <p className="font-medium text-foreground-900 text-xs">{selected.email}</p>
-              </div>
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Phone</p>
-                <p className="font-medium text-foreground-900">{selected.phone_number || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Joined</p>
-                <p className="font-medium text-foreground-900 text-xs">{new Date(selected.created_at).toLocaleDateString()}</p>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground-500 mr-1">Controls</span>
+              <button onClick={() => navigator.clipboard?.writeText(selected.id)} className="text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer whitespace-nowrap bg-background-100 text-foreground-600 hover:bg-background-200 border border-background-300/60"><i className="ri-file-copy-line mr-1" />Copy ID</button>
+              {selected.email && <a href={`mailto:${selected.email}`} className="text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap bg-background-100 text-foreground-600 hover:bg-background-200 border border-background-300/60"><i className="ri-mail-line mr-1" />Email</a>}
+              {selected.phone_number && <a href={`https://wa.me/${String(selected.phone_number).replace(/\D/g, "").replace(/^0/, "256")}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap bg-background-100 text-foreground-600 hover:bg-background-200 border border-background-300/60"><i className="ri-whatsapp-line mr-1" />WhatsApp</a>}
+              <button onClick={() => setSelectedMerchantId(null)} className="ml-auto text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer bg-foreground-900 text-background-50"><i className="ri-close-line mr-1" />Close</button>
             </div>
-
-            {/* KYC Info */}
-            {selected.merchant_profiles?.[0] && (
-              <div className="bg-background-100 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-xs text-foreground-500 mb-1">Merchant ID</p>
-                  <code className="text-xs font-mono text-foreground-700 bg-background-200 px-1.5 py-0.5 rounded">{selected.merchant_profiles[0].merchant_id || "—"}</code>
-                </div>
-                <div>
-                  <p className="text-xs text-foreground-500 mb-1">Slug</p>
-                  <code className="text-xs font-mono text-foreground-700 bg-background-200 px-1.5 py-0.5 rounded">{selected.merchant_profiles[0].merchant_slug || "—"}</code>
-                </div>
-                <div>
-                  <p className="text-xs text-foreground-500 mb-1">Business Address</p>
-                  <p className="font-medium text-foreground-900 text-xs">{selected.merchant_profiles[0].business_address || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-foreground-500 mb-1">Verification</p>
-                  <span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${selected.merchant_profiles[0].verification_status === "approved" ? "bg-primary-100 text-primary-700" : selected.merchant_profiles[0].verification_status === "rejected" ? "bg-accent-100 text-accent-700" : "bg-secondary-100 text-secondary-700"}`}>
-                    {selected.merchant_profiles[0].verification_status}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Full account record: documents, integration, activity */}
-            <MerchantAccountPanel userId={selected.id} />
-
-
-
-            {/* Wallet Info */}
-            <div className="bg-background-100 rounded-lg p-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Available Balance</p>
-                <p className="font-bold text-foreground-900">{detailWallet ? formatCurrency(detailWallet.available_balance) : "Loading..."}</p>
-              </div>
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Pending Balance</p>
-                <p className="font-medium text-foreground-700">{detailWallet ? formatCurrency(detailWallet.pending_balance) : "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Total Collections</p>
-                <p className="font-medium text-primary-600">{detailWallet ? formatCurrency(detailWallet.total_collections) : "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Total Payouts</p>
-                <p className="font-medium text-accent-600">{detailWallet ? formatCurrency(detailWallet.total_payouts) : "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-foreground-500 mb-1">Withdrawals</p>
-                {detailWallet ? (
-                  <span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${detailWallet.withdrawals_enabled ? "bg-primary-100 text-primary-700" : "bg-red-100 text-red-700"}`}>
-                    {detailWallet.withdrawals_enabled ? "Enabled" : "Disabled"}
-                  </span>
-                ) : (
-                  <span className="text-xs text-foreground-500">—</span>
-                )}
-              </div>
-            </div>
-
             {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2 border-t border-background-200/70 pt-4">
+            <div className="flex flex-wrap gap-2">
               {/* Status Toggle */}
               <button
                 onClick={() => handleToggleStatus(selected.id, selected.status)}
@@ -811,6 +741,87 @@ export default function AdminMerchants() {
               >
                 <i className="ri-user-shared-line mr-1" />Login as User
               </button>
+            </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+            {/* Wallet Info */}
+            <div className="bg-background-100 rounded-lg p-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Available Balance</p>
+                <p className="font-bold text-foreground-900">{detailWallet ? formatCurrency(detailWallet.available_balance) : "Loading..."}</p>
+              </div>
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Pending Balance</p>
+                <p className="font-medium text-foreground-700">{detailWallet ? formatCurrency(detailWallet.pending_balance) : "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Total Collections</p>
+                <p className="font-medium text-primary-600">{detailWallet ? formatCurrency(detailWallet.total_collections) : "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Total Payouts</p>
+                <p className="font-medium text-accent-600">{detailWallet ? formatCurrency(detailWallet.total_payouts) : "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Withdrawals</p>
+                {detailWallet ? (
+                  <span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${detailWallet.withdrawals_enabled ? "bg-primary-100 text-primary-700" : "bg-red-100 text-red-700"}`}>
+                    {detailWallet.withdrawals_enabled ? "Enabled" : "Disabled"}
+                  </span>
+                ) : (
+                  <span className="text-xs text-foreground-500">—</span>
+                )}
+              </div>
+            </div>
+
+            {/* User Info Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Full Name</p>
+                <p className="font-medium text-foreground-900">{selected.full_name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Email</p>
+                <p className="font-medium text-foreground-900 text-xs">{selected.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Phone</p>
+                <p className="font-medium text-foreground-900">{selected.phone_number || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-foreground-500 mb-1">Joined</p>
+                <p className="font-medium text-foreground-900 text-xs">{new Date(selected.created_at).toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            {/* KYC Info */}
+            {selected.merchant_profiles?.[0] && (
+              <div className="bg-background-100 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-xs text-foreground-500 mb-1">Merchant ID</p>
+                  <code className="text-xs font-mono text-foreground-700 bg-background-200 px-1.5 py-0.5 rounded">{selected.merchant_profiles[0].merchant_id || "—"}</code>
+                </div>
+                <div>
+                  <p className="text-xs text-foreground-500 mb-1">Slug</p>
+                  <code className="text-xs font-mono text-foreground-700 bg-background-200 px-1.5 py-0.5 rounded">{selected.merchant_profiles[0].merchant_slug || "—"}</code>
+                </div>
+                <div>
+                  <p className="text-xs text-foreground-500 mb-1">Business Address</p>
+                  <p className="font-medium text-foreground-900 text-xs">{selected.merchant_profiles[0].business_address || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-foreground-500 mb-1">Verification</p>
+                  <span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${selected.merchant_profiles[0].verification_status === "approved" ? "bg-primary-100 text-primary-700" : selected.merchant_profiles[0].verification_status === "rejected" ? "bg-accent-100 text-accent-700" : "bg-secondary-100 text-secondary-700"}`}>
+                    {selected.merchant_profiles[0].verification_status}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Full account record: documents, integration, activity */}
+            <MerchantAccountPanel userId={selected.id} />
+
+            </div>
             </div>
           </div>
         )}
