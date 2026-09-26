@@ -226,11 +226,12 @@ export default function PayoutsPage() {
       }
 
       const fee = estimatedPayoutFee();
-      const totalDeduction = amount + fee;
+      const totalDeduction = amount;
+      if (fee >= amount) { setSubmitStatus({ ok: false, message: `The amount must be more than the ${formatCurrency(fee, form.currency)} fee.` }); setSubmitting(false); return; }
 
       if (totalDeduction > activeBalance) {
         const feeLabel = amount <= 70000 ? `${formatCurrency(fee, form.currency)} flat fee` : `${formatCurrency(fee, form.currency)} (3%)`;
-        setSubmitStatus({ ok: false, message: `You need ${formatCurrency(totalDeduction, form.currency)} (includes ${feeLabel}). Your balance is ${formatCurrency(activeBalance, form.currency)}.` });
+        setSubmitStatus({ ok: false, message: `You tried to send ${formatCurrency(totalDeduction, form.currency)} (the ${feeLabel} comes out of it). Your balance is ${formatCurrency(activeBalance, form.currency)}.` });
         setSubmitting(false); return;
       }
 
@@ -324,7 +325,7 @@ export default function PayoutsPage() {
       const withdrawFee = amount <= 70000
         ? payoutFlatFee
         : Math.round(amount * (withdrawFeePercent / 100) * 100) / 100;
-      const totalWithdrawDeduction = amount + withdrawFee;
+      const totalWithdrawDeduction = amount;
 
       // Daily withdrawal limit check (client-side)
       if (withdrawalLimit && amount > withdrawalLimit.remaining) {
@@ -334,7 +335,7 @@ export default function PayoutsPage() {
 
       if (totalWithdrawDeduction > activeBalance) {
         const wFeeLabel = amount <= 70000 ? `${formatCurrency(withdrawFee, activeCurrency)} flat fee` : `${formatCurrency(withdrawFee, activeCurrency)} (3%)`;
-        setWithdrawStatus({ ok: false, message: `You need ${formatCurrency(totalWithdrawDeduction, activeCurrency)} (includes ${wFeeLabel}). Your balance is ${formatCurrency(activeBalance, activeCurrency)}.` });
+        setWithdrawStatus({ ok: false, message: `You tried to withdraw ${formatCurrency(totalWithdrawDeduction, activeCurrency)} (the ${wFeeLabel} comes out of it). Your balance is ${formatCurrency(activeBalance, activeCurrency)}.` });
         setWithdrawSubmitting(false); return;
       }
       if (minPayout > 0 && amount < minPayout) {
@@ -650,7 +651,7 @@ export default function PayoutsPage() {
                   {withdrawAmount && parseFloat(withdrawAmount) > 0 && (() => {
                     const wAmt = parseFloat(withdrawAmount);
                     const wFee = wAmt <= 70000 ? payoutFlatFee : Math.round(wAmt * (withdrawFeePercent / 100) * 100) / 100;
-                    const wTotal = wAmt + wFee;
+                    const wTotal = Math.max(wAmt - wFee, 0);
                     const wFeeLabel = wAmt <= 70000 ? `Flat fee` : `Fee (${withdrawFeePercent}%)`;
                     return (
                     <div className="bg-background-100 rounded-lg p-3 space-y-1.5 text-xs">
@@ -665,12 +666,12 @@ export default function PayoutsPage() {
                         </span>
                       </div>
                       <div className="flex justify-between border-t border-background-200/70 pt-1.5">
-                        <span className="text-foreground-500 font-medium">Total Deduction</span>
+                        <span className="text-foreground-500 font-medium">You receive</span>
                         <span className="font-bold text-foreground-900 whitespace-nowrap">
                           {formatCurrency(wTotal, activeCurrency)}
                         </span>
                       </div>
-                      <p className="text-[10px] text-foreground-400 mt-1">You will receive {formatCurrency(wAmt, activeCurrency)} on your mobile money account. Fee: {wAmt <= 70000 ? `flat ${formatCurrency(payoutFlatFee, activeCurrency)} (under 70K)` : `${withdrawFeePercent}% (over 70K)`}.</p>
+                      <p className="text-[10px] text-foreground-400 mt-1">{formatCurrency(wAmt, activeCurrency)} leaves your balance and {formatCurrency(wTotal, activeCurrency)} arrives on your mobile money. Fee: {wAmt <= 70000 ? `flat ${formatCurrency(payoutFlatFee, activeCurrency)} (under 70K)` : `${withdrawFeePercent}% (over 70K)`}.</p>
                     </div>
                     );
                   })()}
@@ -914,14 +915,14 @@ export default function PayoutsPage() {
                 {form.amount && parseFloat(form.amount) > 0 && (() => {
                   const pAmt = parseFloat(form.amount);
                   const pFee = pAmt <= 70000 ? payoutFlatFee : Math.round(pAmt * (withdrawFeePercent / 100) * 100) / 100;
-                  const pTotal = pAmt + pFee;
+                  const pTotal = Math.max(pAmt - pFee, 0);
                   const pFeeLabel = pAmt <= 70000 ? 'Flat fee' : `Fee (${withdrawFeePercent}%)`;
                   return (
                   <div className="bg-background-100 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between"><span className="text-foreground-500">Payout Amount</span><span className="font-semibold text-foreground-900 whitespace-nowrap">{formatCurrency(pAmt, form.currency)}</span></div>
                     <div className="flex justify-between"><span className="text-foreground-500">{pFeeLabel}</span><span className="font-medium text-accent-600 whitespace-nowrap">{formatCurrency(pFee, form.currency)}</span></div>
-                    <div className="flex justify-between border-t border-background-200/70 pt-1.5"><span className="text-foreground-500 font-medium">Total Deduction</span><span className="font-bold text-foreground-900 whitespace-nowrap">{formatCurrency(pTotal, form.currency)}</span></div>
-                    <p className="text-[10px] text-foreground-400 mt-1">{pAmt <= 70000 ? `Flat fee of ${formatCurrency(payoutFlatFee, form.currency)} for amounts under 70K.` : `${withdrawFeePercent}% fee for amounts over 70K.`} The recipient receives {formatCurrency(pAmt, form.currency)} on their mobile money account.</p>
+                    <div className="flex justify-between border-t border-background-200/70 pt-1.5"><span className="text-foreground-500 font-medium">Recipient receives</span><span className="font-bold text-foreground-900 whitespace-nowrap">{formatCurrency(pTotal, form.currency)}</span></div>
+                    <p className="text-[10px] text-foreground-400 mt-1">{pAmt <= 70000 ? `Flat fee of ${formatCurrency(payoutFlatFee, form.currency)} for amounts under 70K.` : `${withdrawFeePercent}% fee for amounts over 70K.`} The fee comes out of the amount, so the recipient receives {formatCurrency(pTotal, form.currency)}.</p>
                   </div>
                   );
                 })()}

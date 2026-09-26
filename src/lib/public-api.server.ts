@@ -145,14 +145,17 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
       : err("That reference is not available. Use a different one.");
   }
 
+  const { merchantTag } = await import("./merchant-identity.server");
   const out = await gatewayCollect(creds, {
+    merchant: await merchantTag(merchantId),
+    channel: "api_collection",
     reference,
     amount,
     customerName,
     customerEmail,
     phone,
     bankCode: networkCode(body.network || body.payment_method, phone),
-    description: String(body.description || "ObPay collection"),
+    description: String(body.description || reference),
     redirectUrl: body.redirect_url || body.redirectUrl || undefined,
     notifyUrl: callbackUrl(),
   });
@@ -246,7 +249,11 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     return err(`Insufficient balance. Available: ${available.toLocaleString()} ${currency}.`);
   }
 
+  const { merchantTag } = await import("./merchant-identity.server");
   const out = await gatewayPayout(creds, {
+    merchant: await merchantTag(merchantId),
+    channel: "api_payout",
+    feeInclusive: true,
     reference,
     amount,
     typeTrans: isBank ? 3 : 2,
@@ -255,7 +262,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     customerName: recipientName || "ObPay recipient",
     ...(isBank ? {} : { customerPhone: accountNumber }),
     ...(recipientEmail ? { customerEmail: recipientEmail } : {}),
-    remark: String(body.description || "ObPay payout"),
+    remark: String(body.description || reference),
     notifyUrl: callbackUrl(),
   });
 
@@ -283,13 +290,15 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     status: "pending",
     phone_number: accountNumber,
     description: body.description || null,
-    metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName },
+    metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName, fee_inclusive: true, fee: out.partnerFee, recipient_gets: out.net },
   });
 
   return ok({
     reference,
     callback_url: cb.url,
     amount,
+    fee: out.partnerFee,
+    recipient_gets: out.net,
     currency,
     status: "pending",
     type: "payout",
