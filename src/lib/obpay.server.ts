@@ -407,14 +407,17 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     if (dup) return { success: false, error: `Reference "${ref}" has already been used.` };
 
     const bankCode = networkCode(network, wallet);
+    const { merchantTag } = await import("./merchant-identity.server");
     const out = await gatewayCollect(creds, {
+      merchant: await merchantTag(userId),
+      channel: "dashboard_collection",
       reference: ref,
       amount: numAmount,
       customerName: String(customerName).trim(),
       customerEmail: String(customerEmail).trim(),
       phone: wallet,
       bankCode,
-      description: description || "Collection via ObPay",
+      description: description || ref,
       redirectUrl: `${(process.env["PUBLIC_SITE_URL"] || "https://obpay.online").trim().replace(/\/+$/, "")}/dashboard?paid=${encodeURIComponent(ref)}`,
       notifyUrl: callbackUrl(),
     });
@@ -507,16 +510,19 @@ export async function runObpayAction(action: string, accessToken: string, body: 
 
     const ps = first(await rest(accessToken, `/platform_settings?select=payout_flat_fee,withdraw_fee_percent&limit=1`));
     const isWithdraw = payoutType === "withdraw";
-    const fee = isWithdraw
-      ? Math.round(numAmount * (Number(ps?.withdraw_fee_percent ?? 9) / 100))
-      : Number(ps?.payout_flat_fee ?? 1020);
-    const totalDeduction = numAmount + fee;
+    // The fee comes out of the amount withdrawn: withdraw 10,000 → recipient gets 10,000 − fee.
+    const fee = numAmount <= 70000
+      ? Number(ps?.payout_flat_fee ?? 1020)
+      : Math.round(numAmount * (Number(ps?.withdraw_fee_percent ?? 3) / 100));
+    const totalDeduction = numAmount;
+    const recipientGets = numAmount - fee;
+    if (recipientGets <= 0) return { success: false, error: `The amount must be more than the ${fee.toLocaleString()} ${"UGX"} fee.` };
 
     const balance = Number(merchantWallet?.available_balance || 0);
     if (balance < totalDeduction) {
       return {
         success: false,
-        error: `Insufficient balance. This payout needs ${totalDeduction.toLocaleString()} ${currency} (including a ${fee.toLocaleString()} ${currency} fee) but your available balance is ${balance.toLocaleString()} ${currency}.`,
+        error: `Insufficient balance. You tried to send ${totalDeduction.toLocaleString()} ${currency} but your available balance is ${balance.toLocaleString()} ${currency}.`,
       };
     }
 
@@ -526,9 +532,13 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     const bankCode = destinationType === "bank" ? requestedBankCode : networkCode(network, wallet);
     const accountNumber = destinationType === "bank" ? rawAccount : wallet;
 
+    const { merchantTag } = await import("./merchant-identity.server");
+    const tag = await merchantTag(userId);
     const out = await gatewayPayout(creds, {
       reference: ref,
-      amount: numAmount,
+      amount: recipientGets,
+      merchant: tag,
+      channel: isWithdraw ? "dashboard_withdrawal" : "dashboard_payout",
       typeTrans: destinationType === "bank" ? 3 : 2,
       bankCode,
       accountNumber,
@@ -575,8 +585,8 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       body: JSON.stringify({
         id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
         currency, status: "pending", customer_phone: accountNumber, customer_name: String(customerName).trim(), provider_reference: out.platformReference,
-        fee_amount: fee, net_amount: numAmount, merchant_reference: ref,
-        metadata: { platform_reference: out.platformReference, payout_type: payoutType, destination_type: destinationType, bank_code: bankCode, network: bankName(bankCode) },
+        fee_amount: fee, net_amount: recipientGets, merchant_reference: ref,
+        metadata: { fee_inclusive: true, recipient_gets: recipientGets, merchant_kyc_status: tag.kyc, platform_reference: out.platformReference, payout_type: payoutType, destination_type: destinationType, bank_code: bankCode, network: bankName(bankCode) },
         created_at: now,
       }),
     });
@@ -608,7 +618,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       success: true,
       data: {
         transaction_id: txnId, reference: ref, provider_reference: out.platformReference, status: "pending",
-        amount: numAmount, currency, fee_amount: fee, total_deducted: totalDeduction,
+        amount: numAmount, currency, fee_amount: fee, total_deducted: totalDeduction, recipient_gets: recipientGets,
       },
     };
   }
@@ -659,7 +669,8 @@ async function resolveTransactionWithStatus(txn: any, status: "success" | "faile
     }
   }
   if (status === "failed" && txn.type === "payout" && wallet) {
-    const refund = Number(txn.amount) + fee;
+    // Newer payouts took the fee out of the amount, so only the amount is refunded.
+    const refund = Number(txn.amount) + (txn.metadata?.fee_inclusive ? 0 : fee);
     await restWrite("", `/merchant_wallets?user_id=eq.${txn.user_id}`, {
       method: "PATCH",
       body: JSON.stringify({

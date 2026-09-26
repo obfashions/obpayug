@@ -645,14 +645,17 @@ export async function publicCollect(body: Record<string, any>) {
   if (!phone) return fail("Enter the mobile money number that will pay, e.g. 0772123456.");
 
   const reference = `OBP${Date.now().toString(36).toUpperCase()}${randomToken(4).toUpperCase()}`;
+  const { merchantTag } = await import("./merchant-identity.server");
   const out = await gatewayCollect(creds, {
+    merchant: await merchantTag(link.merchant_id),
+    channel: "payment_link",
     reference,
     amount,
     customerName,
     customerEmail,
     phone,
     bankCode: networkCode(body.network, phone),
-    description: String(link.description || link.title || "ObPay payment"),
+    description: `${String(link.title || "Payment link").slice(0, 50)} – ${reference}`,
     redirectUrl: `https://obpay.online/pay/${slug}?ref=${reference}`,
     notifyUrl: callbackUrl(),
   });
