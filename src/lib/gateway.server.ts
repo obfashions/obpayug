@@ -375,6 +375,8 @@ export interface CollectionRequest {
   description?: string;
   redirectUrl?: string;
   notifyUrl?: string;
+  merchant?: import("./merchant-identity.server").MerchantTag;
+  channel?: string;
 }
 
 /**
@@ -383,12 +385,13 @@ export interface CollectionRequest {
  * not be sent, so the payer normally never leaves ObPay.
  */
 export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest) {
+  const { tagDescription, tagMetadata } = await import("./merchant-identity.server");
   const phone = intlNumber(req.phone);
   const body: Record<string, unknown> = {
     amount: Math.round(req.amount),
     currency: "UGX",
     reference: req.reference,
-    description: String(req.description || "ObPay payment").slice(0, 120),
+    description: tagDescription(req.merchant, String(req.description || req.reference)),
     customer: {
       email: req.customerEmail || "payments@obpay.online",
       name: (req.customerName || "ObPay customer").slice(0, 64),
@@ -396,7 +399,7 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
     },
     callback_url: req.notifyUrl || callbackUrl(),
     ...(req.redirectUrl ? { redirect_url: req.redirectUrl, cancel_url: req.redirectUrl } : {}),
-    metadata: { source: "obpay" },
+    metadata: { ...tagMetadata(req.merchant, req.channel || "dashboard"), obpay_reference: req.reference },
   };
   const res = await gatewayFetch(creds, "/api/v1/pay", { method: "POST", body });
   if (!res.ok) return { ok: false as const, res };
