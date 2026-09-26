@@ -24,6 +24,7 @@ export async function invokeEdgeFunction(
       method: "POST",
       headers,
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(25000),
     });
 
     const text = await resp.text();
@@ -33,7 +34,7 @@ export async function invokeEdgeFunction(
       return { success: false, error: text || `Server error (HTTP ${resp.status})` };
     }
   } catch (err: any) {
-    return { success: false, error: err?.message || "Network error" };
+    return { success: false, error: err?.name === "TimeoutError" ? "The server took too long to respond. Please try again." : err?.message || "Network error" };
   }
 }
 
