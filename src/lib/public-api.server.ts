@@ -108,7 +108,7 @@ function merchantMeta(body: Record<string, any>) {
 
 // ─── collections ──────────────────────────────────────────────
 
-export async function apiCollect(merchantId: string, body: Record<string, any>) {
+export async function apiCollect(merchantId: string, body: Record<string, any>, source = "api") {
   const { getGatewayCreds, gatewayCollect, walletNumber, networkCode, friendlyError, callbackUrl } = await import(
     "./gateway.server"
   );
@@ -117,17 +117,21 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
-  if (currency !== "UGX") return err("`currency` must be `UGX`.");
+  if (!["UGX", "KES", "RWF", "USD"].includes(currency)) return err("`currency` must be one of UGX, KES, RWF or USD.");
+  const crypto = body.crypto === true || body.payment_method === "crypto" || currency === "USD";
   const customerName = pick(body, "customer_name", "customerName", "customer_name");
   const customerEmail = pick(body, "customer_email", "customerEmail");
   const cb = await callbackFrom(body);
   if (cb.error) return err(cb.error);
   if (!customerName) return err("`customer_name` is required.");
   if (!/^\S+@\S+\.\S+$/.test(customerEmail)) return err("`customer_email` must be a valid email address.");
-  const phone = walletNumber(pick(body, "phone_number", "phoneNumber", "customer_phone"));
+  const { intlPhone, countryFor } = await import("./countries");
+  const rawPhone = pick(body, "phone_number", "phoneNumber", "customer_phone");
+  const phone = currency === "USD" ? "" : currency === "UGX" ? walletNumber(rawPhone) : intlPhone(rawPhone, currency);
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
-  if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
-  if (!phone) return err("`phone_number` must be a Ugandan mobile money number, e.g. 0772123456.");
+  if (currency !== "USD" && !Number.isInteger(amount)) return err("`amount` must be a whole number.");
+  if (currency === "USD" && amount < 0.5) return err("The minimum crypto/USD payment is 0.50.");
+  if (currency !== "USD" && !phone) return err(`\`phone_number\` must be a ${countryFor(currency)?.country} mobile money number, e.g. ${countryFor(currency)?.example}.`);
 
   const reference = String(body.reference || `OBP${Date.now().toString(36).toUpperCase()}`).slice(0, 40);
   // `reference` is globally unique (payment_records upserts on it), so the
@@ -148,7 +152,10 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
   const { merchantTag } = await import("./merchant-identity.server");
   const out = await gatewayCollect(creds, {
     merchant: await merchantTag(merchantId),
-    channel: "api_collection",
+    channel: `${source}_collection`,
+    currency,
+    crypto,
+    network: String(body.network || ""),
     reference,
     amount,
     customerName,
@@ -164,7 +171,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
     await recordPayment(merchantId, {
       reference,
       type: "collection",
-      source: "api",
+      source,
       amount,
       currency,
       status: "failed",
@@ -179,7 +186,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
     reference,
     provider_reference: out.platformReference,
     type: "collection",
-    source: "api",
+    source,
     amount,
     currency,
     status: "pending",
@@ -195,6 +202,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
       ? "A PIN prompt was sent to the customer's phone. They approve it to complete the payment."
       : "Send the customer to checkout_url to complete the payment.",
     checkout_url: out.checkoutUrl || null,
+    crypto_payment_url: out.cryptoUrl || null,
     callback_url: cb.url,
     amount,
     currency,
@@ -205,7 +213,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>) 
 
 // ─── payouts (send money) ─────────────────────────────────────
 
-export async function apiPayout(merchantId: string, body: Record<string, any>) {
+export async function apiPayout(merchantId: string, body: Record<string, any>, source = "api") {
   const { getGatewayCreds, gatewayPayout, walletNumber, networkCode, friendlyError, callbackUrl, UG_BANKS } =
     await import("./gateway.server");
   const creds = await getGatewayCreds();
@@ -213,7 +221,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
-  if (currency !== "UGX") return err("`currency` must be `UGX`.");
+  if (!["UGX", "KES", "RWF"].includes(currency)) return err("`currency` must be one of UGX, KES or RWF.");
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
   if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
 
@@ -223,8 +231,10 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
   const cb = await callbackFrom(body);
   if (cb.error) return err(cb.error);
   const isBank = false;
-  const accountNumber = walletNumber(pick(body, "phone_number", "phoneNumber", "account_number"));
-  if (!accountNumber) return err("`phone_number` must be a Ugandan mobile money number, e.g. 0772123456.");
+  const { intlPhone, countryFor } = await import("./countries");
+  const rawAcct = pick(body, "phone_number", "phoneNumber", "account_number");
+  const accountNumber = currency === "UGX" ? walletNumber(rawAcct) : intlPhone(rawAcct, currency);
+  if (!accountNumber) return err(`\`phone_number\` must be a ${countryFor(currency)?.country} mobile money number, e.g. ${countryFor(currency)?.example}.`);
   const recipientName = pick(body, "customer_name", "customerName", "recipient_name");
   if (!recipientName) return err("`customer_name` is required for every payout.");
   const recipientEmail = pick(body, "customer_email", "customerEmail");
@@ -243,8 +253,9 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
   }
 
   // Only pay out money the merchant has actually collected through ObPay.
-  const balance = await apiBalance(merchantId);
-  const available = Number((balance as any)?.data?.net ?? 0);
+  const balance: any = await apiBalance(merchantId);
+  const row = (balance?.data?.balances || []).find((b: any) => b.currency === currency);
+  const available = Number(row?.available_balance ?? 0);
   if (Number.isFinite(available) && amount > available) {
     return err(`Insufficient balance. Available: ${available.toLocaleString()} ${currency}.`);
   }
@@ -252,7 +263,9 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
   const { merchantTag } = await import("./merchant-identity.server");
   const out = await gatewayPayout(creds, {
     merchant: await merchantTag(merchantId),
-    channel: "api_payout",
+    channel: `${source}_payout`,
+    currency,
+    network: String(body.network || ""),
     feeInclusive: true,
     reference,
     amount,
@@ -270,7 +283,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     await recordPayment(merchantId, {
       reference,
       type: "payout",
-      source: "api",
+      source,
       amount,
       currency,
       status: "failed",
@@ -284,7 +297,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>) {
     reference,
     provider_reference: out.platformReference,
     type: "payout",
-    source: "api",
+    source,
     amount,
     currency,
     status: "pending",

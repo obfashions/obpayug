@@ -1,0 +1,84 @@
+import { useState } from "react";
+import { platform } from "@/lib/platform";
+import { MONEY_COUNTRIES } from "@/lib/countries";
+
+/** Kenya / Rwanda collections and payouts (Uganda uses the main form on the page). */
+export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" }) {
+  const intl = MONEY_COUNTRIES.filter((c) => c.currency !== "UGX");
+  const [cur, setCur] = useState(intl[0]!.currency);
+  const country = intl.find((c) => c.currency === cur)!;
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ phone: "", network: "", amount: "", name: "", email: "", description: "" });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string; link?: string } | null>(null);
+  const set = (k: keyof typeof form) => (e: any) => setForm({ ...form, [k]: e.target.value });
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setMsg(null);
+    const body: Record<string, unknown> = {
+      currency: cur,
+      amount: Number(form.amount),
+      phone_number: form.phone,
+      network: form.network || country.networks[0]!.value,
+      customer_name: form.name,
+      customer_email: form.email,
+      description: form.description,
+    };
+    const res = await platform(mode === "collect" ? "intl.collect" : "intl.payout", body);
+    setBusy(false);
+    if (!res.success) return setMsg({ ok: false, text: res.error || "Something went wrong." });
+    const d: any = res.data || {};
+    if (mode === "collect") {
+      setMsg({ ok: true, text: d.prompt_sent ? "PIN prompt sent. Ask the customer to approve it on their phone." : "Payment started. Share the secure payment page with the customer.", link: d.checkout_url || undefined });
+    } else {
+      setMsg({ ok: true, text: `Payout sent. Recipient gets ${Number(d.recipient_gets || 0).toLocaleString()} ${cur} (fee ${Number(d.fee || 0).toLocaleString()} ${cur}).` });
+    }
+    setForm({ phone: "", network: "", amount: "", name: "", email: "", description: "" });
+  }
+
+  const input = "w-full px-3 py-2.5 rounded-lg border border-background-200 bg-background-50 text-sm text-foreground-900 focus:outline-none focus:border-primary-400";
+  return (
+    <div className="bg-background-50 rounded-xl border border-background-200/70 p-4">
+      <button type="button" onClick={() => setOpen(!open)} className="w-full flex items-center justify-between gap-3 cursor-pointer text-left">
+        <div>
+          <p className="font-semibold text-sm text-foreground-900">{mode === "collect" ? "Collect in Kenya or Rwanda" : "Send to Kenya or Rwanda"}</p>
+          <p className="text-xs text-foreground-600">🇰🇪 KES M-Pesa & Airtel · 🇷🇼 RWF MTN & Airtel</p>
+        </div>
+        <i className={`ri-arrow-${open ? "up" : "down"}-s-line text-xl text-foreground-600`} />
+      </button>
+      {open && (
+        <form onSubmit={submit} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2 flex gap-2">
+            {intl.map((c) => (
+              <button key={c.currency} type="button" onClick={() => { setCur(c.currency); setForm({ ...form, network: "" }); }}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm border cursor-pointer ${cur === c.currency ? "border-primary-500 bg-primary-50 text-primary-700 font-medium" : "border-background-200 text-foreground-700"}`}>
+                {c.flag} {c.country} ({c.currency})
+              </button>
+            ))}
+          </div>
+          <select value={form.network || country.networks[0]!.value} onChange={set("network")} className={input}>
+            {country.networks.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+          </select>
+          <input required value={form.phone} onChange={set("phone")} placeholder={`Mobile number, e.g. ${country.example}`} inputMode="tel" className={input} />
+          <input required value={form.amount} onChange={set("amount")} placeholder={`Amount (${cur}, whole number)`} inputMode="numeric" className={input} />
+          <input required value={form.name} onChange={set("name")} placeholder={mode === "collect" ? "Customer full name" : "Recipient full name"} className={input} />
+          <input required={mode === "collect"} type="email" value={form.email} onChange={set("email")} placeholder={mode === "collect" ? "Customer email" : "Recipient email (optional)"} className={input} />
+          <input value={form.description} onChange={set("description")} placeholder="Description (optional)" className={input} />
+          {mode === "payout" && <p className="sm:col-span-2 text-xs text-foreground-600">Paid from your {cur} balance. The fee comes out of the amount sent.</p>}
+          <button disabled={busy} className="sm:col-span-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-background-50 rounded-lg py-2.5 text-sm font-medium cursor-pointer">
+            {busy ? "Please wait…" : mode === "collect" ? `Request ${cur} payment` : `Send ${cur}`}
+          </button>
+          {msg && (
+            <div className={`sm:col-span-2 text-sm rounded-lg p-3 ${msg.ok ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700"}`}>
+              {msg.text}
+              {msg.link && <a href={msg.link} target="_blank" rel="noreferrer" className="block mt-1 underline break-all">Open payment page</a>}
+            </div>
+          )}
+        </form>
+      )}
+    </div>
+  );
+}

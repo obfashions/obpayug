@@ -103,6 +103,18 @@ async function handle(request: Request, params: Record<string, string>) {
       return { payload: await api.apiPayout(merchantId!, body) };
     }
 
+    // refunds, rates, payout methods
+    {
+      const m = await import("@/lib/money.server");
+      const who = { userId: merchantId!, email: "", isAdmin: false } as any;
+      if ((path === "refund" || path === "refunds") && method === "POST") return { payload: await m.createRefund(who, body) };
+      if (path === "refunds" && method === "GET") return { payload: await m.listRefundable(who) };
+      if (path === "rates" && method === "GET") return { payload: await m.getRates() };
+      if (path === "payout-methods" && method === "GET") {
+        return { payload: await m.payoutMethods(url.searchParams.get("currency") || "UGX") };
+      }
+    }
+
     // transactions
     if (seg[0] === "transactions" && seg.length === 1 && method === "GET") {
       return { payload: await api.apiTransactions(merchantId!, url.searchParams) };

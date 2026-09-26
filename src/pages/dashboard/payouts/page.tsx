@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
+import IntlMoneyPanel from "@/components/feature/IntlMoneyPanel";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -453,6 +454,7 @@ export default function PayoutsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <IntlMoneyPanel mode="payout" />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="font-heading font-bold text-2xl text-foreground-900">Payouts</h1>

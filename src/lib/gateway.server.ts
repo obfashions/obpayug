@@ -377,6 +377,12 @@ export interface CollectionRequest {
   notifyUrl?: string;
   merchant?: import("./merchant-identity.server").MerchantTag;
   channel?: string;
+  /** UGX (default), KES, RWF or USD. */
+  currency?: string;
+  /** KES only: "airtel_money" skips the M-Pesa prompt. */
+  network?: string;
+  /** Send the payer to the crypto checkout. */
+  crypto?: boolean;
 }
 
 /**
@@ -386,10 +392,12 @@ export interface CollectionRequest {
  */
 export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest) {
   const { tagDescription, tagMetadata } = await import("./merchant-identity.server");
-  const phone = intlNumber(req.phone);
+  const { intlPhone } = await import("./countries");
+  const currency = String(req.currency || "UGX").toUpperCase();
+  const phone = currency === "USD" ? "" : intlPhone(req.phone, currency);
   const body: Record<string, unknown> = {
-    amount: Math.round(req.amount),
-    currency: "UGX",
+    amount: currency === "USD" ? Math.round(req.amount * 100) / 100 : Math.round(req.amount),
+    currency,
     reference: req.reference,
     description: tagDescription(req.merchant, String(req.description || req.reference)),
     customer: {
@@ -398,6 +406,7 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
       ...(phone ? { phone } : {}),
     },
     callback_url: req.notifyUrl || callbackUrl(),
+    ...(currency === "KES" ? { stk_push: req.network !== "airtel_money" } : {}),
     ...(req.redirectUrl ? { redirect_url: req.redirectUrl, cancel_url: req.redirectUrl } : {}),
     metadata: { ...tagMetadata(req.merchant, req.channel || "dashboard"), obpay_reference: req.reference },
   };
@@ -405,12 +414,15 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
   if (!res.ok) return { ok: false as const, res };
 
   const reference = String(res.data?.reference || req.reference);
+  const cryptoUrl = String(res.data?.crypto_payment_url || "");
   let promptSent = false;
-  if (phone) {
+  if (currency === "KES") {
+    promptSent = res.data?.stk_sent === true;
+  } else if (phone && !req.crypto) {
     const push = await gatewayFetch(creds, "/payment/pawapay-process", {
       method: "POST",
       auth: false,
-      body: { reference, currency: "UGX", phone },
+      body: { reference, currency, phone },
     });
     promptSent = push.ok && (push.raw?.pending === true || push.raw?.success === true);
     if (!promptSent) console.warn("[gateway] phone prompt not sent", push.httpStatus, push.error);
@@ -421,7 +433,30 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
     res,
     promptSent,
     platformReference: reference,
-    checkoutUrl: promptSent ? "" : String(res.data?.payment_url || ""),
+    cryptoUrl,
+    checkoutUrl: req.crypto ? cryptoUrl : promptSent ? "" : String(res.data?.payment_url || ""),
+  };
+}
+
+/** Records a refund with the partner (bookkeeping only — it moves no money). */
+export async function gatewayRefund(creds: GatewayCreds, reference: string, amount?: number, reason?: string) {
+  return gatewayFetch(creds, "/api/v1/refund", {
+    method: "POST",
+    body: { reference, ...(amount ? { amount } : {}), ...(reason ? { reason } : {}) },
+  });
+}
+
+/** Payout rules (minimum, fee, methods) for one currency, live from the partner. */
+export async function gatewayPayoutMethods(creds: GatewayCreds, currency: string) {
+  const res = await gatewayFetch(creds, `/api/v1/payout-methods?currency=${encodeURIComponent(currency)}`);
+  const pm = res.raw?.payout_methods || {};
+  return {
+    ok: res.ok,
+    currency,
+    available: res.ok && pm.available !== false && Array.isArray(pm.methods) && pm.methods.length > 0,
+    minimum: Number(pm.minimum_withdrawal) || 0,
+    fee: pm.fee || null,
+    methods: (pm.methods || []).map((m: any) => ({ value: String(m.value), label: String(m.label) })),
   };
 }
 
@@ -454,55 +489,61 @@ export interface PayoutRequest {
   channel?: string;
   /** When true the partner fee is taken from `amount` instead of added on top. */
   feeInclusive?: boolean;
+  /** UGX (default), KES or RWF. */
+  currency?: string;
+  /** KES: mpesa / airtel_money. */
+  network?: string;
 }
 
-let payoutRuleCache: { at: number; min: number; percent: number; floor: number; flat: number } | null = null;
-async function payoutRules(creds: GatewayCreds) {
-  if (payoutRuleCache && Date.now() - payoutRuleCache.at < 10 * 60_000) return payoutRuleCache;
-  const res = await gatewayFetch(creds, "/api/v1/payout-methods?currency=UGX");
+const payoutRuleCache = new Map<string, { at: number; min: number; percent: number; floor: number; flat: number }>();
+async function payoutRules(creds: GatewayCreds, currency = "UGX") {
+  const hit = payoutRuleCache.get(currency);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return hit;
+  const res = await gatewayFetch(creds, `/api/v1/payout-methods?currency=${currency}`);
   const pm = res.raw?.payout_methods || {};
   const fee = pm.fee || {};
-  payoutRuleCache = {
+  const rules = {
     at: Date.now(),
-    min: Number(pm.minimum_withdrawal) || 10000,
+    min: Number(pm.minimum_withdrawal) || (currency === "UGX" ? 10000 : 1),
     percent: fee.type === "percent" ? Number(fee.percent) || 0 : 0,
     floor: Number(fee.floor) || 0,
     flat: fee.type === "flat" ? Number(fee.amount ?? fee.value) || 0 : 0,
   };
-  return payoutRuleCache;
+  payoutRuleCache.set(currency, rules);
+  return rules;
 }
 
-/** Sends money to a mobile money wallet. The recipient receives the full amount. */
+/** Sends money to a mobile money wallet. */
 export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
+  const currency = String(req.currency || "UGX").toUpperCase();
   if (req.typeTrans === 3) {
     return {
       ok: false as const,
-      res: { ok: false, httpStatus: 400, code: "bank_unsupported", data: null, raw: null, error: "Bank payouts are not available in Uganda yet. Send to MTN or Airtel mobile money instead." } as GatewayResult,
+      res: { ok: false, httpStatus: 400, code: "bank_unsupported", data: null, raw: null, error: "Bank payouts are not available yet. Send to a mobile money number instead." } as GatewayResult,
     };
   }
-  const phone = intlNumber(req.accountNumber);
+  const { intlPhone, countryFor } = await import("./countries");
+  const phone = intlPhone(req.accountNumber, currency);
   if (!phone) {
     return {
       ok: false as const,
-      res: { ok: false, httpStatus: 400, code: "bad_number", data: null, raw: null, error: "That mobile money number is not valid. Use the 07XXXXXXXX format." } as GatewayResult,
+      res: { ok: false, httpStatus: 400, code: "bad_number", data: null, raw: null, error: `That mobile money number is not valid. Use the ${countryFor(currency)?.example || "07XXXXXXXX"} format.` } as GatewayResult,
     };
   }
-  const rules = await payoutRules(creds);
+  const rules = await payoutRules(creds, currency);
   let gross: number;
   let net: number;
   if (req.feeInclusive) {
-    // The partner's fee comes out of the amount sent: recipient gets amount − fee.
     gross = Math.round(req.amount);
     const f = rules.flat ? rules.flat : rules.percent ? Math.max(Math.ceil(gross * rules.percent / 100), rules.floor) : 0;
     net = gross - f;
     if (gross < rules.min || net <= 0) {
       return {
         ok: false as const,
-        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is UGX ${rules.min.toLocaleString("en")}.` } as GatewayResult,
+        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is ${currency} ${rules.min.toLocaleString("en")}.` } as GatewayResult,
       };
     }
   } else {
-    // `amount` is what the recipient must receive; gross it up for the partner's fee.
     net = Math.round(req.amount);
     gross = net;
     if (rules.flat) gross = net + rules.flat;
@@ -510,15 +551,16 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
     if (gross < rules.min) {
       return {
         ok: false as const,
-        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is UGX ${Math.max(rules.min - (gross - net), 1).toLocaleString("en")}.` } as GatewayResult,
+        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is ${currency} ${Math.max(rules.min - (gross - net), 1).toLocaleString("en")}.` } as GatewayResult,
       };
     }
   }
+  const method = currency === "KES" ? (req.network === "airtel_money" ? "airtel_money" : "mpesa") : "mobile_money";
   const { tagDescription, tagMetadata } = await import("./merchant-identity.server");
   const body = {
     amount: gross,
-    currency: "UGX",
-    method: "mobile_money",
+    currency,
+    method,
     account_number: phone,
     account_name: (req.customerName || "ObPay recipient").slice(0, 64),
     reference: req.reference,

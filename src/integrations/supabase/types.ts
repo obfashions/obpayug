@@ -53,6 +53,42 @@ export type Database = {
         }
         Relationships: []
       }
+      currency_exchanges: {
+        Row: {
+          created_at: string
+          fee_percent: number
+          from_amount: number
+          from_currency: string
+          id: string
+          merchant_id: string
+          rate: number
+          to_amount: number
+          to_currency: string
+        }
+        Insert: {
+          created_at?: string
+          fee_percent?: number
+          from_amount: number
+          from_currency: string
+          id?: string
+          merchant_id: string
+          rate: number
+          to_amount: number
+          to_currency: string
+        }
+        Update: {
+          created_at?: string
+          fee_percent?: number
+          from_amount?: number
+          from_currency?: string
+          id?: string
+          merchant_id?: string
+          rate?: number
+          to_amount?: number
+          to_currency?: string
+        }
+        Relationships: []
+      }
       kyc_documents: {
         Row: {
           created_at: string
@@ -229,6 +265,48 @@ export type Database = {
           total_collections?: number
           total_payouts?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      merchant_refunds: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          error: string | null
+          id: string
+          merchant_id: string
+          original_reference: string
+          phone_number: string | null
+          reason: string | null
+          refund_reference: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          error?: string | null
+          id?: string
+          merchant_id: string
+          original_reference: string
+          phone_number?: string | null
+          reason?: string | null
+          refund_reference: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          error?: string | null
+          id?: string
+          merchant_id?: string
+          original_reference?: string
+          phone_number?: string | null
+          reason?: string | null
+          refund_reference?: string
+          status?: string
         }
         Relationships: []
       }

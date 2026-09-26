@@ -42,9 +42,12 @@ import { Route as DashboardBankTransferRouteImport } from './routes/dashboard.ba
 import { Route as DashboardBillPaymentsRouteImport } from './routes/dashboard.bill-payments'
 import { Route as DashboardCollectionsRouteImport } from './routes/dashboard.collections'
 import { Route as DashboardCompanyDocumentsRouteImport } from './routes/dashboard.company-documents'
+import { Route as DashboardCryptoRouteImport } from './routes/dashboard.crypto'
+import { Route as DashboardExchangeRouteImport } from './routes/dashboard.exchange'
 import { Route as DashboardKycRouteImport } from './routes/dashboard.kyc'
 import { Route as DashboardPaymentLinksRouteImport } from './routes/dashboard.payment-links'
 import { Route as DashboardPayoutsRouteImport } from './routes/dashboard.payouts'
+import { Route as DashboardRefundsRouteImport } from './routes/dashboard.refunds'
 import { Route as DashboardReportsRouteImport } from './routes/dashboard.reports'
 import { Route as DashboardServicesRouteImport } from './routes/dashboard.services'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
@@ -225,6 +228,16 @@ const DashboardCompanyDocumentsRoute =
     path: '/dashboard/company-documents',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DashboardCryptoRoute = DashboardCryptoRouteImport.update({
+  id: '/dashboard/crypto',
+  path: '/dashboard/crypto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardExchangeRoute = DashboardExchangeRouteImport.update({
+  id: '/dashboard/exchange',
+  path: '/dashboard/exchange',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardKycRoute = DashboardKycRouteImport.update({
   id: '/dashboard/kyc',
   path: '/dashboard/kyc',
@@ -238,6 +251,11 @@ const DashboardPaymentLinksRoute = DashboardPaymentLinksRouteImport.update({
 const DashboardPayoutsRoute = DashboardPayoutsRouteImport.update({
   id: '/dashboard/payouts',
   path: '/dashboard/payouts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRefundsRoute = DashboardRefundsRouteImport.update({
+  id: '/dashboard/refunds',
+  path: '/dashboard/refunds',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardReportsRoute = DashboardReportsRouteImport.update({
@@ -340,9 +358,12 @@ export interface FileRoutesByFullPath {
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
+  '/dashboard/crypto': typeof DashboardCryptoRoute
+  '/dashboard/exchange': typeof DashboardExchangeRoute
   '/dashboard/kyc': typeof DashboardKycRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
+  '/dashboard/refunds': typeof DashboardRefundsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -391,9 +412,12 @@ export interface FileRoutesByTo {
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
+  '/dashboard/crypto': typeof DashboardCryptoRoute
+  '/dashboard/exchange': typeof DashboardExchangeRoute
   '/dashboard/kyc': typeof DashboardKycRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
+  '/dashboard/refunds': typeof DashboardRefundsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -443,9 +467,12 @@ export interface FileRoutesById {
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
+  '/dashboard/crypto': typeof DashboardCryptoRoute
+  '/dashboard/exchange': typeof DashboardExchangeRoute
   '/dashboard/kyc': typeof DashboardKycRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
+  '/dashboard/refunds': typeof DashboardRefundsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -496,9 +523,12 @@ export interface FileRouteTypes {
     | '/dashboard/bill-payments'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
+    | '/dashboard/crypto'
+    | '/dashboard/exchange'
     | '/dashboard/kyc'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
+    | '/dashboard/refunds'
     | '/dashboard/reports'
     | '/dashboard/services'
     | '/dashboard/settings'
@@ -547,9 +577,12 @@ export interface FileRouteTypes {
     | '/dashboard/bill-payments'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
+    | '/dashboard/crypto'
+    | '/dashboard/exchange'
     | '/dashboard/kyc'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
+    | '/dashboard/refunds'
     | '/dashboard/reports'
     | '/dashboard/services'
     | '/dashboard/settings'
@@ -598,9 +631,12 @@ export interface FileRouteTypes {
     | '/dashboard/bill-payments'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
+    | '/dashboard/crypto'
+    | '/dashboard/exchange'
     | '/dashboard/kyc'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
+    | '/dashboard/refunds'
     | '/dashboard/reports'
     | '/dashboard/services'
     | '/dashboard/settings'
@@ -650,9 +686,12 @@ export interface RootRouteChildren {
   DashboardBillPaymentsRoute: typeof DashboardBillPaymentsRoute
   DashboardCollectionsRoute: typeof DashboardCollectionsRoute
   DashboardCompanyDocumentsRoute: typeof DashboardCompanyDocumentsRoute
+  DashboardCryptoRoute: typeof DashboardCryptoRoute
+  DashboardExchangeRoute: typeof DashboardExchangeRoute
   DashboardKycRoute: typeof DashboardKycRoute
   DashboardPaymentLinksRoute: typeof DashboardPaymentLinksRoute
   DashboardPayoutsRoute: typeof DashboardPayoutsRoute
+  DashboardRefundsRoute: typeof DashboardRefundsRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
   DashboardServicesRoute: typeof DashboardServicesRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
@@ -903,6 +942,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCompanyDocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/crypto': {
+      id: '/dashboard/crypto'
+      path: '/dashboard/crypto'
+      fullPath: '/dashboard/crypto'
+      preLoaderRoute: typeof DashboardCryptoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/exchange': {
+      id: '/dashboard/exchange'
+      path: '/dashboard/exchange'
+      fullPath: '/dashboard/exchange'
+      preLoaderRoute: typeof DashboardExchangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/kyc': {
       id: '/dashboard/kyc'
       path: '/dashboard/kyc'
@@ -922,6 +975,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/payouts'
       fullPath: '/dashboard/payouts'
       preLoaderRoute: typeof DashboardPayoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/refunds': {
+      id: '/dashboard/refunds'
+      path: '/dashboard/refunds'
+      fullPath: '/dashboard/refunds'
+      preLoaderRoute: typeof DashboardRefundsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/reports': {
@@ -1050,9 +1110,12 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardBillPaymentsRoute: DashboardBillPaymentsRoute,
   DashboardCollectionsRoute: DashboardCollectionsRoute,
   DashboardCompanyDocumentsRoute: DashboardCompanyDocumentsRoute,
+  DashboardCryptoRoute: DashboardCryptoRoute,
+  DashboardExchangeRoute: DashboardExchangeRoute,
   DashboardKycRoute: DashboardKycRoute,
   DashboardPaymentLinksRoute: DashboardPaymentLinksRoute,
   DashboardPayoutsRoute: DashboardPayoutsRoute,
+  DashboardRefundsRoute: DashboardRefundsRoute,
   DashboardReportsRoute: DashboardReportsRoute,
   DashboardServicesRoute: DashboardServicesRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
