@@ -319,7 +319,7 @@ export async function dispatchWebhook(merchantId: string, event: string, payload
         headers: {
           "Content-Type": "application/json",
           "X-ObPay-Event": event,
-          "X-ObPay-Signature": await hmacHex(endpoint.secret, bodyText),
+          "X-ObPay-Signature": await hmacHex(await merchantSigningSecret(merchantId), bodyText),
         },
         body: bodyText,
       });
@@ -367,6 +367,78 @@ export async function listWebhookDeliveries(id: Identity, limit = 50) {
     .limit(limit);
   if (error) return fail(error.message);
   return done(data ?? []);
+}
+
+// ─── webhook signing secret ───────────────────────────────────
+//
+// Each merchant has ONE signing secret. Every notification ObPay sends to the
+// `callback_url` given on a collection/payout is signed with it
+// (X-ObPay-Signature = HMAC-SHA256 hex of the raw body).
+
+export async function merchantSigningSecret(merchantId: string): Promise<string> {
+  const { data } = await db().from("merchant_signing_secrets").select("secret").eq("merchant_id", merchantId).maybeSingle();
+  if (data?.secret) return data.secret;
+  const secret = `whsec_${randomToken(32)}`;
+  await db().from("merchant_signing_secrets").upsert({ merchant_id: merchantId, secret }, { onConflict: "merchant_id", ignoreDuplicates: true });
+  const { data: again } = await db().from("merchant_signing_secrets").select("secret").eq("merchant_id", merchantId).maybeSingle();
+  return again?.secret || secret;
+}
+
+export async function getSigningSecret(id: Identity) {
+  return done({ secret: await merchantSigningSecret(id.userId) });
+}
+
+export async function rotateSigningSecret(id: Identity) {
+  const secret = `whsec_${randomToken(32)}`;
+  const { error } = await db()
+    .from("merchant_signing_secrets")
+    .upsert({ merchant_id: id.userId, secret, rotated_at: new Date().toISOString() }, { onConflict: "merchant_id" });
+  if (error) return fail(error.message);
+  return done({ secret });
+}
+
+/** Sends one signed event to a per-payment callback URL and records it. */
+export async function deliverCallback(merchantId: string, url: string, event: string, payload: Record<string, unknown>) {
+  const bodyText = JSON.stringify({ event, created_at: new Date().toISOString(), data: payload });
+  let responseCode: number | null = null;
+  let responseBody = "";
+  if (!isSafeWebhookUrl(url)) {
+    responseBody = "callback_url is not a public https:// address; delivery skipped.";
+  } else {
+    const secret = await merchantSigningSecret(merchantId);
+    const sig = await hmacHex(secret, bodyText);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const resp = await fetch(url, {
+          method: "POST",
+          redirect: "manual",
+          signal: AbortSignal.timeout(8000),
+          headers: { "Content-Type": "application/json", "X-ObPay-Event": event, "X-ObPay-Signature": sig },
+          body: bodyText,
+        });
+        responseCode = resp.status;
+        responseBody = (await resp.text()).slice(0, 2000);
+        if (resp.status >= 200 && resp.status < 300) break;
+      } catch (err: any) {
+        responseBody = err?.message || "Could not reach the callback URL";
+      }
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    }
+  }
+  try {
+    await db().from("webhook_deliveries").insert({
+      endpoint_id: null,
+      merchant_id: merchantId,
+      event,
+      payload: { ...payload, callback_url: url },
+      response_code: responseCode,
+      response_body: responseBody,
+      status: responseCode && responseCode >= 200 && responseCode < 300 ? "delivered" : "failed",
+    });
+  } catch {
+    /* logging must never break a payment */
+  }
+  return { url, response_code: responseCode, response_body: responseBody };
 }
 
 // ─── request logs ─────────────────────────────────────────────
@@ -691,6 +763,11 @@ export async function runPlatformAction(
         return await updatePaymentLink(id, body.id, body);
       case "links.delete":
         return await deletePaymentLink(id, body.id);
+
+      case "signing-secret.get":
+        return await getSigningSecret(id);
+      case "signing-secret.rotate":
+        return await rotateSigningSecret(id);
 
       case "webhooks.list":
         return await listWebhooks(id);
