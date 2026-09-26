@@ -7,6 +7,8 @@ export const Route = createFileRoute("/dashboard/airtime-data")({
       { title: "Airtime & Data — ObPay" },
       { name: "description", content: "Buy MTN, Airtel and Lyca airtime and data bundles directly from your ObPay wallet." },
       { property: "og:title", content: "Airtime & Data — ObPay" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:description", content: "Buy MTN, Airtel and Lyca airtime and data bundles directly from your ObPay wallet." },
     ],
   }),

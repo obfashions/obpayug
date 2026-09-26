@@ -1,4 +1,4 @@
-import { safeGetSession } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { getAccessToken } from "@/lib/session-token";
 
 const baseUrl = (import.meta.env.VITE_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -9,27 +9,44 @@ export async function invokeEdgeFunction(
   extraHeaders?: Record<string, string>,
 ): Promise<any> {
   try {
-    const { data: sessionData } = await safeGetSession();
-    const token = sessionData?.session?.access_token || "";
+    let token = await getAccessToken();
+    if (!token) return { success: false, error: "Your session has expired. Please sign in again to continue." };
     const anonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || "";
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(anonKey ? { apikey: anonKey } : {}),
-      ...(extraHeaders || {}),
-    };
-
-    const resp = await fetch(`${baseUrl}/functions/v1/${functionName}`, {
+    const request = (accessToken: string) => fetch(`${baseUrl}/functions/v1/${functionName}`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        ...(anonKey ? { apikey: anonKey } : {}),
+        ...(extraHeaders || {}),
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(25000),
     });
 
+    let resp = await request(token);
+    // The old account service can reject a token that expired between opening
+    // the admin screen and pressing Save. Refresh once, then retry the 401 only.
+    if (resp.status === 401) {
+      let fresh = "";
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        fresh = error ? "" : data.session?.access_token || "";
+      } catch {
+        // A revoked refresh token really does require signing in again.
+      }
+      if (fresh && fresh !== token) {
+        token = fresh;
+        resp = await request(token);
+      }
+    }
+    if (resp.status === 401) {
+      return { success: false, error: "Your session has expired. Please sign in again to continue." };
+    }
     const text = await resp.text();
     try {
-      return JSON.parse(text);
+      const result = JSON.parse(text);
+      return resp.ok ? result : { ...result, success: false, error: result?.error || `Request failed (HTTP ${resp.status})` };
     } catch {
       return { success: false, error: text || `Server error (HTTP ${resp.status})` };
     }

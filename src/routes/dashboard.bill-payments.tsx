@@ -7,6 +7,8 @@ export const Route = createFileRoute("/dashboard/bill-payments")({
       { title: "Bill Payments — ObPay" },
       { name: "description", content: "Pay LIGHT/UMEME electricity, NWSC water, DSTV and GOTV bills from your ObPay wallet." },
       { property: "og:title", content: "Bill Payments — ObPay" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:description", content: "Pay LIGHT/UMEME electricity, NWSC water, DSTV and GOTV bills from your ObPay wallet." },
     ],
   }),
