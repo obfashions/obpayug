@@ -43,7 +43,6 @@ import { Route as DashboardBillPaymentsRouteImport } from './routes/dashboard.bi
 import { Route as DashboardCollectionsRouteImport } from './routes/dashboard.collections'
 import { Route as DashboardCompanyDocumentsRouteImport } from './routes/dashboard.company-documents'
 import { Route as DashboardKycRouteImport } from './routes/dashboard.kyc'
-import { Route as DashboardLoansRouteImport } from './routes/dashboard.loans'
 import { Route as DashboardPaymentLinksRouteImport } from './routes/dashboard.payment-links'
 import { Route as DashboardPayoutsRouteImport } from './routes/dashboard.payouts'
 import { Route as DashboardReportsRouteImport } from './routes/dashboard.reports'
@@ -231,11 +230,6 @@ const DashboardKycRoute = DashboardKycRouteImport.update({
   path: '/dashboard/kyc',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardLoansRoute = DashboardLoansRouteImport.update({
-  id: '/dashboard/loans',
-  path: '/dashboard/loans',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardPaymentLinksRoute = DashboardPaymentLinksRouteImport.update({
   id: '/dashboard/payment-links',
   path: '/dashboard/payment-links',
@@ -347,7 +341,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/kyc': typeof DashboardKycRoute
-  '/dashboard/loans': typeof DashboardLoansRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
@@ -399,7 +392,6 @@ export interface FileRoutesByTo {
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/kyc': typeof DashboardKycRoute
-  '/dashboard/loans': typeof DashboardLoansRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
@@ -452,7 +444,6 @@ export interface FileRoutesById {
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/kyc': typeof DashboardKycRoute
-  '/dashboard/loans': typeof DashboardLoansRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
@@ -506,7 +497,6 @@ export interface FileRouteTypes {
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/kyc'
-    | '/dashboard/loans'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/reports'
@@ -558,7 +548,6 @@ export interface FileRouteTypes {
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/kyc'
-    | '/dashboard/loans'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/reports'
@@ -610,7 +599,6 @@ export interface FileRouteTypes {
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/kyc'
-    | '/dashboard/loans'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/reports'
@@ -663,7 +651,6 @@ export interface RootRouteChildren {
   DashboardCollectionsRoute: typeof DashboardCollectionsRoute
   DashboardCompanyDocumentsRoute: typeof DashboardCompanyDocumentsRoute
   DashboardKycRoute: typeof DashboardKycRoute
-  DashboardLoansRoute: typeof DashboardLoansRoute
   DashboardPaymentLinksRoute: typeof DashboardPaymentLinksRoute
   DashboardPayoutsRoute: typeof DashboardPayoutsRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
@@ -923,13 +910,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardKycRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/loans': {
-      id: '/dashboard/loans'
-      path: '/dashboard/loans'
-      fullPath: '/dashboard/loans'
-      preLoaderRoute: typeof DashboardLoansRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard/payment-links': {
       id: '/dashboard/payment-links'
       path: '/dashboard/payment-links'
@@ -1071,7 +1051,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardCollectionsRoute: DashboardCollectionsRoute,
   DashboardCompanyDocumentsRoute: DashboardCompanyDocumentsRoute,
   DashboardKycRoute: DashboardKycRoute,
-  DashboardLoansRoute: DashboardLoansRoute,
   DashboardPaymentLinksRoute: DashboardPaymentLinksRoute,
   DashboardPayoutsRoute: DashboardPayoutsRoute,
   DashboardReportsRoute: DashboardReportsRoute,
