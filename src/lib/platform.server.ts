@@ -485,6 +485,7 @@ export async function saveKyc(id: Identity, body: Record<string, any>) {
     address: String(body.address || "").trim() || null,
     id_type: String(body.id_type || "").trim() || null,
     id_number: String(body.id_number || "").trim() || null,
+    account_type: body.account_type === "business" ? "business" : "personal",
     status: "pending",
     updated_at: new Date().toISOString(),
   };

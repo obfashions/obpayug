@@ -15,6 +15,13 @@
       "when": 1790426579275,
       "tag": "0001_site_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790428506258,
+      "tag": "0002_kyc_account_type",
+      "breakpoints": true
     }
   ]
 }

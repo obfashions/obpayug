@@ -99,6 +99,7 @@ export type Database = {
       }
       kyc_submissions: {
         Row: {
+          account_type: string
           address: string | null
           business_name: string | null
           created_at: string
@@ -116,6 +117,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_type?: string
           address?: string | null
           business_name?: string | null
           created_at?: string
@@ -133,6 +135,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_type?: string
           address?: string | null
           business_name?: string | null
           created_at?: string
