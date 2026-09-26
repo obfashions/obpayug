@@ -354,7 +354,7 @@ export default function MerchantAccountPanel({ userId }: Props) {
         )}
       </div>
 
-      <PasswordReset userId={userId} email={mp?.email || null} />
+      <PasswordReset userId={userId} email={(mp as any)?.email || null} />
 
       {/* Recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
