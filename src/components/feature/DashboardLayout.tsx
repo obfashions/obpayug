@@ -16,6 +16,9 @@ const navItems = [
 
   { label: "Transactions", href: "/dashboard/transactions", icon: "ri-exchange-line", group: "main" },
   { label: "Payment Links", href: "/dashboard/payment-links", icon: "ri-link-m", group: "main" },
+  { label: "Refunds", href: "/dashboard/refunds", icon: "ri-refund-2-line", group: "main" },
+  { label: "Currency Exchange", href: "/dashboard/exchange", icon: "ri-exchange-dollar-line", group: "main" },
+  { label: "Crypto", href: "/dashboard/crypto", icon: "ri-bit-coin-line", group: "main" },
   { label: "Reports", href: "/dashboard/reports", icon: "ri-file-chart-line", group: "main" },
   { label: "API Keys", href: "/dashboard/api-keys", icon: "ri-key-2-line", group: "dev" },
   { label: "API Sandbox", href: "/dashboard/api-sandbox", icon: "ri-terminal-box-line", group: "dev" },
