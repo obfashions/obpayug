@@ -187,7 +187,7 @@ export default function Login() {
         const userRole = profileData?.role || "merchant";
 
         // Verification is required ONLY if BOTH global and user-level settings say so
-        const verificationRequired = globalVerificationEnabled && userVerificationEnabled;
+        const verificationRequired = globalVerificationEnabled; void userVerificationEnabled;
 
         if (verificationRequired) {
           // Go through the verification code flow
