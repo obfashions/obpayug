@@ -132,7 +132,16 @@ async function providerStateFor(txn: any): Promise<{ status: "success" | "failed
   }
 
   const record = await mirroredRecord(txn.reference);
-  if (!record || (record.status !== "success" && record.status !== "failed")) return null;
+  if (!record || (record.status !== "success" && record.status !== "failed")) {
+    // Ask the partner directly so a missed notification never leaves money stuck.
+    const creds = await getGatewayCreds();
+    if (!creds) return null;
+    const { gatewayCollectionStatus } = await import("./gateway.server");
+    const out = await gatewayCollectionStatus(creds, txn.reference);
+    if (!out.ok || !out.status || out.status === "pending") return null;
+    const short = out.status === "success" && out.amount > 0 && out.amount < Number(txn.amount || 0);
+    return { status: short ? "failed" : out.status, fee: Number(txn.fee_amount || 0), providerRef: txn.reference };
+  }
   return {
     status: record.status,
     fee: Number(record.fee_amount || txn.fee_amount || 0),

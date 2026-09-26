@@ -104,11 +104,17 @@ export async function settlePaymentRecord(
  */
 export async function refreshPaymentRecord(record: Record<string, any>): Promise<Record<string, any>> {
   if (!record || record.status !== "pending") return record;
-  if (record.type !== "payout") return record;
-
-  const { getGatewayCreds, gatewayPayoutStatus } = await import("./gateway.server");
+  const { getGatewayCreds, gatewayPayoutStatus, gatewayCollectionStatus } = await import("./gateway.server");
   const creds = await getGatewayCreds();
   if (!creds) return record;
+
+  if (record.type !== "payout") {
+    const chk = await gatewayCollectionStatus(creds, record.reference);
+    if (!chk.ok || !chk.status || chk.status === "pending") return record;
+    const status = chk.status === "success" && chk.amount > 0 && chk.amount < Number(record.amount || 0) ? "failed" : chk.status;
+    const done = await settlePaymentRecord(record, status, { providerReference: record.reference });
+    return done.record || { ...record, status };
+  }
 
   const out = await gatewayPayoutStatus(creds, {
     merchantReference: record.reference,
