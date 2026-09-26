@@ -36,13 +36,18 @@ export default function Login() {
   const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   const isPhone = (value: string): boolean => /^\+?[\d\s\-()]{7,20}$/.test(value);
 
+  const normalizedIdentifier = () => identifier
+    .normalize("NFKC")
+    .replace(/[\s\u200B-\u200D\u2060\uFEFF\u00A0]/g, "")
+    .toLowerCase();
+
   const validate = (): boolean => {
     let valid = true;
-    const trimmed = identifier.trim();
-    if (!trimmed) {
+    const cleaned = normalizedIdentifier();
+    if (!cleaned) {
       setIdentifierError("Email or phone number is required");
       valid = false;
-    } else if (!isEmail(trimmed) && !isPhone(trimmed)) {
+    } else if (!isEmail(cleaned) && !isPhone(cleaned)) {
       setIdentifierError("Enter a valid email address or phone number");
       valid = false;
     } else {
@@ -78,9 +83,6 @@ export default function Login() {
           return { ok: false, error: msg, retryable: true };
         }
         // Otherwise return the error
-        if (msg.toLowerCase().includes("invalid login")) {
-          return { ok: false, error: "Invalid email/phone or password. Please try again.", retryable: false };
-        }
         if (msg.toLowerCase().includes("email not confirmed")) {
           return { ok: false, error: "Please confirm your email address before logging in.", retryable: false };
         }
@@ -110,12 +112,8 @@ export default function Login() {
     setSubmitting(true);
     setServerError("");
 
-    // Phones add capitals, hidden characters and spaces (autocorrect/paste),
-    // which the account service rejects as an "invalid email".
-    const email = identifier
-      .normalize("NFKC")
-      .replace(/[\s\u200B-\u200D\u2060\uFEFF\u00A0]/g, "")
-      .toLowerCase();
+    // Validate and submit the same cleaned address, including pasted invisible characters.
+    const email = normalizedIdentifier();
     const maxAttempts = 3;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -123,6 +121,19 @@ export default function Login() {
 
       if (result.ok) {
         const userId = result.userId;
+
+        // Authentication can succeed for an account that an admin has since blocked.
+        const { data: account, error: accountError } = await supabase
+          .from("profiles")
+          .select("status")
+          .eq("id", userId)
+          .maybeSingle();
+        if (accountError || !account || account.status === "suspended" || account.status === "deactivated") {
+          await supabase.auth.signOut({ scope: "local" });
+          setServerError(account?.status === "suspended" ? "This account is suspended. Please contact support." : account?.status === "deactivated" ? "This account is no longer available. Please contact support." : "We couldn't check your account right now. Please try again.");
+          setSubmitting(false);
+          return;
+        }
 
         // Fire-and-forget audit log
         supabase
