@@ -583,6 +583,57 @@ export async function adminReviewKyc(id: Identity, submissionId: string, status:
     .eq("id", submissionId);
   if (error) return fail(error.message);
   await db().from("kyc_documents").update({ status: next }).eq("submission_id", submissionId);
+
+  // Keep the merchant's account status in step so the dashboard stops asking
+  // an approved merchant to verify, and tell them by email.
+  const { data: sub } = await db()
+    .from("kyc_submissions")
+    .select("merchant_id, email, full_name, business_name")
+    .eq("id", submissionId)
+    .maybeSingle();
+  const userId = sub?.merchant_id;
+  if (userId && /^[0-9a-f-]{36}$/i.test(userId) && next !== "pending") {
+    const now = new Date().toISOString();
+    const patch: Record<string, any> = {
+      verification_status: next,
+      rejection_reason: next === "rejected" ? String(notes || "").trim() || null : null,
+      verified_at: next === "approved" ? now : null,
+      verified_by: id.userId,
+      updated_at: now,
+    };
+    const { data: existing } = await db().from("merchant_profiles").select("id").eq("user_id", userId).maybeSingle();
+    if (existing) await db().from("merchant_profiles").update(patch).eq("user_id", userId);
+    else await db().from("merchant_profiles").insert({ user_id: userId, company_name: sub?.business_name || null, ...patch });
+
+    const title = next === "approved" ? "Account verified" : "Verification needs attention";
+    const message =
+      next === "approved"
+        ? "Your ObPay account has been verified. You can now use all features."
+        : `Your verification was not approved.${notes ? ` Reason: ${notes}` : ""} Please update your details and resubmit.`;
+    await db().from("notifications").insert({ user_id: userId, type: "kyc", title, message, is_read: false });
+
+    const { data: prof } = await db().from("profiles").select("email, full_name").eq("id", userId).maybeSingle();
+    const to = prof?.email || sub?.email;
+    if (to) {
+      try {
+        const { sendMailjet, brandedHtml } = await import("./mailjet.server");
+        const name = prof?.full_name || sub?.full_name || "there";
+        await sendMailjet([
+          {
+            to,
+            subject: next === "approved" ? "Your ObPay account is verified" : "Your ObPay verification needs attention",
+            html: brandedHtml(
+              title,
+              `<p>Hi ${String(name).replace(/[<>&]/g, "")},</p><p>${message.replace(/[<>&]/g, "")}</p>
+<p><a href="https://obpay.online/dashboard" style="display:inline-block;background:#111827;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;">Open your dashboard</a></p>`,
+            ),
+          },
+        ]);
+      } catch {
+        /* email failure must not undo the approval */
+      }
+    }
+  }
   return done();
 }
 

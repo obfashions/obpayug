@@ -69,7 +69,6 @@ export default function AdminSettings() {
         platform_airtel_number: settings.platform_airtel_number,
         withdraw_from_julypay: settings.withdraw_from_julypay,
         withdraw_from_livepay: settings.withdraw_from_livepay,
-        livepay_account_number: settings.livepay_account_number || "",
         support_email: settings.support_email,
         support_phone: settings.support_phone,
         updated_at: new Date().toISOString(),
