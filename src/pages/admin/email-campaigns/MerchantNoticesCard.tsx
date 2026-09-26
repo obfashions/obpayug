@@ -3,6 +3,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { NOTICE_TEMPLATES } from "@/lib/merchant-notices";
 import { sendMerchantNotice } from "@/lib/mailjet.functions";
 import { getAccessToken } from "@/lib/session-token";
+import { supabase } from "@/lib/supabase";
+
+async function loadRecipients() {
+  const all: Array<{ email: string; name: string | null }> = [];
+  for (let from = 0; from < 10000; from += 1000) {
+    const { data, error } = await supabase.from("profiles").select("email, full_name, status").range(from, from + 999);
+    if (error) throw new Error(error.message);
+    for (const r of (data as any[]) || []) if (r?.email && r.status !== "deleted") all.push({ email: r.email, name: r.full_name || null });
+    if (!data || data.length < 1000) break;
+  }
+  return all;
+}
 
 export default function MerchantNoticesCard() {
   const send = useServerFn(sendMerchantNotice);
@@ -14,12 +26,14 @@ export default function MerchantNoticesCard() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const run = async (test: boolean) => {
-    if (!test && !window.confirm("Send this email to ALL merchants now?")) return;
+    if (!test && !window.confirm("Send this email to EVERY registered ObPay account now?")) return;
     setBusy(true);
     setMsg(null);
     try {
       const accessToken = await getAccessToken();
-      const r: any = await send({ data: { accessToken, subject, body, testTo: test ? testTo : "" } });
+      const recipients = test ? [] : await loadRecipients();
+      if (!test && !recipients.length) throw new Error("No registered emails found.");
+      const r: any = await send({ data: { accessToken, subject, body, testTo: test ? testTo : "", recipients } });
       setMsg(
         r.success
           ? { ok: true, text: `Sent ${r.sent} of ${r.total}${r.failed ? ` (${r.failed} failed)` : ""}.` }
