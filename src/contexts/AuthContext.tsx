@@ -89,9 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      if (data && (data as any).status === "deactivated") {
+      if (data && ((data as Profile).status === "deactivated" || (data as Profile).status === "suspended")) {
         await supabase.auth.signOut().catch(() => {});
-        if (typeof window !== "undefined") window.location.replace("/login?removed=1");
+        if (typeof window !== "undefined") window.location.replace("/login");
         return null;
       }
       if (data) return data as Profile;

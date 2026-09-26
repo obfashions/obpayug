@@ -21,8 +21,9 @@ export default function ForgotPassword() {
     setError("");
 
     try {
-      const redirectUrl = `${window.location.origin}/login`;
-      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      const cleanEmail = email.normalize("NFKC").replace(/[\s\u200B-\u200D\u2060\uFEFF\u00A0]/g, "").toLowerCase();
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: redirectUrl,
       });
 
