@@ -1,18 +1,19 @@
 // Server-only payment gateway adapter.
 //
-// ObPay moves money through a single upstream banking partner. Everything about
-// that partner is contained in this file: credentials, request signing, wallet
-// and bank formats, and error translation. Nothing here is ever exposed to
-// merchants or payers — the partner name only appears in the admin panel.
+// ObPay moves money through a single upstream payment partner. Everything about
+// that partner is contained in this file: credentials, request format, wallet
+// formats, and error translation. Nothing here is ever exposed to merchants or
+// payers — the partner name only appears in the admin panel.
 //
 // Credentials come from the admin-managed store first (Admin → Gateway API) and
-// fall back to this project's environment (GOPAY_APP_ID / GOPAY_APP_SECRET).
+// fall back to this project's environment (PAYZA_PUBLIC_KEY / PAYZA_SECRET_KEY).
 
-export const GATEWAY_CRED_ID = "gopay";
+export const GATEWAY_CRED_ID = "payza";
 
 export const GATEWAY_BASE = () =>
-  (process.env["GOPAY_BASE_URL"] || "https://api.liralinkpay.com").trim().replace(/\/+$/, "");
+  (process.env["PAYZA_BASE_URL"] || "https://payzaapi.co.ke").trim().replace(/\/+$/, "");
 
+/** `key` = public key (pk_...), `secret` = secret key (sk_...). */
 export interface GatewayCreds {
   key: string;
   secret: string;
@@ -23,7 +24,7 @@ function buildCreds(key: string, secret: string): GatewayCreds {
   return { key, secret, basic: btoa(`${key}:${secret}`) };
 }
 
-/** Splits a base64 "appId:appSecret" Authorization value. */
+/** Splits a base64 "publicKey:secretKey" value. */
 export function decodeBasic(basic: string): GatewayCreds | null {
   try {
     const decoded = atob(basic.trim());
@@ -39,12 +40,15 @@ export function decodeBasic(basic: string): GatewayCreds | null {
 
 /** Environment-only credentials (the built-in fallback). */
 export function readEnvCreds(): GatewayCreds | null {
-  const key = (process.env["GOPAY_APP_ID"] || "").trim();
-  const secret = (process.env["GOPAY_APP_SECRET"] || "").replace(/\s+/g, "").trim();
+  const key = (process.env["PAYZA_PUBLIC_KEY"] || "").trim();
+  const secret = (process.env["PAYZA_SECRET_KEY"] || "").replace(/\s+/g, "").trim();
   if (key && secret) return buildCreds(key, secret);
-  const basic = (process.env["GOPAY_APP_BASIC"] || "").trim();
-  if (basic) return decodeBasic(basic);
   return null;
+}
+
+/** Secret used to sign result notifications (separate from the API keys). */
+export function webhookSecret(): string {
+  return (process.env["PAYZA_WEBHOOK_SECRET"] || "").trim();
 }
 
 /* ── Admin-managed credential sets ──────────────────────────────────────── */
@@ -141,7 +145,9 @@ export async function gatewayCredsSource(): Promise<"database" | "environment" |
  * ------------------------------------------------------------------------- */
 
 export function proxyConfig(): { url: string; token: string } | null {
-  const url = (process.env["EGRESS_PROXY_URL"] || "").trim().replace(/\/+$/, "");
+  // The partner's IP allow-list is off, so calls go out directly. A relay can
+  // still be forced with PAYZA_EGRESS_PROXY_URL if the allow-list is enabled.
+  const url = (process.env["PAYZA_EGRESS_PROXY_URL"] || "").trim().replace(/\/+$/, "");
   if (!url) return null;
   return { url, token: (process.env["EGRESS_PROXY_TOKEN"] || "").trim() };
 }
@@ -171,55 +177,53 @@ export interface GatewayResult {
   error?: string;
 }
 
-/** One gateway HTTP call. `ok` means the partner accepted the request (code 200). */
+/** One gateway HTTP call. `ok` means the partner accepted the request. */
 export async function gatewayFetch(
   creds: GatewayCreds,
   path: string,
-  init?: { method?: string; body?: unknown },
+  init?: { method?: string; body?: unknown; auth?: boolean },
 ): Promise<GatewayResult> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (init?.auth !== false) {
+    headers["X-Public-Key"] = creds.key;
+    headers["X-Secret-Key"] = creds.secret;
+  }
   const request = {
     method: init?.method || "GET",
-    headers: {
-      Authorization: `Basic ${creds.basic}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    } as Record<string, string>,
+    headers,
     ...(init?.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
   };
 
-  const run = async (useProxy: boolean): Promise<GatewayResult> => {
+  const run = async (): Promise<GatewayResult> => {
     const target = `${GATEWAY_BASE()}${path}`;
-    const resp = useProxy ? await proxiedFetch(target, request) : await fetch(target, request);
+    const resp = proxyConfig() ? await proxiedFetch(target, request) : await fetch(target, request);
     const text = await resp.text();
     let body: any;
     try {
       body = JSON.parse(text);
     } catch {
-      body = { raw: text };
+      body = { raw: text.slice(0, 300) };
     }
-    const code = String(body?.code ?? (resp.ok ? "200" : resp.status));
-    const ok = resp.ok && code === "200";
+    const ok = resp.ok && body?.success !== false && !body?.raw;
     return {
       ok,
       httpStatus: resp.status,
-      code,
-      data: body?.data ?? null,
+      code: String(body?.error_code || (ok ? "200" : resp.status)),
+      data: body?.data ?? body ?? null,
       raw: body,
-      error: ok ? undefined : String(body?.msg || body?.message || `HTTP ${resp.status}`),
+      error: ok ? undefined : scrub(String(body?.message || body?.error || `HTTP ${resp.status}`)),
     };
   };
 
   try {
-    const usesFixedEgress = !!proxyConfig();
-    // Fail closed: when the fixed-IP route is configured, never fall back to a
-    // rotating address. An explicit IP rejection is safe to retry because the
-    // partner rejects it before creating an order. Separate relay calls also
-    // allow Fixie to select its other approved address.
-    let res = await run(usesFixedEgress);
-    if (usesFixedEgress && isIpBlocked(res)) {
-      for (let attempt = 0; attempt < 3 && isIpBlocked(res); attempt += 1) {
-        res = await run(true);
-      }
+    let res = await run();
+    // Temporary network / rate problems are safe to retry once before any money moves.
+    if (!res.ok && [0, 429, 502, 503, 504].includes(res.httpStatus)) {
+      await new Promise((r) => setTimeout(r, 1200));
+      res = await run();
     }
     if (!res.ok && isIpBlocked(res)) {
       void import("./egress-monitor.server").then((m) => m.noteIpBlocked()).catch(() => {});
@@ -228,6 +232,20 @@ export async function gatewayFetch(
   } catch (err: any) {
     return { ok: false, httpStatus: 0, code: "0", data: null, raw: null, error: err?.message || "Network error" };
   }
+}
+
+/** Removes the partner's name from any message that could reach a merchant. */
+function scrub(msg: string): string {
+  return msg
+    .replace(/payza\s*api|payzaapi|payza/gi, "ObPay")
+    .replace(/https?:\/\/\S+/g, "")
+    .trim();
+}
+
+/** Ugandan number in international format (2567XXXXXXXX) for the partner. */
+export function intlNumber(raw: unknown): string {
+  const w = walletNumber(raw);
+  return w ? `256${w.slice(1)}` : "";
 }
 
 /* ── Formats ────────────────────────────────────────────────────────────── */
@@ -311,46 +329,37 @@ export function bankName(code: string): string {
 export function mapStatus(raw: string): "pending" | "success" | "failed" | null {
   const s = String(raw || "").toUpperCase().trim();
   if (["SUCCESS", "SUCCESSFUL", "COMPLETED", "PAID"].includes(s)) return "success";
-  if (["FAILED", "FAILURE", "REJECTED", "CANCELLED", "CANCELED", "EXPIRED", "REVERSED"].includes(s)) return "failed";
-  if (["PROCESSING", "PENDING", "INITIATED", "IN_PROGRESS"].includes(s)) return "pending";
+  if (["FAILED", "FAILURE", "REJECTED", "CANCELLED", "CANCELED", "EXPIRED", "REVERSED", "DECLINED"].includes(s)) return "failed";
+  if (["PROCESSING", "PENDING", "INITIATED", "IN_PROGRESS", "APPROVED"].includes(s)) return "pending";
   return null;
 }
 
 /** True when the partner refused us because this server's IP is not approved. */
 export function isIpBlocked(res: { code?: string; error?: string }): boolean {
-  const code = String(res?.code || "");
-  if (code === "700002" || code === "4000018") return true;
-  return /ip .*not support|not whitelisted|ip is not supported/i.test(res?.error || "");
+  if (String(res?.code || "") === "ip_not_allowed") return true;
+  return /isn't on your ip whitelist|ip whitelist|not whitelisted/i.test(res?.error || "");
 }
 
 /**
  * Turns partner errors into something a merchant can act on, without ever
  * naming the partner.
  */
-export function friendlyError(res: { code?: string; error?: string }, kind: "collection" | "payout" | "request" = "request"): string {
+export function friendlyError(
+  res: { code?: string; error?: string; httpStatus?: number },
+  kind: "collection" | "payout" | "request" = "request",
+): string {
   const code = String(res?.code || "");
   const raw = String(res?.error || "");
+  const http = Number((res as any)?.httpStatus || 0);
 
   if (isIpBlocked(res)) {
-    return `This ${kind} could not be sent because our banking partner has not yet approved this server's network address. ObPay support has been notified — please try again shortly.`;
+    return `This ${kind} could not be sent because this server's network address is not approved. ObPay support has been notified — please try again shortly.`;
   }
-  if (["10003", "700001", "700003", "700004", "4000017", "4000020"].includes(code)) {
-    return "Payments are temporarily unavailable on this account. Please contact ObPay support.";
-  }
-  if (["10004", "4000030"].includes(code)) {
-    return "The payout float is currently too low to process this request. Please try again shortly.";
-  }
-  if (["4000050", "4000004"].includes(code)) {
-    return "This reference has already been submitted. Use a new reference.";
-  }
-  if (code === "6000005") return "Enter a whole amount — decimals are not supported for Uganda.";
-  if (["6000001", "6000002", "6000003", "6000004", "6000008"].includes(code)) {
-    return "That mobile money number is not valid. Use the 07XXXXXXXX format.";
-  }
-  if (code === "6000006") return "The recipient name is required.";
-  if (code === "4000015") return "That bank is not supported. Choose another bank from the list.";
-  if (["5000001", "5000002"].includes(code)) return "The payment network timed out. Please try again in a moment.";
-  if (code === "10002" || code === "4000001") return `Some details were rejected: ${raw || "check the values and try again."}`;
+  if (code === "limit_exceeded") return "This amount is above the allowed limit. Try a smaller amount.";
+  if (http === 401) return "Payments are temporarily unavailable. Please contact ObPay support.";
+  if (http === 409) return "This reference has already been used. Use a new reference.";
+  if (http === 429) return "Too many requests right now. Please wait a minute and try again.";
+  if (http >= 500 || http === 0) return "The payment network is busy. Please try again in a moment.";
   return raw || `The ${kind} could not be processed. Please try again.`;
 }
 
@@ -368,27 +377,61 @@ export interface CollectionRequest {
   notifyUrl?: string;
 }
 
-/** Opens a hosted checkout the payer completes on their phone. */
+/**
+ * Creates the payment and immediately sends the PIN prompt to the payer's
+ * phone. `checkoutUrl` is only returned as a fallback when the prompt could
+ * not be sent, so the payer normally never leaves ObPay.
+ */
 export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest) {
-  const wallet = walletNumber(req.phone);
+  const phone = intlNumber(req.phone);
   const body: Record<string, unknown> = {
-    merchantReference: req.reference,
     amount: Math.round(req.amount),
-    customerEmail: req.customerEmail || "payments@obpay.online",
-    customerName: (req.customerName || "ObPay customer").slice(0, 64),
-    ...(wallet ? { customerAccountNumber: wallet } : {}),
-    ...(req.bankCode ? { customerBankCode: req.bankCode } : {}),
-    ...(req.description ? { paymentDescription: String(req.description).slice(0, 120) } : {}),
-    ...(req.redirectUrl ? { redirectUrl: req.redirectUrl } : {}),
-    notifyUrl: req.notifyUrl || callbackUrl(),
+    currency: "UGX",
+    reference: req.reference,
+    description: String(req.description || "ObPay payment").slice(0, 120),
+    customer: {
+      email: req.customerEmail || "payments@obpay.online",
+      name: (req.customerName || "ObPay customer").slice(0, 64),
+      ...(phone ? { phone } : {}),
+    },
+    callback_url: req.notifyUrl || callbackUrl(),
+    ...(req.redirectUrl ? { redirect_url: req.redirectUrl, cancel_url: req.redirectUrl } : {}),
+    metadata: { source: "obpay" },
   };
-  const res = await gatewayFetch(creds, "/api/merchant/checkout", { method: "POST", body });
+  const res = await gatewayFetch(creds, "/api/v1/pay", { method: "POST", body });
   if (!res.ok) return { ok: false as const, res };
+
+  const reference = String(res.data?.reference || req.reference);
+  let promptSent = false;
+  if (phone) {
+    const push = await gatewayFetch(creds, "/payment/pawapay-process", {
+      method: "POST",
+      auth: false,
+      body: { reference, currency: "UGX", phone },
+    });
+    promptSent = push.ok && (push.raw?.pending === true || push.raw?.success === true);
+    if (!promptSent) console.warn("[gateway] phone prompt not sent", push.httpStatus, push.error);
+  }
+
   return {
     ok: true as const,
     res,
-    platformReference: String(res.data?.platformReference || ""),
-    checkoutUrl: String(res.data?.checkoutUrl || ""),
+    promptSent,
+    platformReference: reference,
+    checkoutUrl: promptSent ? "" : String(res.data?.payment_url || ""),
+  };
+}
+
+/** Status of a collection, straight from the partner (checks the network live). */
+export async function gatewayCollectionStatus(creds: GatewayCreds, reference: string) {
+  const res = await gatewayFetch(creds, `/api/v1/verify/${encodeURIComponent(reference)}`);
+  if (!res.ok) return { ok: false as const, res, status: null as null };
+  return {
+    ok: true as const,
+    res,
+    status: mapStatus(String(res.data?.status || "")),
+    amount: Number(res.data?.amount) || 0,
+    currency: String(res.data?.currency || ""),
   };
 }
 
@@ -406,60 +449,102 @@ export interface PayoutRequest {
   notifyUrl?: string;
 }
 
-/** Sends money to a mobile money wallet or bank account. */
-export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
-  const body: Record<string, unknown> = {
-    merchantReference: req.reference,
-    typeTrans: req.typeTrans,
-    bankCode: req.bankCode,
-    accountNumber: req.accountNumber,
-    customerName: (req.customerName || "ObPay recipient").slice(0, 64),
-    amount: Math.round(req.amount),
-    ...(req.customerPhone ? { customerPhone: req.customerPhone } : {}),
-    ...(req.customerEmail ? { customerEmail: req.customerEmail } : {}),
-    ...(req.remark ? { remark: String(req.remark).slice(0, 120) } : {}),
-    notifyUrl: req.notifyUrl || callbackUrl(),
+let payoutRuleCache: { at: number; min: number; percent: number; floor: number; flat: number } | null = null;
+async function payoutRules(creds: GatewayCreds) {
+  if (payoutRuleCache && Date.now() - payoutRuleCache.at < 10 * 60_000) return payoutRuleCache;
+  const res = await gatewayFetch(creds, "/api/v1/payout-methods?currency=UGX");
+  const pm = res.raw?.payout_methods || {};
+  const fee = pm.fee || {};
+  payoutRuleCache = {
+    at: Date.now(),
+    min: Number(pm.minimum_withdrawal) || 10000,
+    percent: fee.type === "percent" ? Number(fee.percent) || 0 : 0,
+    floor: Number(fee.floor) || 0,
+    flat: fee.type === "flat" ? Number(fee.amount ?? fee.value) || 0 : 0,
   };
-  const res = await gatewayFetch(creds, "/api/disbursements/single", { method: "POST", body });
-  if (!res.ok) return { ok: false as const, res };
-  return { ok: true as const, res, platformReference: String(res.data?.platformReference || "") };
+  return payoutRuleCache;
 }
 
-/** Current state of a payout, by our reference or the partner's. */
+/** Sends money to a mobile money wallet. The recipient receives the full amount. */
+export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
+  if (req.typeTrans === 3) {
+    return {
+      ok: false as const,
+      res: { ok: false, httpStatus: 400, code: "bank_unsupported", data: null, raw: null, error: "Bank payouts are not available in Uganda yet. Send to MTN or Airtel mobile money instead." } as GatewayResult,
+    };
+  }
+  const phone = intlNumber(req.accountNumber);
+  if (!phone) {
+    return {
+      ok: false as const,
+      res: { ok: false, httpStatus: 400, code: "bad_number", data: null, raw: null, error: "That mobile money number is not valid. Use the 07XXXXXXXX format." } as GatewayResult,
+    };
+  }
+  const net = Math.round(req.amount);
+  const rules = await payoutRules(creds);
+  // Gross the request up so the partner's fee does not reduce what the recipient gets.
+  let gross = net;
+  if (rules.flat) gross = net + rules.flat;
+  else if (rules.percent) gross = Math.max(Math.ceil(net / (1 - rules.percent / 100)), net + rules.floor);
+  if (gross < rules.min) {
+    return {
+      ok: false as const,
+      res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is UGX ${Math.max(rules.min - (gross - net), 1).toLocaleString("en")}.` } as GatewayResult,
+    };
+  }
+  const body = {
+    amount: gross,
+    currency: "UGX",
+    method: "mobile_money",
+    account_number: phone,
+    account_name: (req.customerName || "ObPay recipient").slice(0, 64),
+  };
+  const res = await gatewayFetch(creds, "/api/v1/payout", { method: "POST", body });
+  if (!res.ok) return { ok: false as const, res };
+  const payout = res.raw?.payout || res.data?.payout || {};
+  return { ok: true as const, res, platformReference: String(payout.reference || "") };
+}
+
+/** Current state of a payout, by the partner's reference. */
 export async function gatewayPayoutStatus(
   creds: GatewayCreds,
   refs: { merchantReference?: string | null; platformReference?: string | null },
 ) {
-  const params = new URLSearchParams();
-  if (refs.platformReference) params.set("platformReference", String(refs.platformReference));
-  else if (refs.merchantReference) params.set("merchantReference", String(refs.merchantReference));
-  if (![...params.keys()].length) return { ok: false as const, res: null, status: null as null };
-
-  const res = await gatewayFetch(creds, `/api/disbursements/single/summary?${params.toString()}`);
+  const ref = refs.platformReference || "";
+  if (!ref) return { ok: false as const, res: null, status: null as null };
+  const res = await gatewayFetch(creds, `/api/v1/payouts?reference=${encodeURIComponent(ref)}`);
   if (!res.ok) return { ok: false as const, res, status: null as null };
+  const raw = res.raw || {};
+  const p = raw.payout || (Array.isArray(raw.payouts) ? raw.payouts[0] : null) || raw.data || {};
   return {
     ok: true as const,
     res,
-    status: mapStatus(String(res.data?.status || "")),
-    amount: Number(res.data?.amount) || 0,
-    transferredAt: res.data?.transferredAt || null,
-    platformReference: res.data?.platformReference || null,
-    reason: res.data?.reason || res.data?.errorMsg || null,
+    status: mapStatus(String(p.status || "")),
+    amount: Number(p.net_amount ?? p.amount) || 0,
+    transferredAt: p.completed_at || p.updated_at || null,
+    platformReference: p.reference || ref,
+    reason: p.note || p.admin_note || p.reason || null,
   };
 }
 
-/** Float available for payouts. */
+/**
+ * Connectivity check. The partner exposes no balance endpoint, so this
+ * confirms the keys work and reports payout rules instead of a float.
+ */
 export async function gatewayBalance(creds: GatewayCreds) {
-  const res = await gatewayFetch(creds, "/api/disbursements/account-balance");
+  const res = await gatewayFetch(creds, "/api/v1/payout-methods?currency=UGX");
   if (!res.ok) return { ok: false as const, res, balance: null };
+  const pm = res.raw?.payout_methods || {};
   return {
     ok: true as const,
     res,
     balance: {
-      available: Number(res.data?.availableBalance) || 0,
-      frozen: Number(res.data?.frozenAmount) || 0,
-      in_transit: Number(res.data?.returnedMoneyBalance) || 0,
+      available: null as number | null,
+      frozen: 0,
+      in_transit: 0,
       currency: "UGX",
+      payouts_available: pm.available !== false,
+      minimum_payout: Number(pm.minimum_withdrawal) || null,
     },
   };
 }
@@ -471,13 +556,13 @@ export function callbackUrl(): string {
   return `${base}/api/public/gateway-callback`;
 }
 
-/** HMAC-SHA512 of the RAW callback body, hex lowercase, compared to X-Sign. */
+/** HMAC-SHA256 of the RAW callback body, hex, compared to X-Payza-Signature. */
 export async function verifyCallbackSignature(rawBody: string, signature: string, secret: string): Promise<boolean> {
   if (!rawBody || !signature || !secret) return false;
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-512" },
+    { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
@@ -485,7 +570,7 @@ export async function verifyCallbackSignature(rawBody: string, signature: string
   const hex = Array.from(new Uint8Array(mac))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  const given = signature.trim().toLowerCase();
+  const given = signature.trim().toLowerCase().replace(/^sha256=/, "");
   if (given.length !== hex.length) return false;
   let diff = 0;
   for (let i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ given.charCodeAt(i);
