@@ -15,6 +15,8 @@ type SectionId =
   | "transactions"
   | "balance"
   | "links"
+  | "refunds"
+  | "countries"
   | "webhooks"
   | "errors"
   | "going-live";
@@ -29,6 +31,8 @@ const sections: Array<{ id: SectionId; label: string; icon: string }> = [
   { id: "transactions", label: "List transactions", icon: "ri-list-check-2" },
   { id: "balance", label: "Balance & account", icon: "ri-wallet-3-line" },
   { id: "links", label: "Payment links", icon: "ri-links-line" },
+  { id: "countries", label: "Countries, crypto & rates", icon: "ri-global-line" },
+  { id: "refunds", label: "Refunds", icon: "ri-refund-2-line" },
   { id: "webhooks", label: "Webhooks & signing", icon: "ri-webhook-line" },
   { id: "errors", label: "Errors & limits", icon: "ri-error-warning-line" },
   { id: "going-live", label: "Going live", icon: "ri-rocket-line" },
@@ -463,6 +467,31 @@ print(r.json())`}
               <CodeBlock title="cURL" code={`curl ${BASE}/balance -H "Authorization: Bearer $OBPAY_SECRET_KEY"`} />
               <CodeBlock title="Response 200" code={`{\n  "success": true,\n  "data": { "currency": "UGX", "collected": 150000, "paid_out": 40000, "net": 110000 }\n}`} />
               <p className={P}><code className={C}>net</code> is what you can pay out. <code className={C}>GET /account</code> returns your merchant id and counts.</p>
+            </section>
+          )}
+
+          {active === "countries" && (
+            <section className="space-y-4">
+              <h2 className="font-heading font-bold text-xl">Countries, crypto & rates</h2>
+              <p className="text-sm">Pass <code>currency</code> on <code>/collect</code> and <code>/payout</code>. Amounts are whole numbers (USD allows cents).</p>
+              <ul className="text-sm list-disc pl-5 space-y-1">
+                <li><b>UGX</b> Uganda – MTN, Airtel (<code>network: "mtn" | "airtel"</code>), phone <code>2567XXXXXXXX</code>. Payout min 10,000.</li>
+                <li><b>KES</b> Kenya – M-Pesa PIN prompt (<code>network: "mpesa"</code>), phone <code>2547XXXXXXXX</code>. Payout min 500.</li>
+                <li><b>RWF</b> Rwanda – MTN, Airtel, phone <code>2507XXXXXXXX</code>. Payout min 2,000.</li>
+                <li><b>USD</b> crypto – set <code>crypto: true</code>; the response has <code>checkout_url</code> for the customer to pay in coins. Credits your USD balance.</li>
+              </ul>
+              <CodeBlock title="Kenya collection" code={`curl -X POST ${BASE}/collect \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" -H "Content-Type: application/json" \\\n  -d '{"currency":"KES","amount":100,"phone_number":"254712345678","network":"mpesa","customer_name":"Jane W","customer_email":"jane@example.com"}'`} />
+              <CodeBlock title="Crypto collection" code={`curl -X POST ${BASE}/collect \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" -H "Content-Type: application/json" \\\n  -d '{"currency":"USD","crypto":true,"amount":5,"customer_name":"Sam","customer_email":"sam@example.com"}'`} />
+              <p className="text-sm"><code>GET /rates</code> returns live rates against USD. <code>GET /payout-methods?currency=KES</code> returns availability, minimum and fees.</p>
+            </section>
+          )}
+
+          {active === "refunds" && (
+            <section className="space-y-4">
+              <h2 className="font-heading font-bold text-xl">Refunds</h2>
+              <p className="text-sm"><code>POST /refunds</code> sends money back to the phone that paid a successful collection. Omit <code>amount</code> for a full refund. It is paid from your balance and the normal payout fee applies. Status updates arrive as <code>payout.success</code> / <code>payout.failed</code> webhooks with the returned <code>refund_reference</code>.</p>
+              <CodeBlock title="Refund" code={`curl -X POST ${BASE}/refunds \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" -H "Content-Type: application/json" \\\n  -d '{"reference":"OBP123ABC","amount":5000,"reason":"Order cancelled"}'`} />
+              <p className="text-sm"><code>GET /refunds</code> lists refundable payments and past refunds.</p>
             </section>
           )}
 
