@@ -265,10 +265,85 @@ export const LOCAL_ACTIONS = [
   "test-connection",
   "server-ip",
   "payout-preflight",
+  "admin-adjust-balance",
   ...SERVICE_ACTIONS,
 ];
 
+/** Admin credit/debit of a merchant's available balance, verified by re-reading the wallet. */
+async function adminAdjustBalance(accessToken: string, body: any) {
+  const { resolveIdentity } = await import("./identity.server");
+  const me = await resolveIdentity(accessToken);
+  if (!me) return { success: false, error: "Please sign in again to continue." };
+  if (!me.isAdmin) return { success: false, error: "You do not have access to this area." };
+
+  const target = String(body?.target_user_id || "").trim();
+  const type = body?.adjustment_type;
+  const amount = Math.round(Number(body?.amount));
+  if (!/^[0-9a-f-]{36}$/i.test(target)) return { success: false, error: "Merchant not found." };
+  if (type !== "add" && type !== "deduct") return { success: false, error: "Choose add or deduct." };
+  if (!Number.isFinite(amount) || amount <= 0) return { success: false, error: "Enter a valid amount." };
+
+  const wallet = first(await restWrite(accessToken, `/merchant_wallets?user_id=eq.${target}&select=*`));
+  const cur = Number(wallet?.available_balance || 0);
+  const col = Number(wallet?.total_collections || 0);
+  const pay = Number(wallet?.total_payouts || 0);
+  const currency = wallet?.currency || "UGX";
+  if (type === "deduct" && amount > cur) {
+    return { success: false, error: `Not enough balance. Current balance is ${cur.toLocaleString()} ${currency}.` };
+  }
+  const newBal = type === "add" ? cur + amount : cur - amount;
+  const now = new Date().toISOString();
+  const fields = {
+    available_balance: newBal,
+    total_collections: type === "add" ? col + amount : col,
+    total_payouts: type === "deduct" ? pay + amount : pay,
+    updated_at: now,
+  };
+
+  const res = wallet
+    ? await restWrite(accessToken, `/merchant_wallets?user_id=eq.${target}`, { method: "PATCH", body: JSON.stringify(fields) })
+    : await restWrite(accessToken, `/merchant_wallets`, {
+        method: "POST",
+        body: JSON.stringify({ user_id: target, currency, pending_balance: 0, created_at: now, ...fields }),
+      });
+
+  // Re-read: a blocked write returns OK with zero rows, which used to look like success.
+  const after = first(await restWrite(accessToken, `/merchant_wallets?user_id=eq.${target}&select=available_balance`));
+  const saved = Number(after?.available_balance);
+  if (!res.ok || !after || saved !== newBal) {
+    console.error("[admin-adjust-balance] write not applied", res.status, JSON.stringify(res.data).slice(0, 300));
+    return {
+      success: false,
+      error: "The balance could not be changed — the account database refused the update. Please contact support.",
+    };
+  }
+
+  await restWrite(accessToken, `/transactions`, {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: target,
+      reference: `ADMIN_${type.toUpperCase()}_${Date.now()}`,
+      amount,
+      currency,
+      status: "success",
+      type: type === "add" ? "collection" : "payout",
+      customer_name: type === "add" ? "Admin Credit" : "Admin Debit",
+      description: String(body?.note || `Admin balance adjustment (${type})`).slice(0, 200),
+      fee_amount: 0,
+      net_amount: amount,
+      completed_at: now,
+    }),
+  }).catch(() => null);
+
+  return {
+    success: true,
+    data: { target_user_id: target, adjustment_type: type, amount, previous_balance: cur, new_balance: saved, currency },
+  };
+}
+
 export async function runObpayAction(action: string, accessToken: string, body: any) {
+  if (action === "admin-adjust-balance") return adminAdjustBalance(accessToken, body);
+
   const creds = await getGatewayCreds();
   if (!creds) return { success: false, error: "Payments are not configured yet. Please contact ObPay support." };
 
