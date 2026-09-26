@@ -1,3 +1,5 @@
+import { purgeMerchantData } from "@/lib/mailjet.functions";
+import { getAccessToken } from "@/lib/session-token";
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase, safeGetSession } from "@/lib/supabase";
@@ -77,6 +79,7 @@ export default function AdminMerchants() {
         .from("profiles")
         .select("*, merchant_profiles!merchant_profiles_user_id_fkey(company_name, country, verification_status, business_address, merchant_slug, merchant_id)")
         .eq("role", "merchant")
+        .neq("status", "deleted")
         .order("created_at", { ascending: false });
 
       if (fetchErr) throw fetchErr;
@@ -162,6 +165,29 @@ export default function AdminMerchants() {
     } catch (err: any) {
       setActionMsg({ ok: false, message: err.message || "Failed to update status" });
       setTimeout(() => setActionMsg(null), 3000);
+    }
+  };
+
+  const handleDeleteMerchant = async (merchantId: string, name: string) => {
+    if (window.prompt(`This permanently erases ${name || "this merchant"}, their documents, keys, links and records. Type DELETE to confirm.`) !== "DELETE") return;
+    try {
+      const accessToken = await getAccessToken();
+      const r: any = await purgeMerchantData({ data: { accessToken, merchantId } });
+      if (!r?.success) throw new Error(r?.error || "Could not delete.");
+      await supabase.from("merchant_wallets").delete().eq("user_id", merchantId);
+      await supabase.from("merchant_profiles").delete().eq("user_id", merchantId);
+      const { error: delErr, count } = await supabase.from("profiles").delete({ count: "exact" }).eq("id", merchantId);
+      if (delErr || !count) {
+        // Fallback: hide the account everywhere and block sign-in.
+        await supabase.from("profiles").update({ status: "deleted", email: `deleted+${merchantId.slice(0, 8)}@obpay.invalid` }).eq("id", merchantId);
+      }
+      setSelectedMerchantId(null);
+      setActionMsg({ ok: true, message: `${name || "Merchant"} has been deleted.` });
+      setTimeout(() => setActionMsg(null), 3000);
+      fetchMerchants();
+    } catch (err: any) {
+      setActionMsg({ ok: false, message: err.message || "Failed to delete merchant" });
+      setTimeout(() => setActionMsg(null), 4000);
     }
   };
 
@@ -627,6 +653,7 @@ export default function AdminMerchants() {
               <button onClick={() => navigator.clipboard?.writeText(selected.id)} className="text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer whitespace-nowrap bg-background-100 text-foreground-600 hover:bg-background-200 border border-background-300/60"><i className="ri-file-copy-line mr-1" />Copy ID</button>
               {selected.email && <a href={`mailto:${selected.email}`} className="text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap bg-background-100 text-foreground-600 hover:bg-background-200 border border-background-300/60"><i className="ri-mail-line mr-1" />Email</a>}
               {selected.phone_number && <a href={`https://wa.me/${String(selected.phone_number).replace(/\D/g, "").replace(/^0/, "256")}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap bg-background-100 text-foreground-600 hover:bg-background-200 border border-background-300/60"><i className="ri-whatsapp-line mr-1" />WhatsApp</a>}
+              <button onClick={() => handleDeleteMerchant(selected.id, selected.merchant_profiles?.[0]?.company_name || selected.full_name)} className="text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer whitespace-nowrap bg-red-600 text-white hover:bg-red-700"><i className="ri-delete-bin-line mr-1" />Delete merchant</button>
               <button onClick={() => setSelectedMerchantId(null)} className="ml-auto text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer bg-foreground-900 text-background-50"><i className="ri-close-line mr-1" />Close</button>
             </div>
             {/* Action Buttons */}
