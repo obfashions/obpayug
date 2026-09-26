@@ -341,8 +341,42 @@ async function adminAdjustBalance(accessToken: string, body: any) {
   };
 }
 
+/** Admin sets a merchant's password directly — no email is sent. */
+async function adminResetPassword(accessToken: string, body: any) {
+  const { resolveIdentity } = await import("./identity.server");
+  const me = await resolveIdentity(accessToken);
+  if (!me) return { success: false, error: "Your admin sign-in has ended. Please sign out, sign in again and retry." };
+  if (!me.isAdmin) return { success: false, error: "Your admin account isn't allowed to change passwords." };
+
+  const target = String(body?.target_user_id || "").trim();
+  const pw = String(body?.new_password || "");
+  if (!/^[0-9a-f-]{36}$/i.test(target)) return { success: false, error: "Merchant not found." };
+  if (pw.length < 8) return { success: false, error: "The password must be at least 8 characters." };
+
+  const key = SERVICE_KEY();
+  if (!key) {
+    return {
+      success: false,
+      error: "Password changes need the account system's admin key to be added in settings. Please contact support.",
+    };
+  }
+  const resp = await fetch(`${SUPA_URL()}/auth/v1/admin/users/${target}`, {
+    method: "PUT",
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ password: pw }),
+  });
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => "");
+    console.error("[reset-user-password] failed", resp.status, t.slice(0, 300));
+    if (/weak|password/i.test(t)) return { success: false, error: "That password was refused as too weak. Try a longer one." };
+    return { success: false, error: "The password could not be changed. Please try again." };
+  }
+  return { success: true, data: { target_user_id: target } };
+}
+
 export async function runObpayAction(action: string, accessToken: string, body: any) {
   if (action === "admin-adjust-balance") return adminAdjustBalance(accessToken, body);
+  if (action === "reset-user-password") return adminResetPassword(accessToken, body);
 
   const creds = await getGatewayCreds();
   if (!creds) return { success: false, error: "Payments are not configured yet. Please contact ObPay support." };
