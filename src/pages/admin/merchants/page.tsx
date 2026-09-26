@@ -79,7 +79,7 @@ export default function AdminMerchants() {
         .from("profiles")
         .select("*, merchant_profiles!merchant_profiles_user_id_fkey(company_name, country, verification_status, business_address, merchant_slug, merchant_id)")
         .eq("role", "merchant")
-        .neq("status", "deleted")
+        .neq("status", "deactivated")
         .order("created_at", { ascending: false });
 
       if (fetchErr) throw fetchErr;
@@ -174,13 +174,11 @@ export default function AdminMerchants() {
       const accessToken = await getAccessToken();
       const r: any = await purgeMerchantData({ data: { accessToken, merchantId } });
       if (!r?.success) throw new Error(r?.error || "Could not delete.");
-      await supabase.from("merchant_wallets").delete().eq("user_id", merchantId);
-      await supabase.from("merchant_profiles").delete().eq("user_id", merchantId);
-      const { error: delErr, count } = await supabase.from("profiles").delete({ count: "exact" }).eq("id", merchantId);
-      if (delErr || !count) {
-        // Fallback: hide the account everywhere and block sign-in.
-        await supabase.from("profiles").update({ status: "deleted", email: `deleted+${merchantId.slice(0, 8)}@obpay.invalid` }).eq("id", merchantId);
-      }
+      // Keep the profile row as a permanent block (deleting it would let sign-in re-create the account).
+      const { error: blockErr } = await supabase.from("profiles").update({ status: "deactivated" }).eq("id", merchantId);
+      if (blockErr) throw new Error(blockErr.message);
+      await supabase.from("merchant_wallets").update({ available_balance: 0, pending_balance: 0, withdrawals_enabled: false }).eq("user_id", merchantId);
+      setMerchants((prev) => prev.filter((m) => m.id !== merchantId));
       setSelectedMerchantId(null);
       setActionMsg({ ok: true, message: `${name || "Merchant"} has been deleted.` });
       setTimeout(() => setActionMsg(null), 3000);

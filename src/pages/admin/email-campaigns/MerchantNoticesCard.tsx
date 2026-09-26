@@ -10,7 +10,7 @@ async function loadRecipients() {
   for (let from = 0; from < 10000; from += 1000) {
     const { data, error } = await supabase.from("profiles").select("email, full_name, status").range(from, from + 999);
     if (error) throw new Error(error.message);
-    for (const r of (data as any[]) || []) if (r?.email && r.status !== "deleted") all.push({ email: r.email, name: r.full_name || null });
+    for (const r of (data as any[]) || []) if (r?.email && r.status !== "deactivated") all.push({ email: r.email, name: r.full_name || null });
     if (!data || data.length < 1000) break;
   }
   return all;
