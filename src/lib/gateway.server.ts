@@ -450,6 +450,10 @@ export interface PayoutRequest {
   customerEmail?: string;
   remark?: string;
   notifyUrl?: string;
+  merchant?: import("./merchant-identity.server").MerchantTag;
+  channel?: string;
+  /** When true the partner fee is taken from `amount` instead of added on top. */
+  feeInclusive?: boolean;
 }
 
 let payoutRuleCache: { at: number; min: number; percent: number; floor: number; flat: number } | null = null;
@@ -483,29 +487,48 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       res: { ok: false, httpStatus: 400, code: "bad_number", data: null, raw: null, error: "That mobile money number is not valid. Use the 07XXXXXXXX format." } as GatewayResult,
     };
   }
-  const net = Math.round(req.amount);
   const rules = await payoutRules(creds);
-  // Gross the request up so the partner's fee does not reduce what the recipient gets.
-  let gross = net;
-  if (rules.flat) gross = net + rules.flat;
-  else if (rules.percent) gross = Math.max(Math.ceil(net / (1 - rules.percent / 100)), net + rules.floor);
-  if (gross < rules.min) {
-    return {
-      ok: false as const,
-      res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is UGX ${Math.max(rules.min - (gross - net), 1).toLocaleString("en")}.` } as GatewayResult,
-    };
+  let gross: number;
+  let net: number;
+  if (req.feeInclusive) {
+    // The partner's fee comes out of the amount sent: recipient gets amount − fee.
+    gross = Math.round(req.amount);
+    const f = rules.flat ? rules.flat : rules.percent ? Math.max(Math.ceil(gross * rules.percent / 100), rules.floor) : 0;
+    net = gross - f;
+    if (gross < rules.min || net <= 0) {
+      return {
+        ok: false as const,
+        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is UGX ${rules.min.toLocaleString("en")}.` } as GatewayResult,
+      };
+    }
+  } else {
+    // `amount` is what the recipient must receive; gross it up for the partner's fee.
+    net = Math.round(req.amount);
+    gross = net;
+    if (rules.flat) gross = net + rules.flat;
+    else if (rules.percent) gross = Math.max(Math.ceil(net / (1 - rules.percent / 100)), net + rules.floor);
+    if (gross < rules.min) {
+      return {
+        ok: false as const,
+        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is UGX ${Math.max(rules.min - (gross - net), 1).toLocaleString("en")}.` } as GatewayResult,
+      };
+    }
   }
+  const { tagDescription, tagMetadata } = await import("./merchant-identity.server");
   const body = {
     amount: gross,
     currency: "UGX",
     method: "mobile_money",
     account_number: phone,
     account_name: (req.customerName || "ObPay recipient").slice(0, 64),
+    reference: req.reference,
+    description: tagDescription(req.merchant, String(req.remark || req.reference)),
+    metadata: { ...tagMetadata(req.merchant, req.channel || "dashboard"), obpay_reference: req.reference },
   };
   const res = await gatewayFetch(creds, "/api/v1/payout", { method: "POST", body });
   if (!res.ok) return { ok: false as const, res };
   const payout = res.raw?.payout || res.data?.payout || {};
-  return { ok: true as const, res, platformReference: String(payout.reference || "") };
+  return { ok: true as const, res, platformReference: String(payout.reference || ""), gross, net, partnerFee: gross - net };
 }
 
 /** Current state of a payout, by the partner's reference. */
