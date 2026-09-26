@@ -5,6 +5,7 @@ import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/friendly-error";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 function isNetworkError(msg: string): boolean {
   const lower = msg.toLowerCase();
@@ -34,8 +35,6 @@ export default function Login() {
   const [serverError, setServerError] = useState("");
 
   const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  const isPhone = (value: string): boolean => /^\+?[\d\s\-()]{7,20}$/.test(value);
-
   const normalizedIdentifier = () => identifier
     .normalize("NFKC")
     .replace(/[\s\u200B-\u200D\u2060\uFEFF\u00A0]/g, "")
@@ -45,10 +44,10 @@ export default function Login() {
     let valid = true;
     const cleaned = normalizedIdentifier();
     if (!cleaned) {
-      setIdentifierError("Email or phone number is required");
+      setIdentifierError("Email address is required");
       valid = false;
-    } else if (!isEmail(cleaned) && !isPhone(cleaned)) {
-      setIdentifierError("Enter a valid email address or phone number");
+    } else if (!isEmail(cleaned)) {
+      setIdentifierError("Enter a valid email address");
       valid = false;
     } else {
       setIdentifierError("");
@@ -85,6 +84,11 @@ export default function Login() {
         // Otherwise return the error
         if (msg.toLowerCase().includes("email not confirmed")) {
           return { ok: false, error: "Please confirm your email address before logging in.", retryable: false };
+        }
+        // This account service sometimes labels a failed email/password lookup
+        // as "invalid email", even when the submitted address is well formed.
+        if (/invalid.*email|email.*invalid|invalid.*login|invalid.*credentials|invalid.*password/i.test(msg)) {
+          return { ok: false, error: "We couldn't sign you in with that email and password. Check your details or reset your password.", retryable: false };
         }
         return { ok: false, error: msg, retryable: false };
       }
@@ -253,7 +257,7 @@ export default function Login() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground-700 mb-1.5">
-                    Email or Phone Number
+                    Email Address
                   </label>
                   <input
                     type="text"
@@ -264,8 +268,9 @@ export default function Login() {
                       if (identifierError) setIdentifierError("");
                     }}
                     className={inputClass(!!identifierError)}
-                    placeholder="john@company.com or +1 555 123 4567"
-                    autoComplete="username"
+                    placeholder="john@company.com"
+                    autoComplete="email"
+                    inputMode="email"
                   />
                   {identifierError && (
                     <p className="text-xs text-accent-600 mt-1">{identifierError}</p>
@@ -331,7 +336,7 @@ export default function Login() {
                   className="hp-field"
                 />
 
-                <button
+                <Button
                   type="submit"
                   disabled={submitting}
                   className="w-full bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 text-background-50 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
@@ -347,7 +352,7 @@ export default function Login() {
                       Log In
                     </>
                   )}
-                </button>
+                </Button>
               </form>
 
               <p className="text-center text-sm text-foreground-600 mt-6">
