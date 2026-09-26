@@ -807,6 +807,27 @@ export async function runPlatformAction(
       case "admin-kyc.document-url":
         return await documentUrl(id, body.id);
 
+      case "intl.collect":
+      case "intl.payout":
+      case "payout-methods":
+      case "refunds.list":
+      case "refunds.create":
+      case "refunds.log":
+      case "exchange.rates":
+      case "exchange.convert":
+      case "exchange.list": {
+        const m = await import("./money.server");
+        if (action === "intl.collect") return await m.intlCollect(id, body);
+        if (action === "intl.payout") return await m.intlPayout(id, body);
+        if (action === "payout-methods") return await m.payoutMethods(body.currency);
+        if (action === "refunds.list") return await m.listRefundable(id);
+        if (action === "refunds.create") return await m.createRefund(id, body);
+        if (action === "refunds.log") return await m.logRefund(id, body);
+        if (action === "exchange.rates") return await m.getRates();
+        if (action === "exchange.convert") return await m.convertBalance(id, body);
+        return await m.listExchanges(id);
+      }
+
       default:
         return fail(`Unknown action: ${action}`);
     }
