@@ -78,7 +78,7 @@ export default function Register() {
     const redirectTo = `${window.location.origin}/verify-email?email=${encodeURIComponent(formData.email)}`;
 
     const signupPromise = supabase.auth.signUp({
-      email: formData.email,
+      email: formData.email.normalize("NFKC").replace(/[\s\u200B-\u200D\u2060\uFEFF\u00A0]/g, "").toLowerCase(),
       password: formData.password,
       options: {
         emailRedirectTo: redirectTo,
