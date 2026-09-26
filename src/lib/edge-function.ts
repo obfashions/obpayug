@@ -68,6 +68,7 @@ const LOCAL_ACTIONS = new Set([
   "test-connection",
   "server-ip",
   "payout-preflight",
+  "admin-adjust-balance",
   // extra services
   "svc-list",
   "bank-banks",
