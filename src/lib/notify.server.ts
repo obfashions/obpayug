@@ -213,7 +213,7 @@ export async function notifySettlement(info: SettlementInfo): Promise<void> {
 }
 
 /** Emails the ObPay admin about any merchant activity. Best effort, never throws. */
-export async function sendAdminAlert(title: string, details: Record<string, unknown> = {}) {
+export async function sendAdminActivityAlert(title: string, details: Record<string, unknown> = {}) {
   try {
     const { sendMailjet, brandedHtml } = await import("./mailjet.server");
     const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

@@ -758,8 +758,8 @@ export async function runPlatformAction(
       const who = await requireIdentity(accessToken);
       const details: Record<string, unknown> = { ...body };
       delete details.file_data;
-      const { sendAdminAlert } = await import("./notify.server");
-      await sendAdminAlert(title, { Merchant: who.email || who.userId, "Merchant ID": who.userId, ...details });
+      const { sendAdminActivityAlert } = await import("./notify.server");
+      await sendAdminActivityAlert(title, { Merchant: who.email || who.userId, "Merchant ID": who.userId, ...details });
     } catch (e: any) {
       console.error("admin alert failed", e?.message);
     }
