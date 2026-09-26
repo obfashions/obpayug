@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
+import IntlMoneyPanel from "@/components/feature/IntlMoneyPanel";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -339,6 +340,7 @@ export default function CollectionsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <IntlMoneyPanel mode="collect" />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div><h1 className="font-heading font-bold text-2xl text-foreground-900">Collections</h1><p className="text-sm text-foreground-600 mt-1">Initiate and track payment collections from customers</p></div>
           <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-colors bg-primary-500 hover:bg-primary-600 text-background-50">
