@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase } from "@/lib/supabase";
+import WhatsappLinkCard from "./WhatsappLinkCard";
 
 interface PlatformSettings {
   id: string;
@@ -91,7 +92,7 @@ export default function AdminSettings() {
   };
 
   if (loading) return (<AdminLayout><div className="flex items-center justify-center py-24"><i className="ri-loader-4-line animate-spin text-3xl text-accent-500" /></div></AdminLayout>);
-  if (error) return (<AdminLayout><div className="text-center py-24"><p className="text-sm mb-4">{error}</p><button onClick={fetchSettings} className="bg-accent-500 text-background-50 px-4 py-2 rounded-lg text-sm cursor-pointer">Retry</button></div></AdminLayout>);
+  if (error) return (<AdminLayout><div className="text-center py-24"><p className="text-sm mb-4">{error}</p><button onClick={fetchSettings} className="bg-accent-500 text-background-50 px-4 py-2 rounded-lg text-sm cursor-pointer">Retry</button><div className="max-w-xl mx-auto mt-8 text-left"><WhatsappLinkCard /></div></div></AdminLayout>);
   if (!settings) return (<AdminLayout><div className="text-center py-24"><p className="text-sm text-foreground-500">No settings found</p></div></AdminLayout>);
 
   return (
@@ -219,6 +220,8 @@ export default function AdminSettings() {
             </div>
           </div>
         </div>
+
+        <WhatsappLinkCard />
 
         {/* Danger Zone */}
         <div className="bg-background-50 rounded-xl border border-accent-200/70 p-6">
