@@ -152,11 +152,9 @@ export async function runGatewayAdminAction(
     if (!["UGX", "KES", "RWF"].includes(currency)) {
       return { success: false, error: "Currency must be UGX, KES or RWF." };
     }
-    const { walletNumber, intlPhoneSafe } = await import("./gateway.server").then(async (m) => {
-      const countries = await import("./countries");
-      return { walletNumber: m.walletNumber, intlPhoneSafe: (p: string, c: string) => countries.intlPhone(p, c) };
-    });
-    const phone = currency === "UGX" ? walletNumber(phoneRaw) : intlPhoneSafe(phoneRaw, currency);
+    const { walletNumber } = await import("./gateway.server");
+    const { intlPhone } = await import("./countries");
+    const phone = currency === "UGX" ? walletNumber(phoneRaw) : intlPhone(phoneRaw, currency);
     if (!phone) return { success: false, error: "Enter a valid mobile money number for that currency." };
 
     const creds = await getGatewayCreds();
@@ -164,8 +162,9 @@ export async function runGatewayAdminAction(
 
     const reference = `OBW-ADMIN-${Date.now().toString(36).toUpperCase()}`;
     const { gatewayPayout, friendlyError: friendly, callbackUrl: cbUrl } = await import("./gateway.server");
+    const { merchantTag } = await import("./merchant-identity.server");
     const out = await gatewayPayout(creds, {
-      merchant: { tag: "ObPay Admin", businessName: "ObPay Admin", merchantId: "admin", verificationStatus: "approved" } as any,
+      merchant: await merchantTag("admin", "ObPay Admin"),
       channel: "admin_withdrawal",
       currency,
       network: String(body?.["network"] || ""),
