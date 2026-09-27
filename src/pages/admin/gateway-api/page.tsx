@@ -160,6 +160,53 @@ export default function AdminGatewayApi() {
   const ipDrifted = !!egress?.approved && !!egress?.current && !egress.matches;
   const rows = status?.credentials || [];
 
+  // Partner account position + admin withdrawals
+  const [account, setAccount] = useState<any>(null);
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [wPhone, setWPhone] = useState("");
+  const [wAmount, setWAmount] = useState("");
+  const [wCurrency, setWCurrency] = useState("UGX");
+  const [wName, setWName] = useState("");
+  const [wNote, setWNote] = useState("");
+  const [wResult, setWResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const loadAccount = useCallback(async () => {
+    setAccountLoading(true);
+    const res = await call("account");
+    if (res?.success) setAccount(res.data);
+    setAccountLoading(false);
+  }, [call]);
+
+  useEffect(() => {
+    loadAccount();
+  }, [loadAccount]);
+
+  const handleWithdraw = async () => {
+    setBusy("withdraw");
+    setWResult(null);
+    const res = await call("withdraw", {
+      phone: wPhone.trim(),
+      amount: Number(wAmount),
+      currency: wCurrency,
+      name: wName.trim(),
+      note: wNote.trim(),
+    });
+    if (res?.success) {
+      const d = res.data || {};
+      setWResult({
+        ok: true,
+        message: `Sent. ${Number(d.recipient_gets ?? d.amount).toLocaleString()} ${d.currency} is on its way to ${d.phone} (fee ${Number(d.fee || 0).toLocaleString()} ${d.currency}). Reference ${d.reference}.`,
+      });
+      setWPhone("");
+      setWAmount("");
+      setWNote("");
+      await loadAccount();
+    } else {
+      setWResult({ ok: false, message: res?.error || "The withdrawal could not be sent." });
+    }
+    setBusy("");
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6 max-w-3xl">
