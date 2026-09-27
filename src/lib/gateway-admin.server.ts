@@ -171,6 +171,8 @@ export async function runGatewayAdminAction(
       feeInclusive: true,
       reference,
       amount,
+      typeTrans: 2,
+      bankCode: "",
       accountNumber: phone,
       customerPhone: phone,
       customerName: String(body?.["name"] || "ObPay Admin").slice(0, 64),
