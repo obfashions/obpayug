@@ -325,6 +325,128 @@ export default function AdminGatewayApi() {
           </div>
         )}
 
+        {/* Partner account position + admin withdrawal */}
+        <div className="rounded-xl border border-foreground-200/20 p-4 sm:p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-medium">Account position</h2>
+            <button
+              onClick={loadAccount}
+              disabled={accountLoading}
+              className="px-3 py-1.5 rounded-lg text-xs border border-foreground-200/25 cursor-pointer disabled:opacity-50"
+            >
+              {accountLoading ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+          <p className="text-xs text-foreground-500">
+            The partner has no live balance check, so these figures come from ObPay's own books: everything
+            collected, everything paid out, and what is currently owed to merchants.
+          </p>
+          {accountLoading && !account ? (
+            <div className="flex items-center gap-2 text-sm text-foreground-500">
+              <i className="ri-loader-4-line animate-spin" /> Loading…
+            </div>
+          ) : (account?.tracked || []).length === 0 ? (
+            <p className="text-sm text-foreground-500">No transactions recorded yet.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(account?.tracked || []).map((row: any) => (
+                <div key={row.currency} className="rounded-lg border border-foreground-200/20 p-3 text-sm space-y-1">
+                  <div className="font-medium">{row.currency}</div>
+                  <div className="flex justify-between"><span className="text-foreground-500">Collected</span><span>{Number(row.collected).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-foreground-500">Paid out</span><span>{Number(row.paid_out).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-foreground-500">Owed to merchants</span><span>{Number(row.merchant_available).toLocaleString()}</span></div>
+                  <div className="flex justify-between font-medium"><span>Platform share (fees)</span><span>{Number(row.platform_share).toLocaleString()}</span></div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="border-t border-foreground-200/15 pt-4 space-y-3">
+            <h3 className="text-sm font-medium">Withdraw to a mobile money number</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <label className="text-xs text-foreground-500">Mobile money number</label>
+                <input
+                  value={wPhone}
+                  onChange={(e) => setWPhone(e.target.value)}
+                  placeholder="e.g. 0762201984"
+                  className="w-full rounded-lg bg-background-100 border border-foreground-200/20 px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs text-foreground-500">Recipient name</label>
+                <input
+                  value={wName}
+                  onChange={(e) => setWName(e.target.value)}
+                  placeholder="Name on the wallet"
+                  className="w-full rounded-lg bg-background-100 border border-foreground-200/20 px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs text-foreground-500">Amount</label>
+                <input
+                  value={wAmount}
+                  onChange={(e) => setWAmount(e.target.value.replace(/[^0-9]/g, ""))}
+                  inputMode="numeric"
+                  placeholder="10000"
+                  className="w-full rounded-lg bg-background-100 border border-foreground-200/20 px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs text-foreground-500">Currency</label>
+                <select
+                  value={wCurrency}
+                  onChange={(e) => setWCurrency(e.target.value)}
+                  className="w-full rounded-lg bg-background-100 border border-foreground-200/20 px-3 py-2 text-sm"
+                >
+                  <option value="UGX">UGX</option>
+                  <option value="KES">KES</option>
+                  <option value="RWF">RWF</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <label className="text-xs text-foreground-500">Note (optional)</label>
+              <input
+                value={wNote}
+                onChange={(e) => setWNote(e.target.value)}
+                placeholder="What this withdrawal is for"
+                className="w-full rounded-lg bg-background-100 border border-foreground-200/20 px-3 py-2 text-sm"
+              />
+            </div>
+            <p className="text-[11px] text-foreground-500">
+              The transfer fee comes out of the amount you enter — enter 10,000 and the recipient gets 10,000 minus the fee.
+            </p>
+            {wResult && (
+              <div className={`rounded-lg px-3 py-2 text-sm ${wResult.ok ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
+                {wResult.message}
+              </div>
+            )}
+            <button
+              onClick={handleWithdraw}
+              disabled={busy !== "" || !wPhone.trim() || !Number(wAmount)}
+              className="px-4 py-2 rounded-lg text-sm bg-accent-500 text-background-50 cursor-pointer disabled:opacity-50"
+            >
+              {busy === "withdraw" ? "Sending…" : "Send withdrawal"}
+            </button>
+          </div>
+
+          {(account?.recent_withdrawals || []).length > 0 && (
+            <div className="border-t border-foreground-200/15 pt-4 space-y-2">
+              <h3 className="text-sm font-medium">Recent admin withdrawals</h3>
+              <div className="space-y-1.5 text-xs">
+                {account.recent_withdrawals.map((p: any) => (
+                  <div key={p.reference} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-foreground-200/15 px-3 py-2">
+                    <span className="font-mono">{p.reference}</span>
+                    <span>{Number(p.amount).toLocaleString()} {p.currency} → {p.phone_number}</span>
+                    <span className={p.status === "success" ? "text-emerald-500" : p.status === "failed" ? "text-red-500" : "text-amber-500"}>{p.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Saved credential sets */}
         <div className="rounded-xl border border-foreground-200/20 p-4 sm:p-5 space-y-3">
           <h2 className="font-medium">Saved credentials</h2>
