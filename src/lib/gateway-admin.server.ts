@@ -108,6 +108,109 @@ export async function runGatewayAdminAction(
 
   if (action === "status") return statusPayload();
 
+  // Tracked account position: the partner exposes no live balance endpoint,
+  // so we report what ObPay's own books say is sitting in the gateway float.
+  if (action === "account") {
+    const client = await db();
+    const [{ data: balances }, { data: payouts }] = await Promise.all([
+      client.from("merchant_balances").select("currency, available_balance, total_collections, total_payouts"),
+      client
+        .from("payment_records")
+        .select("reference, amount, currency, status, phone_number, created_at")
+        .eq("type", "payout")
+        .eq("source", "admin")
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
+    const byCurrency: Record<string, { collected: number; paid_out: number; merchant_available: number }> = {};
+    for (const row of balances || []) {
+      const c = String(row.currency || "UGX");
+      byCurrency[c] = byCurrency[c] || { collected: 0, paid_out: 0, merchant_available: 0 };
+      byCurrency[c].collected += Number(row.total_collections) || 0;
+      byCurrency[c].paid_out += Number(row.total_payouts) || 0;
+      byCurrency[c].merchant_available += Number(row.available_balance) || 0;
+    }
+    const tracked = Object.entries(byCurrency).map(([currency, v]) => ({
+      currency,
+      collected: v.collected,
+      paid_out: v.paid_out,
+      merchant_available: v.merchant_available,
+      // Money held at the partner that is not owed to merchants (fees, float).
+      platform_share: Math.max(v.collected - v.paid_out - v.merchant_available, 0),
+    }));
+    return { success: true, data: { tracked, recent_withdrawals: payouts || [] } };
+  }
+
+  // Withdraw from the platform float straight to a mobile money number.
+  if (action === "withdraw") {
+    const amount = Number(body?.["amount"]);
+    const currency = String(body?.["currency"] || "UGX").toUpperCase();
+    const phoneRaw = String(body?.["phone"] || "").trim();
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
+      return { success: false, error: "Enter a whole-number amount greater than zero." };
+    }
+    if (!["UGX", "KES", "RWF"].includes(currency)) {
+      return { success: false, error: "Currency must be UGX, KES or RWF." };
+    }
+    const { walletNumber } = await import("./gateway.server");
+    const { intlPhone } = await import("./countries");
+    const phone = currency === "UGX" ? walletNumber(phoneRaw) : intlPhone(phoneRaw, currency);
+    if (!phone) return { success: false, error: "Enter a valid mobile money number for that currency." };
+
+    const creds = await getGatewayCreds();
+    if (!creds) return { success: false, error: "No gateway credentials are configured." };
+
+    const reference = `OBW-ADMIN-${Date.now().toString(36).toUpperCase()}`;
+    const { gatewayPayout, friendlyError: friendly, callbackUrl: cbUrl } = await import("./gateway.server");
+    const { merchantTag } = await import("./merchant-identity.server");
+    const out = await gatewayPayout(creds, {
+      merchant: await merchantTag("admin", "ObPay Admin"),
+      channel: "admin_withdrawal",
+      currency,
+      network: String(body?.["network"] || ""),
+      feeInclusive: true,
+      reference,
+      amount,
+      typeTrans: 2,
+      bankCode: "",
+      accountNumber: phone,
+      customerPhone: phone,
+      customerName: String(body?.["name"] || "ObPay Admin").slice(0, 64),
+      remark: String(body?.["note"] || "ObPay admin withdrawal"),
+      notifyUrl: cbUrl(),
+    });
+
+    const client = await db();
+    await client.from("payment_records").insert({
+      merchant_id: "admin",
+      reference,
+      provider_reference: out.ok ? out.platformReference : null,
+      type: "payout",
+      source: "admin",
+      amount,
+      currency,
+      status: out.ok ? "pending" : "failed",
+      phone_number: phone,
+      description: String(body?.["note"] || "Admin withdrawal from platform float"),
+      metadata: { admin: admin.email || admin.userId, fee_inclusive: true, fee: out.ok ? out.partnerFee : null, recipient_gets: out.ok ? out.net : null },
+    });
+
+    if (!out.ok) return { success: false, error: friendly(out.res, "payout") };
+    return {
+      success: true,
+      data: {
+        reference,
+        amount,
+        fee: out.partnerFee,
+        recipient_gets: out.net,
+        currency,
+        phone,
+        status: "pending",
+      },
+    };
+  }
+
+
   if (action === "egress-approve") {
     const { approveEgressIp } = await import("./egress-monitor.server");
     try {
