@@ -195,16 +195,51 @@ export async function deletePaymentLink(id: Identity, linkId: string) {
 }
 
 /** Public — used by the hosted checkout page. No token required. */
-export async function publicPaymentLink(slug: string) {
-  const { data, error } = await db()
+/**
+ * Resolves a /pay/<slug> address: a created payment link first, otherwise the
+ * merchant's own open-amount pay page (merchant_profiles.merchant_slug).
+ */
+async function resolvePayTarget(slug: string): Promise<{ link: any | null; error?: string }> {
+  const clean = String(slug || "").trim();
+  if (!clean) return { link: null, error: "This payment link does not exist." };
+  const { data } = await db()
     .from("payment_links")
-    .select("id, merchant_id, slug, title, description, amount, currency, fixed_amount, redirect_url, status, views")
-    .eq("slug", String(slug || "").trim())
+    .select("id, merchant_id, slug, title, description, amount, currency, fixed_amount, redirect_url, status, views, payments_count")
+    .eq("slug", clean)
     .maybeSingle();
-  if (error) return fail(error.message);
-  if (!data) return fail("This payment link does not exist.");
+  if (data) return { link: data };
+  const { data: mp } = await db()
+    .from("merchant_profiles")
+    .select("user_id, company_name, merchant_slug, verification_status")
+    .or(`merchant_slug.eq.${clean.replace(/[^a-zA-Z0-9_-]/g, "")},merchant_id.eq.${clean.replace(/[^a-zA-Z0-9_-]/g, "")}`)
+    .limit(1)
+    .maybeSingle();
+  if (!mp) return { link: null, error: "This payment link does not exist." };
+  const { data: prof } = await db().from("profiles").select("status, full_name").eq("id", mp.user_id).maybeSingle();
+  if (prof?.status === "deactivated") return { link: null, error: "This payment link is no longer accepting payments." };
+  return {
+    link: {
+      id: null,
+      merchant_id: mp.user_id,
+      slug: clean,
+      title: mp.company_name || prof?.full_name || "ObPay merchant",
+      description: null,
+      amount: null,
+      currency: "UGX",
+      fixed_amount: false,
+      redirect_url: null,
+      status: "active",
+      views: 0,
+      payments_count: 0,
+    },
+  };
+}
+
+export async function publicPaymentLink(slug: string) {
+  const { link: data, error } = await resolvePayTarget(slug);
+  if (!data) return fail(error || "This payment link does not exist.");
   if (data.status !== "active") return fail("This payment link is no longer accepting payments.");
-  await db().from("payment_links").update({ views: ((data as any).views ?? 0) + 1 }).eq("id", data.id);
+  if (data.id) await db().from("payment_links").update({ views: (data.views ?? 0) + 1 }).eq("id", data.id);
   return done(data);
 }
 
