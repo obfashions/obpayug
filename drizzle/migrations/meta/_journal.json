@@ -43,6 +43,13 @@
       "when": 1790455984858,
       "tag": "0005_admin_links_and_verification_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790582215557,
+      "tag": "0006_skip_dashboard_double_credit",
+      "breakpoints": true
     }
   ]
 }
