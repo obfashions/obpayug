@@ -144,9 +144,21 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
     .eq("reference", reference)
     .maybeSingle();
   if (existing) {
-    return existing.merchant_id === merchantId
-      ? err(`Reference "${reference}" has already been used.`)
-      : err("That reference is not available. Use a different one.");
+    if (existing.merchant_id !== merchantId) return err("That reference is not available. Use a different one.");
+    // Retried request (double click, network retry): answer with the existing
+    // payment's current state instead of an error, so integrations stay idempotent.
+    const current = await apiTransaction(merchantId, reference);
+    const rec: any = (current as any).data || {};
+    return ok({
+      reference,
+      duplicate: true,
+      message: "This reference was already submitted. Returning its current status.",
+      checkout_url: rec.metadata?.checkout_url || null,
+      amount: Number(rec.amount) || amount,
+      currency: rec.currency || currency,
+      status: rec.status || "pending",
+      type: "collection",
+    });
   }
 
   const { merchantTag } = await import("./merchant-identity.server");
@@ -247,9 +259,21 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     .eq("reference", reference)
     .maybeSingle();
   if (existing) {
-    return existing.merchant_id === merchantId
-      ? err(`Reference "${reference}" has already been used.`)
-      : err("That reference is not available. Use a different one.");
+    if (existing.merchant_id !== merchantId) return err("That reference is not available. Use a different one.");
+    // Retried request (double click, network retry): answer with the existing
+    // payment's current state instead of an error, so integrations stay idempotent.
+    const current = await apiTransaction(merchantId, reference);
+    const rec: any = (current as any).data || {};
+    return ok({
+      reference,
+      duplicate: true,
+      message: "This reference was already submitted. Returning its current status.",
+      checkout_url: rec.metadata?.checkout_url || null,
+      amount: Number(rec.amount) || amount,
+      currency: rec.currency || currency,
+      status: rec.status || "pending",
+      type: "collection",
+    });
   }
 
   // Only pay out money the merchant has actually collected through ObPay.
