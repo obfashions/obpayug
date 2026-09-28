@@ -709,12 +709,8 @@ export async function publicCollect(body: Record<string, any>) {
   if (!creds) return fail("Payments are temporarily unavailable. Please try again shortly.");
 
   const slug = String(body.slug || "").trim();
-  const { data: link } = await db()
-    .from("payment_links")
-    .select("id, merchant_id, title, description, amount, currency, fixed_amount, status, payments_count")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (!link) return fail("This payment link does not exist.");
+  const { link, error: linkError } = await resolvePayTarget(slug);
+  if (!link) return fail(linkError || "This payment link does not exist.");
   if (link.status !== "active") return fail("This payment link is no longer accepting payments.");
   if (String(link.currency || "UGX").toUpperCase() !== "UGX") {
     return fail("This payment link uses a currency that is not supported. Ask the merchant to create a UGX link.");
@@ -775,10 +771,12 @@ export async function publicCollect(body: Record<string, any>) {
     description: link.title,
     metadata: { checkout_url: out.checkoutUrl },
   });
-  await db()
-    .from("payment_links")
-    .update({ payments_count: (link.payments_count ?? 0) + 1 })
-    .eq("id", link.id);
+  if (link.id) {
+    await db()
+      .from("payment_links")
+      .update({ payments_count: (link.payments_count ?? 0) + 1 })
+      .eq("id", link.id);
+  }
 
   return done({
     reference,

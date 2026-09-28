@@ -163,11 +163,12 @@ export default function PayPage() {
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encoded}&bgcolor=ffffff&color=000000`;
   };
 
-  const pollForStatus = useCallback(async (ref: string, maxAttempts = 12) => {
+  const pollForStatus = useCallback(async (ref: string, maxAttempts = 45) => {
     const start = Date.now();
     setTxnStartTime(start);
     setPollStatus("polling");
     let confirmed = false;
+    let finished = false;
 
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise(r => setTimeout(r, 4000));
@@ -186,6 +187,7 @@ export default function PayPage() {
         if (pollData?.data?.status === "failed") {
           const elapsed = Math.round((Date.now() - start) / 1000);
           setTxnElapsed(elapsed);
+          finished = true;
           setPollStatus("failed");
           setPollMessage("Payment was not completed. Please try again or use a different payment method.");
           break;
@@ -193,7 +195,7 @@ export default function PayPage() {
       } catch { /* keep polling */ }
     }
 
-    if (!confirmed && pollStatus !== "failed") {
+    if (!confirmed && !finished) {
       setPollStatus("pending");
       setPollMessage(`Payment request sent. If your mobile money was charged, the merchant will be notified once confirmed. Reference: ${ref}`);
     }

@@ -77,7 +77,7 @@ async function handle(request: Request, params: Record<string, string>) {
   const status = (result as any)?.status ?? 200;
   const payload = (result as any)?.payload;
 
-  void logApiRequest({
+  await logApiRequest({
     merchant_id: merchantId,
     method,
     path: `/${path}`,
