@@ -352,6 +352,7 @@ export function friendlyError(
   const raw = String(res?.error || "");
   const http = Number((res as any)?.httpStatus || 0);
 
+  if (["whole_amount_required", "below_minimum", "fee_unavailable"].includes(code)) return raw;
   if (isIpBlocked(res)) {
     return `This ${kind} could not be sent because this server's network address is not approved. ObPay support has been notified — please try again shortly.`;
   }
@@ -497,13 +498,16 @@ export interface PayoutRequest {
 
 const payoutRuleCache = new Map<string, { at: number; min: number; percent: number; floor: number; flat: number }>();
 async function payoutRules(creds: GatewayCreds, currency = "UGX") {
-  const hit = payoutRuleCache.get(currency);
+  const cacheKey = `${creds.key}:${currency}`;
+  const hit = payoutRuleCache.get(cacheKey);
   if (hit && Date.now() - hit.at < 10 * 60_000) return hit;
   const res = await gatewayFetch(creds, `/api/v1/payout-methods?currency=${currency}`);
   if (!res.ok || !res.raw?.payout_methods?.fee) return null;
   const pm = res.raw?.payout_methods || {};
   const fee = pm.fee || {};
-  if (pm.available === false || !["percent", "flat"].includes(fee.type)) return null;
+  if (pm.available === false || !["percent", "flat"].includes(fee.type) ||
+      (fee.type === "percent" && !Number.isFinite(Number(fee.percent))) ||
+      (fee.type === "flat" && !Number.isFinite(Number(fee.amount ?? fee.value)))) return null;
   const rules = {
     at: Date.now(),
     min: Number(pm.minimum_withdrawal) || (currency === "UGX" ? 10000 : 1),
@@ -511,7 +515,7 @@ async function payoutRules(creds: GatewayCreds, currency = "UGX") {
     floor: Number(fee.floor) || 0,
     flat: fee.type === "flat" ? Number(fee.amount ?? fee.value) || 0 : 0,
   };
-  payoutRuleCache.set(currency, rules);
+  payoutRuleCache.set(cacheKey, rules);
   return rules;
 }
 
