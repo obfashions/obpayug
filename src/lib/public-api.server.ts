@@ -163,34 +163,26 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
   // check must be global too — otherwise one merchant's reference could
   // overwrite another's record. The message stays neutral so it cannot be
   // used to probe other merchants' references.
-  const { data: existing, error: lookupError } = await db()
+  const { data: existing } = await db()
     .from("payment_records")
-    .select("merchant_id, type, status, amount, currency, phone_number, provider_reference")
+    .select("merchant_id")
     .eq("reference", reference)
     .maybeSingle();
-  if (lookupError) return err("Could not check this payout reference. No new payout was sent; please try again later.");
   if (existing) {
     if (existing.merchant_id !== merchantId) return err("That reference is not available. Use a different one.");
-    if (existing.type !== "payout" || Number(existing.amount) !== amount || existing.currency !== currency || existing.phone_number !== accountNumber) {
-      return err("This reference belongs to a different payment. Use a new reference for this payout.");
-    }
-    if (existing.status === "failed") return err("That payout failed previously. Use a new reference to submit a new payout.");
-    // A request without a partner reference may not have reached the partner.
-    // Never report it as sent or submit it again automatically.
-    if (!existing.provider_reference) return err("This payout could not be confirmed. No new payout was sent. Contact support with the reference before trying again.");
-    // A real previously-submitted payout: return its current state, not a new request.
+    // Retried request (double click, network retry): answer with the existing
+    // payment's current state instead of an error, so integrations stay idempotent.
     const current = await apiTransaction(merchantId, reference);
-    if (!current.success) return current;
     const rec: any = (current as any).data || {};
-    if (rec.status === "failed") return err("That payout failed previously. Use a new reference to submit a new payout.");
     return ok({
       reference,
       duplicate: true,
-      message: "This payout was already submitted. Returning its current status; no new payout was sent.",
-      amount: Number(rec.amount),
-      currency: rec.currency,
+      message: "This reference was already submitted. Returning its current status.",
+      checkout_url: rec.metadata?.checkout_url || null,
+      amount: Number(rec.amount) || amount,
+      currency: rec.currency || currency,
       status: rec.status || "pending",
-      type: "payout",
+      type: "collection",
     });
   }
 
@@ -286,26 +278,34 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   if (recipientEmail && !/^\S+@\S+\.\S+$/.test(recipientEmail)) return err("`customer_email` must be a valid email address.");
 
   const reference = String(body.reference || `OBW${Date.now().toString(36).toUpperCase()}`).slice(0, 40);
-  const { data: existing } = await db()
+  const { data: existing, error: lookupError } = await db()
     .from("payment_records")
-    .select("merchant_id")
+    .select("merchant_id, type, status, amount, currency, phone_number, provider_reference")
     .eq("reference", reference)
     .maybeSingle();
+  if (lookupError) return err("Could not check this payout reference. No new payout was sent; please try again later.");
   if (existing) {
     if (existing.merchant_id !== merchantId) return err("That reference is not available. Use a different one.");
-    // Retried request (double click, network retry): answer with the existing
-    // payment's current state instead of an error, so integrations stay idempotent.
+    if (existing.type !== "payout" || Number(existing.amount) !== amount || existing.currency !== currency || existing.phone_number !== accountNumber) {
+      return err("This reference belongs to a different payment. Use a new reference for this payout.");
+    }
+    if (existing.status === "failed") return err("That payout failed previously. Use a new reference to submit a new payout.");
+    // A request without a partner reference may not have reached the partner.
+    // Never report it as sent or submit it again automatically.
+    if (!existing.provider_reference) return err("This payout could not be confirmed. No new payout was sent. Contact support with the reference before trying again.");
+    // A real previously-submitted payout: return its current state, not a new request.
     const current = await apiTransaction(merchantId, reference);
+    if (!current.success) return current;
     const rec: any = (current as any).data || {};
+    if (rec.status === "failed") return err("That payout failed previously. Use a new reference to submit a new payout.");
     return ok({
       reference,
       duplicate: true,
-      message: "This reference was already submitted. Returning its current status.",
-      checkout_url: rec.metadata?.checkout_url || null,
-      amount: Number(rec.amount) || amount,
-      currency: rec.currency || currency,
+      message: "This payout was already submitted. Returning its current status; no new payout was sent.",
+      amount: Number(rec.amount),
+      currency: rec.currency,
       status: rec.status || "pending",
-      type: "collection",
+      type: "payout",
     });
   }
 
