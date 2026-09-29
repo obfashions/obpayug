@@ -199,7 +199,7 @@ async function resolveTransaction(token: string, txn: any) {
   }
 
   if (status === "failed" && txn.type === "payout" && wallet) {
-    const refund = Number(txn.amount) + Number(txn.fee_amount || 0);
+    const refund = Number(txn.amount) + (txn.metadata?.fee_inclusive ? 0 : Number(txn.fee_amount || 0));
     await restWrite(token, `/merchant_wallets?user_id=eq.${txn.user_id}`, {
       method: "PATCH",
       body: JSON.stringify({
