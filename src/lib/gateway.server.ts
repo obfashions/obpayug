@@ -503,6 +503,7 @@ async function payoutRules(creds: GatewayCreds, currency = "UGX") {
   if (!res.ok || !res.raw?.payout_methods?.fee) return null;
   const pm = res.raw?.payout_methods || {};
   const fee = pm.fee || {};
+  if (pm.available === false || !["percent", "flat"].includes(fee.type)) return null;
   const rules = {
     at: Date.now(),
     min: Number(pm.minimum_withdrawal) || (currency === "UGX" ? 10000 : 1),
@@ -575,10 +576,11 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       return denominator / a;
     })() : 1;
     const next = Math.ceil((Math.floor(gross) + 1) / step) * step;
+    const advice = step > 1 ? `Enter ${currency} ${next.toLocaleString("en")} instead, or another whole amount in increments of ${step.toLocaleString("en")}.` : `Enter a whole ${currency} amount.`;
     return {
       ok: false as const,
       res: { ok: false, httpStatus: 400, code: "whole_amount_required", data: null, raw: null,
-        error: `This mobile-money withdrawal would result in a fractional ${currency} amount after the fee. Enter ${currency} ${next.toLocaleString("en")} instead, or another whole amount in increments of ${step.toLocaleString("en")}. No money was sent.` } as GatewayResult,
+        error: `This mobile-money withdrawal would result in a fractional ${currency} amount after the fee. ${advice} No money was sent.` } as GatewayResult,
     };
   }
   const method = currency === "KES" ? (req.network === "airtel_money" ? "airtel_money" : "mpesa") : "mobile_money";
