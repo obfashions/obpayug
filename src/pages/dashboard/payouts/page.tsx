@@ -80,8 +80,6 @@ export default function PayoutsPage() {
   const [submitStatus, setSubmitStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [merchantSlug, setMerchantSlug] = useState<string | null>(null);
   const [feePercent, setFeePercent] = useState(5);
-  const [payoutFlatFee, setPayoutFlatFee] = useState(2000);
-  const [withdrawFeePercent, setWithdrawFeePercent] = useState(3);
   const [minPayout, setMinPayout] = useState(0);
   const [maxPayout, setMaxPayout] = useState(0);
   const [showFundingQR, setShowFundingQR] = useState(false);
@@ -114,15 +112,13 @@ export default function PayoutsPage() {
         supabase.from("payout_requests").select("*").eq("user_id", user.id).order("requested_at", { ascending: false }).limit(50),
         supabase.from("merchant_wallets").select("available_balance,pending_balance,daily_withdrawal_limit,last_24h_withdrawal_total,last_withdrawal_reset_at,balances_by_currency").eq("user_id", user.id).maybeSingle(),
         supabase.from("merchant_profiles").select("merchant_slug,company_name").eq("user_id", user.id).maybeSingle(),
-        supabase.from("platform_settings").select("platform_fee_percent, payout_flat_fee, withdraw_fee_percent, min_payout_amount, max_payout_amount").limit(1).maybeSingle(),
+        supabase.from("platform_settings").select("platform_fee_percent, min_payout_amount, max_payout_amount").limit(1).maybeSingle(),
       ]);
       if (pErr) throw pErr;
       setPayouts((pData as Payout[]) || []);
       setWallet({ available_balance: wData?.available_balance || 0, pending_balance: wData?.pending_balance || 0 });
       setMerchantSlug(mData?.merchant_slug || null);
       if (psData?.platform_fee_percent) setFeePercent(psData.platform_fee_percent);
-      if (psData?.payout_flat_fee != null) setPayoutFlatFee(Number(psData.payout_flat_fee));
-      if (psData?.withdraw_fee_percent != null) setWithdrawFeePercent(Number(psData.withdraw_fee_percent));
       if (psData?.min_payout_amount != null) setMinPayout(psData.min_payout_amount);
       if (psData?.max_payout_amount != null) setMaxPayout(psData.max_payout_amount);
 
@@ -208,13 +204,6 @@ export default function PayoutsPage() {
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encoded}&bgcolor=ffffff&color=000000`;
   };
 
-  const estimatedPayoutFee = (): number => {
-    const amt = parseFloat(form.amount) || 0;
-    if (amt <= 0) return 0;
-    if (amt <= 70000) return payoutFlatFee; // flat 2,000 UGX
-    return Math.round(amt * (withdrawFeePercent / 100) * 100) / 100; // 3%
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || submitting) return;
@@ -227,13 +216,10 @@ export default function PayoutsPage() {
         setSubmitting(false); return;
       }
 
-      const fee = estimatedPayoutFee();
       const totalDeduction = amount;
-      if (fee >= amount) { setSubmitStatus({ ok: false, message: `The amount must be more than the ${formatCurrency(fee, form.currency)} fee.` }); setSubmitting(false); return; }
 
       if (totalDeduction > activeBalance) {
-        const feeLabel = amount <= 70000 ? `${formatCurrency(fee, form.currency)} flat fee` : `${formatCurrency(fee, form.currency)} (3%)`;
-        setSubmitStatus({ ok: false, message: `You tried to send ${formatCurrency(totalDeduction, form.currency)} (the ${feeLabel} comes out of it). Your balance is ${formatCurrency(activeBalance, form.currency)}.` });
+        setSubmitStatus({ ok: false, message: `You tried to send ${formatCurrency(totalDeduction, form.currency)}. Your balance is ${formatCurrency(activeBalance, form.currency)}.` });
         setSubmitting(false); return;
       }
 
@@ -322,9 +308,6 @@ export default function PayoutsPage() {
         setWithdrawStatus({ ok: false, message: "Please enter a whole UGX amount." });
         setWithdrawSubmitting(false); return;
       }
-      const withdrawFee = amount <= 70000
-        ? payoutFlatFee
-        : Math.round(amount * (withdrawFeePercent / 100) * 100) / 100;
       const totalWithdrawDeduction = amount;
 
       // Daily withdrawal limit check (client-side)
@@ -334,8 +317,7 @@ export default function PayoutsPage() {
       }
 
       if (totalWithdrawDeduction > activeBalance) {
-        const wFeeLabel = amount <= 70000 ? `${formatCurrency(withdrawFee, activeCurrency)} flat fee` : `${formatCurrency(withdrawFee, activeCurrency)} (3%)`;
-        setWithdrawStatus({ ok: false, message: `You tried to withdraw ${formatCurrency(totalWithdrawDeduction, activeCurrency)} (the ${wFeeLabel} comes out of it). Your balance is ${formatCurrency(activeBalance, activeCurrency)}.` });
+        setWithdrawStatus({ ok: false, message: `You tried to withdraw ${formatCurrency(totalWithdrawDeduction, activeCurrency)}. Your balance is ${formatCurrency(activeBalance, activeCurrency)}.` });
         setWithdrawSubmitting(false); return;
       }
       if (minPayout > 0 && amount < minPayout) {
@@ -382,7 +364,7 @@ export default function PayoutsPage() {
 
         setWithdrawStatus({
           ok: true,
-          message: `Withdrawal of ${formatCurrency(amount, activeCurrency)} sent to ${profile.phone_number}! Fee: ${formatCurrency(withdrawFee, activeCurrency)}. Awaiting confirmation.`,
+          message: `Withdrawal of ${formatCurrency(amount, activeCurrency)} sent to ${profile.phone_number}! Fee: ${formatCurrency(Number(apiData.data?.fee_amount || 0), activeCurrency)}; recipient gets ${formatCurrency(Number(apiData.data?.recipient_gets || 0), activeCurrency)}. Awaiting confirmation.`,
         });
         setWithdrawAmount("");
         setWithdrawDesc("");
@@ -651,28 +633,13 @@ export default function PayoutsPage() {
                   </div>
                   {withdrawAmount && parseFloat(withdrawAmount) > 0 && (() => {
                     const wAmt = parseFloat(withdrawAmount);
-                    const wFee = wAmt <= 70000 ? payoutFlatFee : Math.round(wAmt * (withdrawFeePercent / 100) * 100) / 100;
-                    const wTotal = Math.max(wAmt - wFee, 0);
-                    const wFeeLabel = wAmt <= 70000 ? `Flat fee` : `Fee (${withdrawFeePercent}%)`;
                     return (
                     <div className="bg-background-100 rounded-lg p-3 space-y-1.5 text-xs">
                       <div className="flex justify-between">
                         <span className="text-foreground-500">Withdrawal Amount</span>
                         <span className="font-semibold text-foreground-900 whitespace-nowrap">{formatCurrency(wAmt, activeCurrency)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-foreground-500">{wFeeLabel}</span>
-                        <span className="font-medium text-accent-600 whitespace-nowrap">
-                          {formatCurrency(wFee, activeCurrency)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-t border-background-200/70 pt-1.5">
-                        <span className="text-foreground-500 font-medium">You receive</span>
-                        <span className="font-bold text-foreground-900 whitespace-nowrap">
-                          {formatCurrency(wTotal, activeCurrency)}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-foreground-400 mt-1">{formatCurrency(wAmt, activeCurrency)} leaves your balance and {formatCurrency(wTotal, activeCurrency)} arrives on your mobile money. Fee: {wAmt <= 70000 ? `flat ${formatCurrency(payoutFlatFee, activeCurrency)} (under 70K)` : `${withdrawFeePercent}% (over 70K)`}.</p>
+                      <p className="text-foreground-500">The current withdrawal fee comes out of this amount. If the fee would leave a fractional mobile-money amount, you will see a compatible amount before any money is sent.</p>
                     </div>
                     );
                   })()}
@@ -915,15 +882,10 @@ export default function PayoutsPage() {
                 </div>}
                 {form.amount && parseFloat(form.amount) > 0 && (() => {
                   const pAmt = parseFloat(form.amount);
-                  const pFee = pAmt <= 70000 ? payoutFlatFee : Math.round(pAmt * (withdrawFeePercent / 100) * 100) / 100;
-                  const pTotal = Math.max(pAmt - pFee, 0);
-                  const pFeeLabel = pAmt <= 70000 ? 'Flat fee' : `Fee (${withdrawFeePercent}%)`;
                   return (
                   <div className="bg-background-100 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between"><span className="text-foreground-500">Payout Amount</span><span className="font-semibold text-foreground-900 whitespace-nowrap">{formatCurrency(pAmt, form.currency)}</span></div>
-                    <div className="flex justify-between"><span className="text-foreground-500">{pFeeLabel}</span><span className="font-medium text-accent-600 whitespace-nowrap">{formatCurrency(pFee, form.currency)}</span></div>
-                    <div className="flex justify-between border-t border-background-200/70 pt-1.5"><span className="text-foreground-500 font-medium">Recipient receives</span><span className="font-bold text-foreground-900 whitespace-nowrap">{formatCurrency(pTotal, form.currency)}</span></div>
-                    <p className="text-[10px] text-foreground-400 mt-1">{pAmt <= 70000 ? `Flat fee of ${formatCurrency(payoutFlatFee, form.currency)} for amounts under 70K.` : `${withdrawFeePercent}% fee for amounts over 70K.`} The fee comes out of the amount, so the recipient receives {formatCurrency(pTotal, form.currency)}.</p>
+                    <p className="text-foreground-500 mt-1">The current payout fee comes out of this amount. If it would leave a fractional mobile-money amount, you will see a compatible amount before any money is sent.</p>
                   </div>
                   );
                 })()}
