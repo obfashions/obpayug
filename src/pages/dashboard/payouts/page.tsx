@@ -288,7 +288,7 @@ export default function PayoutsPage() {
         setForm({ destinationType: "mobile", phoneNumber: "", accountNumber: "", bankCode: "", customerName: "", customerEmail: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
         fetchData();
       } else {
-        const errMsg = apiData?.error || apiData?.message || "Payout could not be processed.";
+        const errMsg = apiData?.error || "Payout could not be processed.";
         setSubmitStatus({ ok: false, message: simplifyError(errMsg) });
       }
     } catch (err: any) {
