@@ -824,7 +824,7 @@ const ALERT_ACTIONS: Record<string, string> = {
   "api-keys.create": "API key created",
   "api-keys.revoke": "API key revoked",
   "signing-secret.rotate": "Signing secret rotated",
-  "intl.payout": "Payout requested",
+  "intl.payout": "Payout submitted (awaiting confirmation)",
   "refunds.create": "Refund requested",
   "refunds.log": "Refund recorded",
   "exchange.convert": "Currency exchange made",
@@ -837,13 +837,13 @@ export async function runPlatformAction(
 ): Promise<any> {
   const result = await runPlatformActionInner(action, accessToken, body);
   const title = ALERT_ACTIONS[action];
-  if (title && result?.success) {
+  if (title && result?.success && !(action === "intl.payout" && (result.data?.duplicate || !result.data?.provider_reference))) {
     try {
       const who = await requireIdentity(accessToken);
       const details: Record<string, unknown> = { ...body };
       delete details.file_data;
       const { sendAdminActivityAlert } = await import("./notify.server");
-      await sendAdminActivityAlert(title, { Merchant: who.email || who.userId, "Merchant ID": who.userId, ...details });
+      await sendAdminActivityAlert(title, { Merchant: who.email || who.userId, "Merchant ID": who.userId, ...details, ...(action === "intl.payout" ? { "Partner reference": result.data.provider_reference, Status: result.data.status } : {}) });
     } catch (e: any) {
       console.error("admin alert failed", e?.message);
     }

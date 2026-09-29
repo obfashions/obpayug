@@ -220,8 +220,9 @@ export async function gatewayFetch(
 
   try {
     let res = await run();
-    // Temporary network / rate problems are safe to retry once before any money moves.
-    if (!res.ok && [0, 429, 502, 503, 504].includes(res.httpStatus)) {
+    // A POST can reach the partner even if its response is lost. Never repeat
+    // money-moving requests automatically; only read-only lookups may retry.
+    if (request.method === "GET" && !res.ok && [0, 429, 502, 503, 504].includes(res.httpStatus)) {
       await new Promise((r) => setTimeout(r, 1200));
       res = await run();
     }

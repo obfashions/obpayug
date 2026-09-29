@@ -15,3 +15,4 @@
 - Password resets (merchant and admin) email a Mailjet link built from generateLink recovery hashed_token → /reset-password — why: no dependency on the old system's email sender.
 - Payouts use the live partner fee on the entered gross amount and reject fractional net amounts for zero-decimal currencies before submission — why: mobile-money rails reject fractional payouts and the entered amount must not change silently.
 - Admin balance changes create privileged, explicit transaction-history records naming the action and actor — why: merchants and admins need a reliable audit trail.
+- Reserve each payout reference before contacting the partner, never treat a failed or unconfirmed duplicate as a new success, and alert only on confirmed partner acceptance — why: retries must neither send money twice nor announce an unsent payout.
