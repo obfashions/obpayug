@@ -64,13 +64,38 @@ export async function apiBalance(merchantId: string) {
     .eq("merchant_id", merchantId)
     .order("currency");
   if (error) return err("Balance is temporarily unavailable.");
-  const balances = (rows ?? []).map((row: any) => ({
+  const balances: any[] = (rows ?? []).map((row: any) => ({
     currency: row.currency,
     available_balance: Number(row.available_balance) || 0,
     pending_balance: Number(row.pending_balance) || 0,
     collected: Number(row.total_collections) || 0,
     paid_out: Number(row.total_payouts) || 0,
   }));
+  // The merchant's main wallet (dashboard balance) is part of the same spendable
+  // money — add it exactly like the dashboard does so API and dashboard agree.
+  try {
+    const [{ data: wallet }, { data: profile }] = await Promise.all([
+      db().from("merchant_wallets").select("available_balance, balances_by_currency").eq("user_id", merchantId).maybeSingle(),
+      db().from("profiles").select("default_currency").eq("id", merchantId).maybeSingle(),
+    ]);
+    if (wallet) {
+      const walletBalances: Record<string, number> = { ...((wallet.balances_by_currency as any) || {}) };
+      const legacyCurrency = String(profile?.default_currency || "UGX").toUpperCase();
+      if (wallet.available_balance != null) {
+        walletBalances[legacyCurrency] = Math.max(Number(walletBalances[legacyCurrency]) || 0, Number(wallet.available_balance) || 0);
+      }
+      for (const [cur, amt] of Object.entries(walletBalances)) {
+        const value = Number(amt) || 0;
+        if (!value) continue;
+        const code = cur.toUpperCase();
+        const row = balances.find((b) => b.currency === code);
+        if (row) row.available_balance += value;
+        else balances.push({ currency: code, available_balance: value, pending_balance: 0, collected: 0, paid_out: 0 });
+      }
+    }
+  } catch {
+    /* fall back to managed balance only */
+  }
   const primary = balances.find((row: any) => row.currency === "UGX") || balances[0];
   return ok({
     currency: primary?.currency || "UGX",
