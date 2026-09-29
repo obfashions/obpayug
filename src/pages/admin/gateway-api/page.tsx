@@ -337,9 +337,27 @@ export default function AdminGatewayApi() {
               {accountLoading ? "Refreshing…" : "Refresh"}
             </button>
           </div>
+          {account?.live && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Live partner account</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(account.live.balances || []).map((b: any) => {
+                  const ch = account.live.payout_charges?.[b.currency];
+                  const cf = account.live.collection_fees?.[b.currency] || 0;
+                  return (
+                    <div key={b.currency} className="rounded-lg border border-foreground-200/20 p-3 text-sm space-y-1">
+                      <div className="flex justify-between font-medium"><span>{b.currency} balance</span><span>{b.available == null ? "—" : Number(b.available).toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span className="text-foreground-500">Withdrawal charges</span><span>{Number(ch?.fees || 0).toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span className="text-foreground-500">Collection charges</span><span>{Number(cf).toLocaleString()}</span></div>
+                      <div className="flex justify-between font-medium"><span>Total charges</span><span>{(Number(ch?.fees || 0) + Number(cf)).toLocaleString()}</span></div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <p className="text-xs text-foreground-500">
-            The partner has no live balance check, so these figures come from ObPay's own books: everything
-            collected, everything paid out, and what is currently owed to merchants.
+            ObPay's own books: everything collected, everything paid out, and what is currently owed to merchants.
           </p>
           {accountLoading && !account ? (
             <div className="flex items-center gap-2 text-sm text-foreground-500">

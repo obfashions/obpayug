@@ -138,7 +138,29 @@ export async function runGatewayAdminAction(
       // Money held at the partner that is not owed to merchants (fees, float).
       platform_share: Math.max(v.collected - v.paid_out - v.merchant_available, 0),
     }));
-    return { success: true, data: { tracked, recent_withdrawals: payouts || [] } };
+    // Live partner balance + charges (read-only).
+    let live: any = null;
+    try {
+      const creds = await getGatewayCreds();
+      if (creds) {
+        const { gatewayLiveBalances, gatewayCharges } = await import("./gateway.server");
+        const [balancesLive, charges] = await Promise.all([gatewayLiveBalances(creds), gatewayCharges(creds)]);
+        const { data: collFees } = await client
+          .from("payment_records")
+          .select("currency, fee_amount")
+          .eq("type", "collection")
+          .eq("status", "success");
+        const collection_fees: Record<string, number> = {};
+        for (const r of collFees || []) {
+          const c = String(r.currency || "UGX");
+          collection_fees[c] = (collection_fees[c] || 0) + (Number(r.fee_amount) || 0);
+        }
+        live = { balances: balancesLive, payout_charges: charges, collection_fees };
+      }
+    } catch (e) {
+      console.error("[gateway-admin] live balance failed", e);
+    }
+    return { success: true, data: { tracked, recent_withdrawals: payouts || [], live } };
   }
 
   // Withdraw from the platform float straight to a mobile money number.

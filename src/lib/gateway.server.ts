@@ -629,6 +629,42 @@ export async function gatewayPayoutStatus(
 }
 
 /**
+ * Exact live wallet balance per currency. The partner has no balance endpoint,
+ * but an impossible payout amount is refused with "Amount exceeds your
+ * available X balance of N" — no payout is created, so this is read-only.
+ */
+export async function gatewayLiveBalances(creds: GatewayCreds) {
+  const out: Array<{ currency: string; available: number | null; note?: string }> = [];
+  for (const currency of ["UGX", "KES", "RWF", "USD"]) {
+    const res = await gatewayFetch(creds, "/api/v1/payout", {
+      method: "POST",
+      body: { amount: 999999999999, currency, method: "mobile_money", account_number: "0000", account_name: "Balance check" },
+    });
+    const msg = String(res.raw?.message || res.raw?.error || "");
+    const m = msg.match(/balance of\s*([\d.,]+)/i);
+    if (m) out.push({ currency, available: Number(m[1]!.replace(/,/g, "")) });
+    else if (!res.ok) out.push({ currency, available: null, note: msg.slice(0, 120) || "Unavailable" });
+  }
+  return out;
+}
+
+/** Totals of the partner's payout fees, from its payout list. */
+export async function gatewayCharges(creds: GatewayCreds) {
+  const res = await gatewayFetch(creds, "/api/v1/payouts?limit=500");
+  const list: any[] = Array.isArray(res.raw?.payouts) ? res.raw.payouts : [];
+  const byCurrency: Record<string, { fees: number; count: number; paid: number }> = {};
+  for (const p of list) {
+    if (!["success", "completed", "paid", "pending", "processing"].includes(String(p.status))) continue;
+    const c = String(p.currency || "UGX");
+    const row = (byCurrency[c] ||= { fees: 0, count: 0, paid: 0 });
+    row.fees += Number(p.fee) || 0;
+    row.paid += Number(p.net_amount) || 0;
+    row.count += 1;
+  }
+  return byCurrency;
+}
+
+/**
  * Connectivity check. The partner exposes no balance endpoint, so this
  * confirms the keys work and reports payout rules instead of a float.
  */
