@@ -580,13 +580,8 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       while (b) [a, b] = [b, a % b];
       return denominator / a;
     })() : 1;
-    const next = rules.percent && gross * rules.percent / 100 < rules.floor
-      ? Math.floor(gross) + 1
-      : Math.ceil((Math.floor(gross) + 1) / step) * step;
-    const compatible = rules.percent && gross * rules.percent / 100 < rules.floor
-      ? `Enter ${currency} ${next.toLocaleString("en")} instead, or another whole amount while the minimum fee applies.`
-      : `Enter ${currency} ${next.toLocaleString("en")} instead, or another whole amount in increments of ${step.toLocaleString("en")}.`;
-    const advice = step > 1 ? compatible : `Enter a whole ${currency} amount.`;
+    const next = Math.ceil((Math.floor(gross) + 1) / step) * step;
+    const advice = `Enter a whole ${currency} amount. Once the percentage fee applies, use increments of ${step.toLocaleString("en")} (for example ${currency} ${next.toLocaleString("en")}).`;
     return {
       ok: false as const,
       res: { ok: false, httpStatus: 400, code: "whole_amount_required", data: null, raw: null,
