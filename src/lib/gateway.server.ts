@@ -506,8 +506,9 @@ async function payoutRules(creds: GatewayCreds, currency = "UGX") {
   const pm = res.raw?.payout_methods || {};
   const fee = pm.fee || {};
   if (pm.available === false || !["percent", "flat"].includes(fee.type) ||
-      (fee.type === "percent" && !Number.isFinite(Number(fee.percent))) ||
-      (fee.type === "flat" && !Number.isFinite(Number(fee.amount ?? fee.value)))) return null;
+      (fee.type === "percent" && (!Number.isFinite(Number(fee.percent)) || Number(fee.percent) < 0 || Number(fee.percent) >= 100)) ||
+      (fee.type === "flat" && (!Number.isFinite(Number(fee.amount ?? fee.value)) || Number(fee.amount ?? fee.value) < 0)) ||
+      (fee.floor != null && (!Number.isFinite(Number(fee.floor)) || Number(fee.floor) < 0))) return null;
   const rules = {
     at: Date.now(),
     min: Number(pm.minimum_withdrawal) || (currency === "UGX" ? 10000 : 1),
@@ -573,14 +574,19 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
   if (!Number.isFinite(gross) || !Number.isFinite(net) || (currency === "UGX" || currency === "RWF") &&
       (!Number.isInteger(gross) || !Number.isInteger(net))) {
     const step = rules.percent ? (() => {
-      const scaled = Math.round(rules.percent * 10000);
-      const denominator = 1000000;
+      const scaled = Math.round(rules.percent * 100);
+      const denominator = 10000;
       let a = scaled, b = denominator;
       while (b) [a, b] = [b, a % b];
       return denominator / a;
     })() : 1;
-    const next = Math.ceil((Math.floor(gross) + 1) / step) * step;
-    const advice = step > 1 ? `Enter ${currency} ${next.toLocaleString("en")} instead, or another whole amount in increments of ${step.toLocaleString("en")}.` : `Enter a whole ${currency} amount.`;
+    const next = rules.percent && gross * rules.percent / 100 < rules.floor
+      ? Math.floor(gross) + 1
+      : Math.ceil((Math.floor(gross) + 1) / step) * step;
+    const compatible = rules.percent && gross * rules.percent / 100 < rules.floor
+      ? `Enter ${currency} ${next.toLocaleString("en")} instead, or another whole amount while the minimum fee applies.`
+      : `Enter ${currency} ${next.toLocaleString("en")} instead, or another whole amount in increments of ${step.toLocaleString("en")}.`;
+    const advice = step > 1 ? compatible : `Enter a whole ${currency} amount.`;
     return {
       ok: false as const,
       res: { ok: false, httpStatus: 400, code: "whole_amount_required", data: null, raw: null,
