@@ -249,11 +249,13 @@ export default function PayoutsPage() {
       if (apiData?.success) {
         setSubmitStatus({
           ok: true,
-          message: `Payout sent! Ref: ${apiData.data?.reference}. Awaiting confirmation.`,
+          message: apiData.data?.duplicate
+            ? `No new payout was sent. Ref: ${apiData.data?.reference}. Current status: ${apiData.data?.status}.`
+            : `Payout submitted. Ref: ${apiData.data?.reference}. Awaiting confirmation.`,
         });
 
         // Send payout confirmation email
-        if (user?.email) {
+        if (user?.email && !apiData.data?.duplicate) {
           const payoutAmt = parseFloat(form.amount);
           supabase.functions.invoke("send-transactional-email", {
             body: {
