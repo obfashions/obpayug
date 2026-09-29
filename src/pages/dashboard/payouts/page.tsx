@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { invokeObpay } from "@/lib/edge-function";
+import { platform } from "@/lib/platform";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const PAYOUT_BANKS = [
@@ -247,19 +248,17 @@ export default function PayoutsPage() {
 
       const ref = form.reference.trim() || `P${Date.now().toString(36).toUpperCase()}`.slice(0, 30);
 
-      const apiData = await callObPayAPI({
-        _action: "payout",
-        payout_type: "send",
-        destinationType: form.destinationType,
-        phoneNumber: form.phoneNumber,
-        accountNumber: form.accountNumber,
-        bankCode: form.bankCode,
-        customerName: form.customerName.trim(),
-        customerEmail: form.customerEmail.trim(),
+      // Goes through ObPay's own payout engine: whole-number amounts, balance
+      // check, fee taken out of the amount, and the payment is recorded so its
+      // status updates on the transactions page.
+      const apiData = await platform("intl.payout", {
+        phone_number: form.destinationType === "bank" ? form.accountNumber : form.phoneNumber,
+        customer_name: form.customerName.trim(),
+        customer_email: form.customerEmail.trim() || undefined,
         amount,
         currency: "UGX",
         network: form.network,
-        description: form.description,
+        description: form.description || undefined,
         reference: ref,
       });
 
@@ -289,7 +288,7 @@ export default function PayoutsPage() {
         setForm({ destinationType: "mobile", phoneNumber: "", accountNumber: "", bankCode: "", customerName: "", customerEmail: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
         fetchData();
       } else {
-        const errMsg = apiData?.error || apiData?.message || "Payout could not be processed.";
+        const errMsg = apiData?.error || "Payout could not be processed.";
         setSubmitStatus({ ok: false, message: simplifyError(errMsg) });
       }
     } catch (err: any) {
@@ -894,7 +893,7 @@ export default function PayoutsPage() {
                 )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({form.currency}) *</label><input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minPayout > 0 ? `Min ${formatCurrency(minPayout, form.currency)}` : "50000"} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required min={minPayout || 1} max={maxPayout || undefined} step={1} />
+                    <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({form.currency}) *</label><input type="number" inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minPayout > 0 ? `Min ${formatCurrency(minPayout, form.currency)}` : "50000"} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required min={minPayout || 1} max={maxPayout || undefined} step={1} />
                     {(minPayout > 0 || maxPayout > 0) && (
                       <p className="text-[11px] text-foreground-500 mt-1">
                         {minPayout > 0 && `Min: ${formatCurrency(minPayout, form.currency)}`}
