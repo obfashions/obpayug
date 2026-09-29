@@ -199,7 +199,7 @@ async function resolveTransaction(token: string, txn: any) {
   }
 
   if (status === "failed" && txn.type === "payout" && wallet) {
-    const refund = Number(txn.amount) + Number(txn.fee_amount || 0);
+    const refund = Number(txn.amount) + (txn.metadata?.fee_inclusive ? 0 : Number(txn.fee_amount || 0));
     await restWrite(token, `/merchant_wallets?user_id=eq.${txn.user_id}`, {
       method: "PATCH",
       body: JSON.stringify({
@@ -647,15 +647,8 @@ export async function runObpayAction(action: string, accessToken: string, body: 
       return { success: false, error: "Withdrawals are currently disabled on your account. Please contact support." };
     }
 
-    const ps = first(await rest(accessToken, `/platform_settings?select=payout_flat_fee,withdraw_fee_percent&limit=1`));
     const isWithdraw = payoutType === "withdraw";
-    // The fee comes out of the amount withdrawn: withdraw 10,000 → recipient gets 10,000 − fee.
-    const fee = numAmount <= 70000
-      ? Number(ps?.payout_flat_fee ?? 1020)
-      : Math.round(numAmount * (Number(ps?.withdraw_fee_percent ?? 3) / 100));
     const totalDeduction = numAmount;
-    const recipientGets = numAmount - fee;
-    if (recipientGets <= 0) return { success: false, error: `The amount must be more than the ${fee.toLocaleString()} ${"UGX"} fee.` };
 
     const balance = Number(merchantWallet?.available_balance || 0);
     if (balance < totalDeduction) {
@@ -675,7 +668,8 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     const tag = await merchantTag(userId);
     const out = await gatewayPayout(creds, {
       reference: ref,
-      amount: recipientGets,
+      amount: numAmount,
+      feeInclusive: true,
       merchant: tag,
       channel: isWithdraw ? "dashboard_withdrawal" : "dashboard_payout",
       typeTrans: destinationType === "bank" ? 3 : 2,
@@ -690,11 +684,16 @@ export async function runObpayAction(action: string, accessToken: string, body: 
 
     if (!out.ok) {
       const message = friendlyError(out.res, "payout");
+      // Rejected before submission (including a fractional net) must not
+      // appear as a failed money transfer or change the merchant's wallet.
+      if (["whole_amount_required", "below_minimum", "fee_unavailable", "bad_number", "bank_unsupported"].includes(out.res.code)) {
+        return { success: false, error: message };
+      }
       await rest(accessToken, `/payout_requests`, {
         method: "POST",
         body: JSON.stringify({
           user_id: userId, amount: numAmount, currency, phone_number: accountNumber,
-          network: bankName(bankCode), status: "failed", fee_amount: fee,
+          network: bankName(bankCode), status: "failed", fee_amount: 0,
           rejection_reason: message, requested_at: now,
         }),
       });
@@ -702,13 +701,16 @@ export async function runObpayAction(action: string, accessToken: string, body: 
         method: "POST",
         body: JSON.stringify({
           id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
-          currency, status: "failed", customer_phone: accountNumber, customer_name: String(customerName).trim(), fee_amount: fee,
+          currency, status: "failed", customer_phone: accountNumber, customer_name: String(customerName).trim(), fee_amount: 0,
           metadata: { error: out.res.error, code: out.res.code, destination_type: destinationType, bank_code: bankCode },
         }),
       });
       // Nothing was deducted, so the wallet stays untouched.
       return { success: false, error: message, data: { reference: ref, transaction_id: txnId, status: "failed" } };
     }
+
+    const fee = out.partnerFee;
+    const recipientGets = out.net;
 
     await rest(accessToken, `/payout_requests`, {
       method: "POST",

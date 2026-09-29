@@ -352,6 +352,7 @@ export function friendlyError(
   const raw = String(res?.error || "");
   const http = Number((res as any)?.httpStatus || 0);
 
+  if (["whole_amount_required", "below_minimum", "fee_unavailable"].includes(code)) return raw;
   if (isIpBlocked(res)) {
     return `This ${kind} could not be sent because this server's network address is not approved. ObPay support has been notified — please try again shortly.`;
   }
@@ -497,11 +498,17 @@ export interface PayoutRequest {
 
 const payoutRuleCache = new Map<string, { at: number; min: number; percent: number; floor: number; flat: number }>();
 async function payoutRules(creds: GatewayCreds, currency = "UGX") {
-  const hit = payoutRuleCache.get(currency);
+  const cacheKey = `${creds.key}:${currency}`;
+  const hit = payoutRuleCache.get(cacheKey);
   if (hit && Date.now() - hit.at < 10 * 60_000) return hit;
   const res = await gatewayFetch(creds, `/api/v1/payout-methods?currency=${currency}`);
+  if (!res.ok || !res.raw?.payout_methods?.fee) return null;
   const pm = res.raw?.payout_methods || {};
   const fee = pm.fee || {};
+  if (pm.available === false || !["percent", "flat"].includes(fee.type) ||
+      (fee.type === "percent" && (!Number.isFinite(Number(fee.percent)) || Number(fee.percent) < 0 || Number(fee.percent) >= 100)) ||
+      (fee.type === "flat" && (!Number.isFinite(Number(fee.amount ?? fee.value)) || Number(fee.amount ?? fee.value) < 0)) ||
+      (fee.floor != null && (!Number.isFinite(Number(fee.floor)) || Number(fee.floor) < 0))) return null;
   const rules = {
     at: Date.now(),
     min: Number(pm.minimum_withdrawal) || (currency === "UGX" ? 10000 : 1),
@@ -509,7 +516,7 @@ async function payoutRules(creds: GatewayCreds, currency = "UGX") {
     floor: Number(fee.floor) || 0,
     flat: fee.type === "flat" ? Number(fee.amount ?? fee.value) || 0 : 0,
   };
-  payoutRuleCache.set(currency, rules);
+  payoutRuleCache.set(cacheKey, rules);
   return rules;
 }
 
@@ -531,11 +538,17 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
     };
   }
   const rules = await payoutRules(creds, currency);
+  if (!rules) {
+    return {
+      ok: false as const,
+      res: { ok: false, httpStatus: 503, code: "fee_unavailable", data: null, raw: null, error: "Withdrawal fees are temporarily unavailable. Please try again shortly." } as GatewayResult,
+    };
+  }
   let gross: number;
   let net: number;
   if (req.feeInclusive) {
-    gross = Math.round(req.amount);
-    const f = rules.flat ? rules.flat : rules.percent ? Math.max(Math.ceil(gross * rules.percent / 100), rules.floor) : 0;
+    gross = req.amount;
+    const f = rules.flat ? rules.flat : rules.percent ? Math.max(gross * rules.percent / 100, rules.floor) : 0;
     net = gross - f;
     if (gross < rules.min || net <= 0) {
       return {
@@ -544,16 +557,36 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       };
     }
   } else {
-    net = Math.round(req.amount);
+    net = req.amount;
     gross = net;
     if (rules.flat) gross = net + rules.flat;
-    else if (rules.percent) gross = Math.max(Math.ceil(net / (1 - rules.percent / 100)), net + rules.floor);
+    else if (rules.percent) gross = Math.max(net / (1 - rules.percent / 100), net + rules.floor);
     if (gross < rules.min) {
       return {
         ok: false as const,
         res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is ${currency} ${Math.max(rules.min - (gross - net), 1).toLocaleString("en")}.` } as GatewayResult,
       };
     }
+  }
+  // The partner deducts its own percentage fee from the gross. Rounding the
+  // fee locally does not change what its zero-decimal mobile-money rail sees.
+  // Refuse incompatible amounts *before* making a money-moving request.
+  if (!Number.isFinite(gross) || !Number.isFinite(net) || (currency === "UGX" || currency === "RWF") &&
+      (!Number.isInteger(gross) || !Number.isInteger(net))) {
+    const step = rules.percent ? (() => {
+      const scaled = Math.round(rules.percent * 100);
+      const denominator = 10000;
+      let a = scaled, b = denominator;
+      while (b) [a, b] = [b, a % b];
+      return denominator / a;
+    })() : 1;
+    const next = Math.ceil((Math.floor(gross) + 1) / step) * step;
+    const advice = `Enter a whole ${currency} amount. Once the percentage fee applies, use increments of ${step.toLocaleString("en")} (for example ${currency} ${next.toLocaleString("en")}).`;
+    return {
+      ok: false as const,
+      res: { ok: false, httpStatus: 400, code: "whole_amount_required", data: null, raw: null,
+        error: `This mobile-money withdrawal would result in a fractional ${currency} amount after the fee. ${advice} No money was sent.` } as GatewayResult,
+    };
   }
   const method = currency === "KES" ? (req.network === "airtel_money" ? "airtel_money" : "mpesa") : "mobile_money";
   const { tagDescription, tagMetadata } = await import("./merchant-identity.server");
