@@ -10,6 +10,7 @@ interface TxnRow {
   status: string;
   type: string;
   payment_method: string;
+  description: string;
   created_at: string;
   profiles: { full_name: string } | null;
 }
@@ -185,13 +186,16 @@ export default function AdminTransactions() {
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.map((t) => (
+                    {transactions.map((t) => {
+                      const adminAdjustment = t.payment_method === "admin_adjustment" || t.reference.startsWith("ADMIN_");
+                      const adminDeduction = t.reference.startsWith("ADMIN_DEDUCT_");
+                      return (
                       <tr key={t.id} className="border-b border-background-100 hover:bg-background-100/50 transition-colors">
-                        <td className="px-5 py-3"><code className="text-xs text-foreground-600 bg-background-100 px-1.5 py-0.5 rounded">{t.reference}</code></td>
+                        <td className="px-5 py-3"><code className="text-xs text-foreground-600 bg-background-100 px-1.5 py-0.5 rounded">{t.reference}</code>{t.description && <p className="text-[11px] text-foreground-500 mt-1">{t.description}</p>}</td>
                         <td className="px-5 py-3"><span className="text-xs text-foreground-700">{t.profiles?.full_name || "Unknown"}</span></td>
                         <td className="px-5 py-3 text-right"><span className="text-xs font-medium text-foreground-900">{formatCurrency(t.amount, t.currency)}</span></td>
-                        <td className="px-5 py-3"><span className="text-xs text-foreground-600 capitalize">{t.type}</span></td>
-                        <td className="px-5 py-3"><span className="text-xs text-foreground-600">{t.payment_method || "—"}</span></td>
+                        <td className="px-5 py-3"><span className={`text-xs ${adminDeduction ? "text-accent-600 font-medium" : "text-foreground-600"}`}>{adminAdjustment ? (adminDeduction ? "Admin deducted" : "Admin added") : t.type}</span></td>
+                        <td className="px-5 py-3"><span className="text-xs text-foreground-600">{adminAdjustment ? "Admin adjustment" : (t.payment_method || "—")}</span></td>
                         <td className="px-5 py-3 text-center">
                           <span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${
                             t.status === "success" ? "bg-primary-100 text-primary-700" : t.status === "failed" ? "bg-accent-100 text-accent-700" : "bg-secondary-100 text-secondary-700"
@@ -199,7 +203,8 @@ export default function AdminTransactions() {
                         </td>
                         <td className="px-5 py-3 text-right"><span className="text-xs text-foreground-500">{timeAgo(t.created_at)}</span></td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

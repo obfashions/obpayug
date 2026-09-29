@@ -6,6 +6,7 @@ import { merchantMonthRecords } from "@/lib/merchant-report.functions";
 
 interface Props {
   userId: string;
+  refreshVersion?: number;
 }
 
 interface MerchantProfileRow {
@@ -39,6 +40,9 @@ interface TxRow {
   type?: string | null;
   created_at: string;
   customer_phone?: string | null;
+  customer_name?: string | null;
+  description?: string | null;
+  payment_method?: string | null;
   reference?: string | null;
 }
 
@@ -171,7 +175,7 @@ function PasswordReset({ userId, email }: { userId: string; email: string | null
 }
 
 
-export default function MerchantAccountPanel({ userId }: Props) {
+export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Props) {
   const [loading, setLoading] = useState(true);
   const [mp, setMp] = useState<MerchantProfileRow | null>(null);
   const [apiKey, setApiKey] = useState<ApiKeyRow | null>(null);
@@ -204,7 +208,7 @@ export default function MerchantAccountPanel({ userId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, refreshVersion]);
 
   const ok = (s?: string | null) => s === "successful" || s === "completed" || s === "success";
   const settled = txs.filter((t) => ok(t.status));
@@ -356,16 +360,22 @@ export default function MerchantAccountPanel({ userId }: Props) {
             <p className="text-xs text-foreground-500">No transactions yet.</p>
           ) : (
             <ul className="space-y-2">
-              {txs.slice(0, 15).map((t) => (
+              {txs.slice(0, 15).map((t) => {
+                const adminAdjustment = t.payment_method === "admin_adjustment" || t.reference?.startsWith("ADMIN_");
+                const deducted = t.reference?.startsWith("ADMIN_DEDUCT_");
+                return (
                 <li key={t.id} className="flex items-center justify-between gap-3 text-xs">
                   <div className="min-w-0">
                     <p className="font-medium text-foreground-900 truncate">
-                      {t.type || "payment"} · {t.customer_phone || t.reference || t.id.slice(0, 8)}
+                      {adminAdjustment ? (deducted ? "Admin deducted" : "Admin added") : (t.type || "payment")} · {t.customer_phone || t.reference || t.id.slice(0, 8)}
                     </p>
+                    {t.description && <p className="text-[11px] text-foreground-600 truncate">{t.description}</p>}
                     <p className="text-[11px] text-foreground-500">{fmtDate(t.created_at)}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-semibold text-foreground-900">{money(t.amount, t.currency || "UGX")}</p>
+                    <p className={`font-semibold ${deducted ? "text-accent-600" : "text-foreground-900"}`}>
+                      {adminAdjustment ? (deducted ? "−" : "+") : ""}{money(t.amount, t.currency || "UGX")}
+                    </p>
                     <span
                       className={`text-[10px] font-medium ${
                         t.status === "successful" || t.status === "completed"
@@ -379,7 +389,8 @@ export default function MerchantAccountPanel({ userId }: Props) {
                     </span>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>

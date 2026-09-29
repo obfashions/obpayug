@@ -227,11 +227,14 @@ export default function TransactionsPage() {
                   <th className="text-right px-4 py-3 text-xs font-medium text-foreground-500 uppercase">Date</th>
                 </tr></thead>
                 <tbody>
-                  {transactions.map((t) => (
+                  {transactions.map((t) => {
+                    const adminAdjustment = t.payment_method === "admin_adjustment" || t.reference.startsWith("ADMIN_");
+                    const adminDeduction = t.reference.startsWith("ADMIN_DEDUCT_");
+                    return (
                     <tr key={t.id} className="border-b border-background-100 hover:bg-background-100/50 transition-colors">
                       <td className="px-4 py-3"><span className="text-xs font-mono font-medium text-foreground-900">{t.reference}</span><p className="text-[11px] text-foreground-500">{t.description}</p></td>
-                      <td className="px-4 py-3"><span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${t.type==="collection"?"bg-primary-100 text-primary-700":"bg-accent-100 text-accent-700"}`}>{t.type}</span></td>
-                      <td className="px-4 py-3"><span className="text-sm font-semibold text-foreground-900">{formatCurrency(t.amount, t.currency || activeCurrency)}</span></td>
+                      <td className="px-4 py-3"><span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${t.type==="collection"?"bg-primary-100 text-primary-700":"bg-accent-100 text-accent-700"}`}>{adminAdjustment ? (adminDeduction ? "Admin deducted" : "Admin added") : t.type}</span></td>
+                      <td className="px-4 py-3"><span className={`text-sm font-semibold ${adminDeduction ? "text-accent-600" : "text-foreground-900"}`}>{adminAdjustment ? (adminDeduction ? "−" : "+") : ""}{formatCurrency(t.amount, t.currency || activeCurrency)}</span></td>
                       <td className="px-4 py-3"><span className="text-xs text-foreground-600">{t.fee_amount ? formatCurrency(t.fee_amount, t.currency || activeCurrency) : "—"}</span></td>
                       <td className="px-4 py-3"><span className="text-sm font-medium text-primary-600">{t.net_amount ? formatCurrency(t.net_amount, t.currency || activeCurrency) : "—"}</span></td>
                       <td className="px-4 py-3 text-center">
@@ -242,7 +245,8 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-4 py-3 text-right"><span className="text-xs text-foreground-500">{formatDate(t.created_at)}</span></td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
