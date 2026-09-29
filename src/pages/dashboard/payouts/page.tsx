@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { invokeObpay } from "@/lib/edge-function";
+import { platform } from "@/lib/platform";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const PAYOUT_BANKS = [
@@ -247,19 +248,17 @@ export default function PayoutsPage() {
 
       const ref = form.reference.trim() || `P${Date.now().toString(36).toUpperCase()}`.slice(0, 30);
 
-      const apiData = await callObPayAPI({
-        _action: "payout",
-        payout_type: "send",
-        destinationType: form.destinationType,
-        phoneNumber: form.phoneNumber,
-        accountNumber: form.accountNumber,
-        bankCode: form.bankCode,
-        customerName: form.customerName.trim(),
-        customerEmail: form.customerEmail.trim(),
+      // Goes through ObPay's own payout engine: whole-number amounts, balance
+      // check, fee taken out of the amount, and the payment is recorded so its
+      // status updates on the transactions page.
+      const apiData = await platform("intl.payout", {
+        phone_number: form.destinationType === "bank" ? form.accountNumber : form.phoneNumber,
+        customer_name: form.customerName.trim(),
+        customer_email: form.customerEmail.trim() || undefined,
         amount,
         currency: "UGX",
         network: form.network,
-        description: form.description,
+        description: form.description || undefined,
         reference: ref,
       });
 
