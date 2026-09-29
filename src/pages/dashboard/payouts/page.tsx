@@ -893,7 +893,7 @@ export default function PayoutsPage() {
                 )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({form.currency}) *</label><input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minPayout > 0 ? `Min ${formatCurrency(minPayout, form.currency)}` : "50000"} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required min={minPayout || 1} max={maxPayout || undefined} step={1} />
+                    <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({form.currency}) *</label><input type="number" inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={minPayout > 0 ? `Min ${formatCurrency(minPayout, form.currency)}` : "50000"} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" required min={minPayout || 1} max={maxPayout || undefined} step={1} />
                     {(minPayout > 0 || maxPayout > 0) && (
                       <p className="text-[11px] text-foreground-500 mt-1">
                         {minPayout > 0 && `Min: ${formatCurrency(minPayout, form.currency)}`}
