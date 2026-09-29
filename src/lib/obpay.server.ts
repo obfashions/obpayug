@@ -320,22 +320,36 @@ async function adminAdjustBalance(accessToken: string, body: any) {
     };
   }
 
-  await restWrite(accessToken, `/transactions`, {
-    method: "POST",
-    body: JSON.stringify({
+  const adjustmentLabel = type === "add" ? "Admin added balance" : "Admin deducted balance";
+  const adjustmentNote = String(body?.note || "").trim();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error: historyError } = await supabaseAdmin.from("transactions").insert({
       user_id: target,
       reference: `ADMIN_${type.toUpperCase()}_${Date.now()}`,
       amount,
       currency,
       status: "success",
       type: type === "add" ? "collection" : "payout",
-      customer_name: type === "add" ? "Admin Credit" : "Admin Debit",
-      description: String(body?.note || `Admin balance adjustment (${type})`).slice(0, 200),
+      payment_method: "admin_adjustment",
+      customer_name: adjustmentLabel,
+      description: `${adjustmentLabel}${adjustmentNote ? ` — ${adjustmentNote}` : ""}`.slice(0, 200),
       fee_amount: 0,
       net_amount: amount,
       completed_at: now,
-    }),
-  }).catch(() => null);
+      metadata: {
+        adjustment_type: type,
+        adjusted_by: me.email || me.userId,
+        previous_balance: cur,
+        new_balance: saved,
+      },
+    } as any);
+  if (historyError) {
+    console.error("[admin-adjust-balance] history write failed", historyError.message);
+    return {
+      success: false,
+      error: "The balance changed, but its history could not be recorded. Please contact support before making another adjustment.",
+    };
+  }
 
   return {
     success: true,

@@ -56,6 +56,7 @@ export default function AdminMerchants() {
   const [balanceSubmitting, setBalanceSubmitting] = useState(false);
   const [balanceData, setBalanceData] = useState<Record<string, WalletData>>({});
   const [detailWallet, setDetailWallet] = useState<WalletData | null>(null);
+  const [accountHistoryVersion, setAccountHistoryVersion] = useState(0);
 
   // Role management
   const [roleConfirm, setRoleConfirm] = useState<{ merchantId: string; merchantName: string; newRole: string } | null>(null);
@@ -297,6 +298,7 @@ export default function AdminMerchants() {
         total_collections: updatedCollections,
         total_payouts: updatedPayouts,
       });
+      setAccountHistoryVersion((version) => version + 1);
 
       setActionMsg({
         ok: true,
@@ -851,7 +853,7 @@ export default function AdminMerchants() {
             )}
 
             {/* Full account record: documents, integration, activity */}
-            <MerchantAccountPanel userId={selected.id} />
+            <MerchantAccountPanel userId={selected.id} refreshVersion={accountHistoryVersion} />
 
             </div>
             </div>
