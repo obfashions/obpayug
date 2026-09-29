@@ -79,7 +79,6 @@ export default function PayoutsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [merchantSlug, setMerchantSlug] = useState<string | null>(null);
-  const [feePercent, setFeePercent] = useState(5);
   const [minPayout, setMinPayout] = useState(0);
   const [maxPayout, setMaxPayout] = useState(0);
   const [showFundingQR, setShowFundingQR] = useState(false);
@@ -112,13 +111,12 @@ export default function PayoutsPage() {
         supabase.from("payout_requests").select("*").eq("user_id", user.id).order("requested_at", { ascending: false }).limit(50),
         supabase.from("merchant_wallets").select("available_balance,pending_balance,daily_withdrawal_limit,last_24h_withdrawal_total,last_withdrawal_reset_at,balances_by_currency").eq("user_id", user.id).maybeSingle(),
         supabase.from("merchant_profiles").select("merchant_slug,company_name").eq("user_id", user.id).maybeSingle(),
-        supabase.from("platform_settings").select("platform_fee_percent, min_payout_amount, max_payout_amount").limit(1).maybeSingle(),
+        supabase.from("platform_settings").select("min_payout_amount, max_payout_amount").limit(1).maybeSingle(),
       ]);
       if (pErr) throw pErr;
       setPayouts((pData as Payout[]) || []);
       setWallet({ available_balance: wData?.available_balance || 0, pending_balance: wData?.pending_balance || 0 });
       setMerchantSlug(mData?.merchant_slug || null);
-      if (psData?.platform_fee_percent) setFeePercent(psData.platform_fee_percent);
       if (psData?.min_payout_amount != null) setMinPayout(psData.min_payout_amount);
       if (psData?.max_payout_amount != null) setMaxPayout(psData.max_payout_amount);
 
@@ -793,7 +791,7 @@ export default function PayoutsPage() {
                         <td className="px-5 py-3"><span className="text-sm font-semibold text-foreground-900">{formatCurrency(p.amount, p.currency || activeCurrency)}</span></td>
                         <td className="px-5 py-3">
                           <span className="text-xs text-accent-600 font-medium">
-                            {p.fee_amount ? formatCurrency(p.fee_amount, p.currency || activeCurrency) : `~${formatCurrency(Math.round(p.amount * (feePercent / 100) * 100) / 100, p.currency || activeCurrency)}`}
+                            {p.fee_amount ? formatCurrency(p.fee_amount, p.currency || activeCurrency) : "—"}
                           </span>
                         </td>
                         <td className="px-5 py-3 text-center">
