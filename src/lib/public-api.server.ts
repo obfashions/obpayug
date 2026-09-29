@@ -292,7 +292,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     if (existing.status === "failed") return err("That payout failed previously. Use a new reference to submit a new payout.");
     // A request without a partner reference may not have reached the partner.
     // Never report it as sent or submit it again automatically.
-    if (!existing.provider_reference) return err("This payout could not be confirmed. No new payout was sent. Contact support with the reference before trying again.");
+    if (!existing.provider_reference) return err(`This payout's submission could not be confirmed. Do not retry it with a new reference until support checks reference ${reference} with the payment network.`);
     // A real previously-submitted payout: return its current state, not a new request.
     const current = await apiTransaction(merchantId, reference);
     if (!current.success) return current;
@@ -347,6 +347,13 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   });
 
   if (!out.ok) {
+    // A timeout or server error does not prove that the partner rejected the
+    // payout. Leave the reservation pending for manual reconciliation instead
+    // of inviting a retry that might pay the recipient twice.
+    if (!out.res || out.res.httpStatus === 0 || out.res.httpStatus >= 500) {
+      console.error("Payout submission status uncertain", reference, out.res?.httpStatus);
+      return err(`We could not confirm whether this payout reached the payment network. Do not retry until support checks reference ${reference}.`);
+    }
     const failed = await recordPayment(merchantId, {
       reference,
       type: "payout",
@@ -360,6 +367,11 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     });
     if (!failed) console.error("Payout rejection could not be recorded", reference);
     return err(friendlyError(out.res, "payout"));
+  }
+
+  if (!out.platformReference) {
+    console.error("Partner accepted payout without a reference", reference);
+    return err(`The payment network did not return a tracking reference. Do not retry until support checks reference ${reference}.`);
   }
 
   const saved = await recordPayment(merchantId, {
