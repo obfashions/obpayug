@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { platform } from "@/lib/platform";
 import { MONEY_COUNTRIES } from "@/lib/countries";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 /** Kenya / Rwanda collections and payouts (Uganda uses the main form on the page). */
 export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" }) {
-  const intl = MONEY_COUNTRIES.filter((c) => c.currency !== "UGX");
-  const [cur, setCur] = useState(intl[0]!.currency);
-  const country = intl.find((c) => c.currency === cur)!;
+  const { walletCurrencies } = useCurrency();
+  const intl = MONEY_COUNTRIES.filter((c) => c.currency !== "UGX" && walletCurrencies.includes(c.currency));
+  const [picked, setCur] = useState<string>("");
+  const cur = intl.some((c) => c.currency === picked) ? picked : intl[0]?.currency || "";
+  const country = intl.find((c) => c.currency === cur);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ phone: "", network: "", amount: "", name: "", email: "", description: "" });
   const [busy, setBusy] = useState(false);
@@ -14,6 +17,7 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
   const set = (k: keyof typeof form) => (e: any) => setForm({ ...form, [k]: e.target.value });
 
   async function submit(e: React.FormEvent) {
+    if (!country) return;
     e.preventDefault();
     if (busy) return;
     setBusy(true);
@@ -39,6 +43,7 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
     setForm({ phone: "", network: "", amount: "", name: "", email: "", description: "" });
   }
 
+  if (!country) return null;
   const input = "w-full px-3 py-2.5 rounded-lg border border-background-200 bg-background-50 text-sm text-foreground-900 focus:outline-none focus:border-primary-400";
   return (
     <div className="bg-background-50 rounded-xl border border-background-200/70 p-4">
