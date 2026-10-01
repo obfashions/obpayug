@@ -383,18 +383,24 @@ export default function DashboardPage() {
 
       <div className="space-y-6">
         {/* ─── ACCOUNT HERO ────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 text-background-50">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-foreground-900 via-primary-800 to-primary-600 text-background-50 shadow-xl ring-1 ring-background-50/10">
           <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-background-50/10" />
           <div className="absolute -right-4 bottom-[-70px] w-52 h-52 rounded-full bg-background-50/5" />
           <div className="relative p-5 md:p-7">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-widest text-background-50/70">Available balance</p>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background-50/10 text-[11px] font-medium tracking-wide">
+                    <i className="ri-bank-line" />ObPay Business Account
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-background-50/70"><i className="ri-shield-check-line" />Secured</span>
+                </div>
+                <p className="text-[11px] uppercase tracking-widest text-background-50/70">Available balance · {activeCurrency} wallet</p>
                 <p className="font-heading font-bold text-3xl md:text-4xl mt-1 break-words">
                   {formatCurrency(activeBalance, activeCurrency)}
                 </p>
                 <p className="text-xs text-background-50/70 mt-2">
-                  Welcome back, {profile?.full_name?.split(" ")[0] || "Merchant"} · Account {(user?.id || "").slice(0, 8).toUpperCase()}
+                  Welcome back, {profile?.full_name?.split(" ")[0] || "Merchant"} · Account •••• {(user?.id || "").replace(/-/g, "").slice(-4).toUpperCase()}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -403,11 +409,14 @@ export default function DashboardPage() {
                   onChange={(e) => setActiveCurrency(e.target.value)}
                   className="appearance-none pl-3 pr-8 py-2 rounded-lg bg-background-50/15 border border-background-50/25 text-sm font-medium text-background-50 focus:outline-none cursor-pointer"
                 >
-                  {SUPPORTED_CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code} className="text-foreground-900">
-                      {c.flag} {c.code}
-                    </option>
-                  ))}
+                  {(availableCurrencies.length ? availableCurrencies : [activeCurrency]).map((code) => {
+                    const c = SUPPORTED_CURRENCIES.find((x) => x.code === code);
+                    return (
+                      <option key={code} value={code} className="text-foreground-900">
+                        {c?.flag} {code}
+                      </option>
+                    );
+                  })}
                 </select>
                 {profile?.role === "admin" && (
                   <button
