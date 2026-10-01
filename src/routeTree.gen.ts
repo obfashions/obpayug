@@ -28,6 +28,7 @@ import { Route as AdminGatewayApiRouteImport } from './routes/admin.gateway-api'
 import { Route as AdminKycReviewRouteImport } from './routes/admin.kyc-review'
 import { Route as AdminMerchantsRouteImport } from './routes/admin.merchants'
 import { Route as AdminPayoutRequestsRouteImport } from './routes/admin.payout-requests'
+import { Route as AdminRefundsRouteImport } from './routes/admin.refunds'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
@@ -155,6 +156,11 @@ const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
 const AdminPayoutRequestsRoute = AdminPayoutRequestsRouteImport.update({
   id: '/admin/payout-requests',
   path: '/admin/payout-requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRefundsRoute = AdminRefundsRouteImport.update({
+  id: '/admin/refunds',
+  path: '/admin/refunds',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -399,6 +406,7 @@ export interface FileRoutesByTo {
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -454,6 +462,7 @@ export interface FileRoutesById {
   '/admin/kyc-review': typeof AdminKycReviewRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -510,6 +519,7 @@ export interface FileRouteTypes {
     | '/admin/kyc-review'
     | '/admin/merchants'
     | '/admin/payout-requests'
+    | '/admin/refunds'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/support'
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/admin/kyc-review'
     | '/admin/merchants'
     | '/admin/payout-requests'
+    | '/admin/refunds'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/support'
@@ -618,6 +629,7 @@ export interface FileRouteTypes {
     | '/admin/kyc-review'
     | '/admin/merchants'
     | '/admin/payout-requests'
+    | '/admin/refunds'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/support'
@@ -673,6 +685,7 @@ export interface RootRouteChildren {
   AdminKycReviewRoute: typeof AdminKycReviewRoute
   AdminMerchantsRoute: typeof AdminMerchantsRoute
   AdminPayoutRequestsRoute: typeof AdminPayoutRequestsRoute
+  AdminRefundsRoute: typeof AdminRefundsRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSupportRoute: typeof AdminSupportRoute
@@ -842,6 +855,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/payout-requests'
       fullPath: '/admin/payout-requests'
       preLoaderRoute: typeof AdminPayoutRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/refunds': {
+      id: '/admin/refunds'
+      path: '/admin/refunds'
+      fullPath: '/admin/refunds'
+      preLoaderRoute: typeof AdminRefundsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/reports': {
@@ -1097,6 +1117,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminKycReviewRoute: AdminKycReviewRoute,
   AdminMerchantsRoute: AdminMerchantsRoute,
   AdminPayoutRequestsRoute: AdminPayoutRequestsRoute,
+  AdminRefundsRoute: AdminRefundsRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSupportRoute: AdminSupportRoute,
