@@ -26,7 +26,6 @@ import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.compan
 import { Route as AdminEmailCampaignsRouteImport } from './routes/admin.email-campaigns'
 import { Route as AdminGatewayApiRouteImport } from './routes/admin.gateway-api'
 import { Route as AdminKycReviewRouteImport } from './routes/admin.kyc-review'
-import { Route as AdminLoansRouteImport } from './routes/admin.loans'
 import { Route as AdminMerchantsRouteImport } from './routes/admin.merchants'
 import { Route as AdminPayoutRequestsRouteImport } from './routes/admin.payout-requests'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -146,11 +145,6 @@ const AdminGatewayApiRoute = AdminGatewayApiRouteImport.update({
 const AdminKycReviewRoute = AdminKycReviewRouteImport.update({
   id: '/admin/kyc-review',
   path: '/admin/kyc-review',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLoansRoute = AdminLoansRouteImport.update({
-  id: '/admin/loans',
-  path: '/admin/loans',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
@@ -349,7 +343,6 @@ export interface FileRoutesByFullPath {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
-  '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -404,7 +397,6 @@ export interface FileRoutesByTo {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
-  '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -460,7 +452,6 @@ export interface FileRoutesById {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
-  '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -517,7 +508,6 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
     | '/admin/kyc-review'
-    | '/admin/loans'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -572,7 +562,6 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
     | '/admin/kyc-review'
-    | '/admin/loans'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -627,7 +616,6 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
     | '/admin/kyc-review'
-    | '/admin/loans'
     | '/admin/merchants'
     | '/admin/payout-requests'
     | '/admin/reports'
@@ -683,7 +671,6 @@ export interface RootRouteChildren {
   AdminEmailCampaignsRoute: typeof AdminEmailCampaignsRoute
   AdminGatewayApiRoute: typeof AdminGatewayApiRoute
   AdminKycReviewRoute: typeof AdminKycReviewRoute
-  AdminLoansRoute: typeof AdminLoansRoute
   AdminMerchantsRoute: typeof AdminMerchantsRoute
   AdminPayoutRequestsRoute: typeof AdminPayoutRequestsRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -841,13 +828,6 @@ declare module '@tanstack/react-router' {
       path: '/admin/kyc-review'
       fullPath: '/admin/kyc-review'
       preLoaderRoute: typeof AdminKycReviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/loans': {
-      id: '/admin/loans'
-      path: '/admin/loans'
-      fullPath: '/admin/loans'
-      preLoaderRoute: typeof AdminLoansRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/merchants': {
@@ -1115,7 +1095,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminEmailCampaignsRoute: AdminEmailCampaignsRoute,
   AdminGatewayApiRoute: AdminGatewayApiRoute,
   AdminKycReviewRoute: AdminKycReviewRoute,
-  AdminLoansRoute: AdminLoansRoute,
   AdminMerchantsRoute: AdminMerchantsRoute,
   AdminPayoutRequestsRoute: AdminPayoutRequestsRoute,
   AdminReportsRoute: AdminReportsRoute,
