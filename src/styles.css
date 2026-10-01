@@ -392,6 +392,40 @@ pre code {
   }
 }
 
+@keyframes bank-ticker {
+  0%, 12% { transform: translateX(0); }
+  88%, 100% { transform: translateX(min(-32rem, calc(-100% + 12rem))); }
+}
+
+@keyframes account-grid-drift {
+  from { background-position: 0 0; }
+  to { background-position: 32px 16px; }
+}
+
+.bank-ticker {
+  width: max-content;
+  animation: bank-ticker 14s ease-in-out infinite alternate;
+}
+
+.account-card-grid {
+  background-image:
+    linear-gradient(to right, oklch(var(--background-50) / 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(var(--background-50) / 0.14) 1px, transparent 1px);
+  background-size: 32px 32px;
+  animation: account-grid-drift 5s linear infinite;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bank-ticker,
+  .account-card-grid {
+    animation: none;
+  }
+}
+
 /* Honeypot field - hidden from real users */
 .hp-field {
   position: absolute;
