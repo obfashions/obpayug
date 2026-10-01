@@ -381,104 +381,127 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="space-y-6">
-        {/* ─── ACCOUNT HERO ────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-foreground-900 via-primary-800 to-primary-600 text-background-50 shadow-xl ring-1 ring-background-50/10">
-          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-background-50/10" />
-          <div className="absolute -right-4 bottom-[-70px] w-52 h-52 rounded-full bg-background-50/5" />
-          <div className="relative p-5 md:p-7">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background-50/10 text-[11px] font-medium tracking-wide">
-                    <i className="ri-bank-line" />ObPay Business Account
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] text-background-50/70"><i className="ri-shield-check-line" />Secured</span>
-                </div>
-                <p className="text-[11px] uppercase tracking-widest text-background-50/70">Available balance · {activeCurrency} wallet</p>
-                <p className="font-heading font-bold text-3xl md:text-4xl mt-1 break-words">
-                  {formatCurrency(activeBalance, activeCurrency)}
-                </p>
-                <p className="text-xs text-background-50/70 mt-2">
-                  Welcome back, {profile?.full_name?.split(" ")[0] || "Merchant"} · Account •••• {(user?.id || "").replace(/-/g, "").slice(-4).toUpperCase()}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <select
-                  value={activeCurrency}
-                  onChange={(e) => setActiveCurrency(e.target.value)}
-                  className="appearance-none pl-3 pr-8 py-2 rounded-lg bg-background-50/15 border border-background-50/25 text-sm font-medium text-background-50 focus:outline-none cursor-pointer"
-                >
-                  {(availableCurrencies.length ? availableCurrencies : [activeCurrency]).map((code) => {
-                    const c = SUPPORTED_CURRENCIES.find((x) => x.code === code);
-                    return (
-                      <option key={code} value={code} className="text-foreground-900">
-                        {c?.flag} {code}
-                      </option>
-                    );
-                  })}
-                </select>
-                {profile?.role === "admin" && (
-                  <button
-                    onClick={() => navigate("/admin")}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background-50/15 hover:bg-background-50/25 border border-background-50/25 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    <i className="ri-admin-line" />Admin
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-background-50/15">
-              {[
-                { label: "Pending", value: formatCurrency(wallet?.pending_balance || 0, activeCurrency), sub: `${pendingTxns.length} in progress` },
-                { label: "Today In", value: formatCurrency(todayCollections, activeCurrency), sub: "Collections today" },
-                { label: "This Month", value: formatCurrency(monthlyCollections, activeCurrency), sub: `${successTxns.length} settled` },
-                { label: "Total Fees", value: formatCurrency(totalFees, activeCurrency), sub: "Lifetime charges" },
-              ].map((s) => (
-                <div key={s.label} className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider text-background-50/60">{s.label}</p>
-                  <p className="font-heading font-semibold text-sm md:text-base mt-0.5 break-words">{s.value}</p>
-                  <p className="text-[10px] text-background-50/50 mt-0.5 truncate">{s.sub}</p>
-                </div>
-              ))}
-            </div>
+      <div className="space-y-6 md:space-y-8">
+        {/* ─── GREETING ─────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm text-foreground-500">
+              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},
+            </p>
+            <h1 className="font-heading font-bold text-3xl md:text-4xl tracking-tight text-foreground-900 leading-tight break-words">
+              {profile?.full_name?.split(" ")[0] || "Merchant"}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={activeCurrency}
+              onChange={(e) => setActiveCurrency(e.target.value)}
+              aria-label="Wallet currency"
+              className="appearance-none pl-4 pr-8 py-2.5 rounded-full bg-background-50 border border-background-200 text-sm font-semibold text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-300 cursor-pointer"
+            >
+              {(availableCurrencies.length ? availableCurrencies : [activeCurrency]).map((code) => {
+                const c = SUPPORTED_CURRENCIES.find((x) => x.code === code);
+                return (
+                  <option key={code} value={code}>
+                    {c?.flag} {code} wallet
+                  </option>
+                );
+              })}
+            </select>
+            {profile?.role === "admin" && (
+              <button
+                onClick={() => navigate("/admin")}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-foreground-900 text-background-50 text-sm font-semibold hover:bg-foreground-800 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                <i className="ri-admin-line" />Admin
+              </button>
+            )}
           </div>
         </div>
 
-        {/* ─── PRIMARY BANKING ACTIONS ─────────────────────── */}
-        <div>
-          <h3 className="font-heading font-semibold text-sm text-foreground-900 mb-3">Banking actions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* ─── BENTO: ACCOUNT CARD + STATS ─────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-3 relative overflow-hidden rounded-[28px] bg-gradient-to-br from-foreground-900 via-primary-800 to-primary-600 text-background-50 shadow-xl">
+            <div className="absolute -right-20 -top-20 w-72 h-72 rounded-full bg-background-50/10 blur-2xl" />
+            <div className="absolute right-10 -bottom-24 w-56 h-56 rounded-full border border-background-50/15" />
+            <div className="relative p-6 md:p-8 flex flex-col h-full min-h-[230px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background-50/15 text-xs font-semibold tracking-wide">
+                  <i className="ri-bank-line" />ObPay Business
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs text-background-50/80"><i className="ri-shield-check-fill" />Secured</span>
+              </div>
+              <p className="mt-6 text-xs uppercase tracking-[0.2em] text-background-50/70">Available balance</p>
+              <p className="font-heading font-bold text-4xl sm:text-5xl tracking-tight mt-2 break-words leading-none">
+                {formatCurrency(activeBalance, activeCurrency)}
+              </p>
+              <div className="mt-auto pt-6 flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-widest text-background-50/60">Account</p>
+                  <p className="font-mono text-base tracking-[0.25em]">•••• {(user?.id || "").replace(/-/g, "").slice(-4).toUpperCase()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[11px] uppercase tracking-widest text-background-50/60">Pending</p>
+                  <p className="font-heading font-semibold text-base">{formatCurrency(wallet?.pending_balance || 0, activeCurrency)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 grid grid-cols-2 gap-4">
             {[
-              { label: "Collect Money", sub: "Request payment", icon: "ri-arrow-down-circle-line", href: "/dashboard/collections", tone: "bg-primary-500 hover:bg-primary-600" },
-              { label: "Send Payout", sub: "Pay anyone", icon: "ri-arrow-up-circle-line", href: "/dashboard/payouts", tone: "bg-accent-500 hover:bg-accent-600" },
-              { label: "Payment Link", sub: "Share & get paid", icon: "ri-link", href: "/dashboard/payment-links", tone: "bg-secondary-500 hover:bg-secondary-600" },
+              { label: "Today in", value: formatCurrency(todayCollections, activeCurrency), sub: "Collections today", icon: "ri-sun-line", tone: "bg-primary-100 text-primary-700" },
+              { label: "This month", value: formatCurrency(monthlyCollections, activeCurrency), sub: `${successTxns.length} settled`, icon: "ri-calendar-check-line", tone: "bg-emerald-100 text-emerald-700" },
+              { label: "In progress", value: String(pendingTxns.length), sub: "Pending payments", icon: "ri-time-line", tone: "bg-accent-100 text-accent-700" },
+              { label: "Total fees", value: formatCurrency(totalFees, activeCurrency), sub: "Lifetime charges", icon: "ri-percent-line", tone: "bg-background-200 text-foreground-700" },
+            ].map((s) => (
+              <div key={s.label} className="bg-background-50 rounded-3xl border border-background-200/70 p-4 md:p-5 flex flex-col gap-3 min-w-0">
+                <div className={`w-10 h-10 rounded-2xl ${s.tone} flex items-center justify-center`}>
+                  <i className={`${s.icon} text-lg`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-foreground-500">{s.label}</p>
+                  <p className="font-heading font-bold text-lg md:text-xl text-foreground-900 break-words leading-tight mt-0.5">{s.value}</p>
+                  <p className="text-[11px] text-foreground-400 truncate mt-0.5">{s.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ─── PRIMARY ACTIONS ─────────────────────────────── */}
+        <div>
+          <h2 className="font-heading font-bold text-xl md:text-2xl tracking-tight text-foreground-900 mb-4">Move money</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {[
+              { label: "Collect", sub: "Request payment", icon: "ri-arrow-down-line", href: "/dashboard/collections", tone: "bg-primary-500 text-background-50" },
+              { label: "Send", sub: "Pay anyone", icon: "ri-arrow-up-line", href: "/dashboard/payouts", tone: "bg-accent-500 text-background-50" },
+              { label: "Pay link", sub: "Share & get paid", icon: "ri-link", href: "/dashboard/payment-links", tone: "bg-secondary-500 text-background-50" },
             ].map((a) => (
               <a
                 key={a.label}
                 href={a.href}
-                className={`${a.tone} text-background-50 rounded-xl p-4 flex flex-col gap-3 transition-all cursor-pointer group`}
+                className="bg-background-50 border border-background-200/70 rounded-3xl p-4 md:p-5 flex flex-col gap-4 hover:-translate-y-0.5 hover:shadow-lg transition-all cursor-pointer group"
               >
-                <div className="w-9 h-9 rounded-lg bg-background-50/20 flex items-center justify-center">
-                  <i className={`${a.icon} text-lg group-hover:scale-110 transition-transform`} />
+                <div className={`w-12 h-12 rounded-2xl ${a.tone} flex items-center justify-center`}>
+                  <i className={`${a.icon} text-xl group-hover:scale-110 transition-transform`} />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm leading-tight">{a.label}</p>
-                  <p className="text-[11px] opacity-75">{a.sub}</p>
+                  <p className="font-heading font-bold text-lg text-foreground-900 leading-tight">{a.label}</p>
+                  <p className="text-xs text-foreground-500 mt-0.5">{a.sub}</p>
                 </div>
               </a>
             ))}
             <button
               onClick={() => setShowWithdrawModal(true)}
-              className="bg-foreground-900 hover:bg-foreground-800 text-background-50 rounded-xl p-4 flex flex-col gap-3 text-left transition-all cursor-pointer group"
+              className="bg-background-50 border border-background-200/70 rounded-3xl p-4 md:p-5 flex flex-col gap-4 text-left hover:-translate-y-0.5 hover:shadow-lg transition-all cursor-pointer group"
             >
-              <div className="w-9 h-9 rounded-lg bg-background-50/20 flex items-center justify-center">
-                <i className="ri-smartphone-line text-lg group-hover:scale-110 transition-transform" />
+              <div className="w-12 h-12 rounded-2xl bg-foreground-900 text-background-50 flex items-center justify-center">
+                <i className="ri-smartphone-line text-xl group-hover:scale-110 transition-transform" />
               </div>
               <div>
-                <p className="font-semibold text-sm leading-tight">Withdraw</p>
-                <p className="text-[11px] opacity-75">To my mobile money</p>
+                <p className="font-heading font-bold text-lg text-foreground-900 leading-tight">Withdraw</p>
+                <p className="text-xs text-foreground-500 mt-0.5">To my mobile money</p>
               </div>
             </button>
           </div>
@@ -486,25 +509,25 @@ export default function DashboardPage() {
 
         {/* ─── SERVICE SHORTCUTS ───────────────────────────── */}
         <div>
-          <h3 className="font-heading font-semibold text-sm text-foreground-900 mb-3">Manage your account</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <h2 className="font-heading font-bold text-xl md:text-2xl tracking-tight text-foreground-900 mb-4">Your account</h2>
+          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
             {[
               { label: "Transactions", icon: "ri-exchange-line", href: "/dashboard/transactions", color: "text-primary-600 bg-primary-100" },
               { label: "Statements", icon: "ri-file-chart-line", href: "/dashboard/reports", color: "text-secondary-600 bg-secondary-100" },
               { label: "API Keys", icon: "ri-key-2-line", href: "/dashboard/api-keys", color: "text-accent-600 bg-accent-100" },
-              { label: "API Keys", icon: "ri-key-2-line", href: "/dashboard/api-keys", color: "text-emerald-600 bg-emerald-100" },
+              { label: "Refunds", icon: "ri-refund-2-line", href: "/dashboard/refunds", color: "text-emerald-600 bg-emerald-100" },
               { label: "Verification", icon: "ri-shield-user-line", href: "/dashboard/kyc", color: "text-indigo-600 bg-indigo-100" },
               { label: "Settings", icon: "ri-settings-3-line", href: "/dashboard/settings", color: "text-foreground-700 bg-background-200" },
             ].map((s) => (
               <a
                 key={s.label}
                 href={s.href}
-                className="bg-background-50 rounded-xl border border-background-200/70 p-4 flex flex-col items-center text-center gap-2 hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer group"
+                className="bg-background-50 rounded-3xl border border-background-200/70 p-3 md:p-4 flex flex-col items-center text-center gap-2 hover:border-primary-300 hover:shadow-md transition-all cursor-pointer group"
               >
-                <div className={`w-11 h-11 rounded-xl ${s.color} flex items-center justify-center group-hover:scale-105 transition-transform`}>
-                  <i className={`${s.icon} text-lg`} />
+                <div className={`w-12 h-12 rounded-2xl ${s.color} flex items-center justify-center group-hover:scale-105 transition-transform`}>
+                  <i className={`${s.icon} text-xl`} />
                 </div>
-                <p className="text-xs font-medium text-foreground-800">{s.label}</p>
+                <p className="text-xs md:text-sm font-semibold text-foreground-800 leading-tight">{s.label}</p>
               </a>
             ))}
           </div>
@@ -513,13 +536,13 @@ export default function DashboardPage() {
         {/* ─── PER-CURRENCY BALANCES ───────────────────────── */}
         {perCurrencyCards.length > 0 && (
           <div>
-            <h3 className="font-heading font-semibold text-sm text-foreground-900 mb-3">Your accounts</h3>
+            <h3 className="font-heading font-bold text-xl md:text-2xl tracking-tight text-foreground-900 mb-4">Your wallets</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {perCurrencyCards.map((card) => (
                 <button
                   key={card.currency}
                   onClick={() => setActiveCurrency(card.currency)}
-                  className={`bg-background-50 rounded-xl p-4 border text-left transition-all cursor-pointer ${
+                  className={`bg-background-50 rounded-3xl p-4 border text-left transition-all cursor-pointer ${
                     card.currency === activeCurrency
                       ? "border-primary-400 ring-1 ring-primary-300"
                       : "border-background-200/70 hover:border-background-300/60"
@@ -541,11 +564,11 @@ export default function DashboardPage() {
 
         {/* ─── RECENT ACTIVITY + SIDE PANEL ────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-background-50 rounded-xl border border-background-200/70">
+          <div className="lg:col-span-2 bg-background-50 rounded-3xl border border-background-200/70">
             <div className="p-5 border-b border-background-200/70 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <i className="ri-exchange-line text-accent-600" />
-                <h3 className="font-heading font-semibold text-base text-foreground-900">Recent Transactions</h3>
+                <h3 className="font-heading font-bold text-lg md:text-xl tracking-tight text-foreground-900">Recent activity</h3>
               </div>
               <a href="/dashboard/transactions" className="text-sm font-medium text-primary-500 hover:text-primary-600">
                 View All
@@ -607,8 +630,8 @@ export default function DashboardPage() {
 
           <div className="space-y-4">
             {/* Money movement summary */}
-            <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
-              <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-4">Money movement</h4>
+            <div className="bg-background-50 rounded-3xl p-5 border border-background-200/70">
+              <h4 className="font-heading font-bold text-lg tracking-tight text-foreground-900 mb-4">Money movement</h4>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
@@ -645,7 +668,7 @@ export default function DashboardPage() {
             </div>
 
             {/* System status */}
-            <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
+            <div className="bg-background-50 rounded-3xl p-5 border border-background-200/70">
               <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-3">System status</h4>
               <div className="space-y-3">
                 {[
@@ -668,7 +691,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ─── TRUST & COMPLIANCE ──────────────────────────── */}
-        <div className="bg-background-50 rounded-xl border border-background-200/70 p-4">
+        <div className="bg-background-50 rounded-3xl border border-background-200/70 p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { icon: "ri-lock-line", label: "SSL/TLS Encrypted", sub: "256-bit encryption", color: "text-emerald-600" },
