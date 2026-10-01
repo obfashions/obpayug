@@ -30,13 +30,31 @@ export async function payoutMethods(currency: string) {
 /* ── Refunds ─────────────────────────────────────────────── */
 
 export async function listRefundable(id: Identity) {
-  const [{ data: records }, { data: refunds }] = await Promise.all([
-    db().from("payment_records").select("reference, amount, currency, phone_number, description, created_at, source")
-      .eq("merchant_id", id.userId).eq("type", "collection").eq("status", "success")
-      .order("created_at", { ascending: false }).limit(200),
-    db().from("merchant_refunds").select("*").eq("merchant_id", id.userId).order("created_at", { ascending: false }).limit(200),
-  ]);
-  return ok({ payments: records ?? [], refunds: refunds ?? [] });
+  // Admins see every merchant's payments (refunds are an admin-only action after a fraud review).
+  let pq = db().from("payment_records").select("merchant_id, reference, amount, currency, phone_number, description, created_at, source, metadata")
+    .eq("type", "collection").eq("status", "success").order("created_at", { ascending: false }).limit(300);
+  let rq = db().from("merchant_refunds").select("*").order("created_at", { ascending: false }).limit(300);
+  let tq = db().from("transactions").select("user_id, reference, amount, currency, customer_phone, customer_name, description, created_at")
+    .eq("type", "collection").eq("status", "success").order("created_at", { ascending: false }).limit(300);
+  if (!id.isAdmin) { pq = pq.eq("merchant_id", id.userId); rq = rq.eq("merchant_id", id.userId); tq = tq.eq("user_id", id.userId); }
+  const [{ data: records }, { data: refunds }, { data: txs }] = await Promise.all([pq, rq, id.isAdmin ? tq : Promise.resolve({ data: [] })]);
+  const seen = new Set((records ?? []).map((r: any) => r.reference));
+  const payments = [
+    ...(records ?? []).map((r: any) => ({ ...r, name: r.metadata?.customer_name || null, metadata: undefined })),
+    ...((txs as any[]) ?? []).filter((t) => !seen.has(t.reference)).map((t) => ({
+      merchant_id: t.user_id, reference: t.reference, amount: Number(t.amount), currency: t.currency || "UGX",
+      phone_number: t.customer_phone, description: t.description, created_at: t.created_at, source: "dashboard", name: t.customer_name,
+    })),
+  ].sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at)));
+  let merchants: Record<string, string> = {};
+  if (id.isAdmin) {
+    const ids = [...new Set(payments.map((p: any) => p.merchant_id).concat((refunds ?? []).map((r: any) => r.merchant_id)))];
+    if (ids.length) {
+      const { data: profs } = await db().from("profiles").select("id, full_name, email").in("id", ids);
+      merchants = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.full_name || p.email || p.id]));
+    }
+  }
+  return ok({ payments: id.isAdmin ? payments : [], refunds: refunds ?? [], merchants });
 }
 
 async function refundedSoFar(reference: string) {
@@ -46,10 +64,17 @@ async function refundedSoFar(reference: string) {
 
 /** Refunds a managed (API / payment link / Kenya / Rwanda) payment by sending the money back to the payer. */
 export async function createRefund(id: Identity, body: Record<string, any>) {
+  if (!id.isAdmin) return fail("Refunds are handled by ObPay support after a review.");
+  const merchantId = String(body.merchant_id || "").trim();
+  if (!merchantId) return fail("Pick the merchant's payment to refund.");
   const reference = String(body.reference || "").trim();
   const reason = String(body.reason || "").slice(0, 200);
-  const { data: rec } = await db().from("payment_records").select("*")
-    .eq("merchant_id", id.userId).eq("reference", reference).maybeSingle();
+  let { data: rec } = await db().from("payment_records").select("*")
+    .eq("merchant_id", merchantId).eq("reference", reference).maybeSingle();
+  if (!rec) {
+    const { data: t } = await db().from("transactions").select("*").eq("user_id", merchantId).eq("reference", reference).maybeSingle();
+    if (t) rec = { type: "collection", status: t.status, amount: Number(t.amount), currency: t.currency || "UGX", phone_number: t.customer_phone, metadata: { customer_name: t.customer_name } };
+  }
   if (!rec || rec.type !== "collection" || rec.status !== "success") return fail("Only successful collections can be refunded.");
   if (!rec.phone_number) return fail("This payment has no phone number to refund to.");
   if (rec.currency === "USD") return fail("Crypto payments can't be refunded automatically.");
@@ -61,7 +86,7 @@ export async function createRefund(id: Identity, body: Record<string, any>) {
 
   const refundRef = `RFD${Date.now().toString(36).toUpperCase()}`;
   const { apiPayout } = await import("./public-api.server");
-  const res: any = await apiPayout(id.userId, {
+  const res: any = await apiPayout(merchantId, {
     reference: refundRef,
     amount,
     currency: rec.currency,
@@ -71,7 +96,7 @@ export async function createRefund(id: Identity, body: Record<string, any>) {
   }, "refund");
 
   await db().from("merchant_refunds").insert({
-    merchant_id: id.userId, original_reference: reference, refund_reference: refundRef, amount,
+    merchant_id: merchantId, original_reference: reference, refund_reference: refundRef, amount,
     currency: rec.currency, phone_number: rec.phone_number, reason: reason || null,
     status: res?.success ? "pending" : "failed", error: res?.success ? null : String(res?.error || "").slice(0, 300),
   });
@@ -81,6 +106,7 @@ export async function createRefund(id: Identity, body: Record<string, any>) {
 
 /** Logs a refund sent through the dashboard's own payout (Uganda dashboard collections). */
 export async function logRefund(id: Identity, body: Record<string, any>) {
+  if (!id.isAdmin) return fail("Refunds are handled by ObPay support after a review.");
   const amount = Math.round(Number(body.amount));
   if (!body.original_reference || !amount) return fail("Missing refund details.");
   await db().from("merchant_refunds").insert({

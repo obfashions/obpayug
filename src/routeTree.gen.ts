@@ -26,9 +26,9 @@ import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.compan
 import { Route as AdminEmailCampaignsRouteImport } from './routes/admin.email-campaigns'
 import { Route as AdminGatewayApiRouteImport } from './routes/admin.gateway-api'
 import { Route as AdminKycReviewRouteImport } from './routes/admin.kyc-review'
-import { Route as AdminLoansRouteImport } from './routes/admin.loans'
 import { Route as AdminMerchantsRouteImport } from './routes/admin.merchants'
 import { Route as AdminPayoutRequestsRouteImport } from './routes/admin.payout-requests'
+import { Route as AdminRefundsRouteImport } from './routes/admin.refunds'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
@@ -148,11 +148,6 @@ const AdminKycReviewRoute = AdminKycReviewRouteImport.update({
   path: '/admin/kyc-review',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminLoansRoute = AdminLoansRouteImport.update({
-  id: '/admin/loans',
-  path: '/admin/loans',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
   id: '/admin/merchants',
   path: '/admin/merchants',
@@ -161,6 +156,11 @@ const AdminMerchantsRoute = AdminMerchantsRouteImport.update({
 const AdminPayoutRequestsRoute = AdminPayoutRequestsRouteImport.update({
   id: '/admin/payout-requests',
   path: '/admin/payout-requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRefundsRoute = AdminRefundsRouteImport.update({
+  id: '/admin/refunds',
+  path: '/admin/refunds',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
@@ -349,9 +349,9 @@ export interface FileRoutesByFullPath {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
-  '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -404,9 +404,9 @@ export interface FileRoutesByTo {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
-  '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -460,9 +460,9 @@ export interface FileRoutesById {
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
   '/admin/kyc-review': typeof AdminKycReviewRoute
-  '/admin/loans': typeof AdminLoansRoute
   '/admin/merchants': typeof AdminMerchantsRoute
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
+  '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
@@ -517,9 +517,9 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
     | '/admin/kyc-review'
-    | '/admin/loans'
     | '/admin/merchants'
     | '/admin/payout-requests'
+    | '/admin/refunds'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/support'
@@ -572,9 +572,9 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
     | '/admin/kyc-review'
-    | '/admin/loans'
     | '/admin/merchants'
     | '/admin/payout-requests'
+    | '/admin/refunds'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/support'
@@ -627,9 +627,9 @@ export interface FileRouteTypes {
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
     | '/admin/kyc-review'
-    | '/admin/loans'
     | '/admin/merchants'
     | '/admin/payout-requests'
+    | '/admin/refunds'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/support'
@@ -683,9 +683,9 @@ export interface RootRouteChildren {
   AdminEmailCampaignsRoute: typeof AdminEmailCampaignsRoute
   AdminGatewayApiRoute: typeof AdminGatewayApiRoute
   AdminKycReviewRoute: typeof AdminKycReviewRoute
-  AdminLoansRoute: typeof AdminLoansRoute
   AdminMerchantsRoute: typeof AdminMerchantsRoute
   AdminPayoutRequestsRoute: typeof AdminPayoutRequestsRoute
+  AdminRefundsRoute: typeof AdminRefundsRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSupportRoute: typeof AdminSupportRoute
@@ -843,13 +843,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminKycReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/loans': {
-      id: '/admin/loans'
-      path: '/admin/loans'
-      fullPath: '/admin/loans'
-      preLoaderRoute: typeof AdminLoansRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/merchants': {
       id: '/admin/merchants'
       path: '/admin/merchants'
@@ -862,6 +855,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/payout-requests'
       fullPath: '/admin/payout-requests'
       preLoaderRoute: typeof AdminPayoutRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/refunds': {
+      id: '/admin/refunds'
+      path: '/admin/refunds'
+      fullPath: '/admin/refunds'
+      preLoaderRoute: typeof AdminRefundsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/reports': {
@@ -1115,9 +1115,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdminEmailCampaignsRoute: AdminEmailCampaignsRoute,
   AdminGatewayApiRoute: AdminGatewayApiRoute,
   AdminKycReviewRoute: AdminKycReviewRoute,
-  AdminLoansRoute: AdminLoansRoute,
   AdminMerchantsRoute: AdminMerchantsRoute,
   AdminPayoutRequestsRoute: AdminPayoutRequestsRoute,
+  AdminRefundsRoute: AdminRefundsRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSupportRoute: AdminSupportRoute,

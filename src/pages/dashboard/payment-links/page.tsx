@@ -41,7 +41,7 @@ export default function PaymentLinksPage() {
     setError("");
     const res = await platform<PaymentLink[]>("links.list");
     if (!res.success) setError(res.error || "Could not load your payment links.");
-    else setLinks(res.data || []);
+    else setLinks(Array.from(new Map((res.data || []).map((l) => [l.id, l])).values()));
     setLoading(false);
   }, []);
 
@@ -51,6 +51,7 @@ export default function PaymentLinksPage() {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setSubmitting(true);
     setError("");
     const res = await platform("links.create", form);
