@@ -7,6 +7,8 @@ import { useNavigate } from "@/lib/router-compat";
 import CollectionBreakdown from "./components/CollectionBreakdown";
 import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
+import { Activity, Eye, EyeOff, Radio, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface WalletData {
   available_balance: number;
@@ -47,6 +49,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [showBalance, setShowBalance] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const toastIdRef = useRef(0);
   const lastPollTime = useRef<number>(0);
 
@@ -84,6 +88,7 @@ export default function DashboardPage() {
 
       setWallet(walletRes.data as WalletData | null);
       setTransactions((txnRes.data as Transaction[]) || []);
+      setLastUpdated(new Date());
       if (psRes?.data?.withdraw_fee_percent != null) setWithdrawFeePercent(Number(psRes.data.withdraw_fee_percent));
       if (psRes?.data?.payout_flat_fee != null) setPayoutFlatFee(Number(psRes.data.payout_flat_fee));
     } catch (err: any) {
@@ -419,21 +424,53 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Live account pulse */}
+        <div className="bank-pulse flex items-center gap-3 overflow-hidden rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3">
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-500 text-background-50">
+            <Radio className="h-4 w-4" />
+            <span className="absolute inset-0 rounded-xl border border-primary-400 animate-ping opacity-30" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase text-primary-700">Live account</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />
+            </div>
+            <div className="overflow-hidden">
+              <p className="bank-ticker whitespace-nowrap text-sm font-medium text-foreground-700">
+                Payments are monitored continuously · balances refresh every 5 seconds · {pendingTxns.length} payment{pendingTxns.length === 1 ? "" : "s"} in progress · last checked {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "now"}
+              </p>
+            </div>
+          </div>
+          <Activity className="hidden h-5 w-5 shrink-0 text-primary-600 sm:block" />
+        </div>
+
         {/* ─── BENTO: ACCOUNT CARD + STATS ─────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <div className="lg:col-span-3 relative overflow-hidden rounded-[28px] bg-gradient-to-br from-foreground-900 via-primary-800 to-primary-600 text-background-50 shadow-xl">
-            <div className="absolute -right-20 -top-20 w-72 h-72 rounded-full bg-background-50/10 blur-2xl" />
-            <div className="absolute right-10 -bottom-24 w-56 h-56 rounded-full border border-background-50/15" />
+          <div className="account-card lg:col-span-3 relative overflow-hidden rounded-3xl bg-gradient-to-br from-foreground-900 via-primary-800 to-primary-600 text-background-50 shadow-xl">
+            <div className="account-card-grid absolute inset-0 opacity-20" />
             <div className="relative p-6 md:p-8 flex flex-col h-full min-h-[230px]">
               <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background-50/15 text-xs font-semibold tracking-wide">
                   <i className="ri-bank-line" />ObPay Business
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs text-background-50/80"><i className="ri-shield-check-fill" />Secured</span>
+                <div className="flex items-center gap-2">
+                  <span className="hidden sm:inline-flex items-center gap-1 text-xs text-background-50/80"><ShieldCheck className="h-3.5 w-3.5" />Secured</span>
+                  <Button
+                    type="button"
+                    onClick={() => setShowBalance((value) => !value)}
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-background-50 hover:bg-background-50/15 hover:text-background-50"
+                    aria-label={showBalance ? "Hide balance" : "Show balance"}
+                    title={showBalance ? "Hide balance" : "Show balance"}
+                  >
+                    {showBalance ? <EyeOff /> : <Eye />}
+                  </Button>
+                </div>
               </div>
               <p className="mt-6 text-xs uppercase tracking-[0.2em] text-background-50/70">Available balance</p>
               <p className="font-heading font-bold text-4xl sm:text-5xl tracking-tight mt-2 break-words leading-none">
-                {formatCurrency(activeBalance, activeCurrency)}
+                {showBalance ? formatCurrency(activeBalance, activeCurrency) : `${activeCurrency} ••••••`}
               </p>
               <div className="mt-auto pt-6 flex items-end justify-between gap-3">
                 <div>
@@ -466,6 +503,22 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Financial command strip */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-background-200 bg-background-50 p-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700"><Zap className="h-5 w-5" /></div>
+            <div className="min-w-0"><p className="text-xs text-foreground-500">Settlement speed</p><p className="font-heading font-bold text-foreground-900">Live confirmation</p></div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-background-200 bg-background-50 p-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-100 text-accent-700"><Activity className="h-5 w-5" /></div>
+            <div className="min-w-0"><p className="text-xs text-foreground-500">Account flow</p><p className="font-heading font-bold text-foreground-900">{successTxns.length} settled payments</p></div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-background-200 bg-background-50 p-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary-100 text-secondary-700"><Sparkles className="h-5 w-5" /></div>
+            <div className="min-w-0"><p className="text-xs text-foreground-500">Multi-currency</p><p className="font-heading font-bold text-foreground-900">{availableCurrencies.length || 1} active wallet{availableCurrencies.length === 1 ? "" : "s"}</p></div>
           </div>
         </div>
 
@@ -694,10 +747,10 @@ export default function DashboardPage() {
         <div className="bg-background-50 rounded-3xl border border-background-200/70 p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { icon: "ri-lock-line", label: "SSL/TLS Encrypted", sub: "256-bit encryption", color: "text-emerald-600" },
-              { icon: "ri-shield-check-line", label: "PCI DSS Level 1", sub: "Compliant", color: "text-primary-600" },
-              { icon: "ri-timer-flash-line", label: "99.9% Uptime SLA", sub: "Enterprise-grade", color: "text-accent-600" },
-              { icon: "ri-government-line", label: "Regulated Entity", sub: "Licensed & Audited", color: "text-secondary-600" },
+              { icon: "ri-lock-line", label: "Secure sign-in", sub: "Protected access", color: "text-emerald-600" },
+              { icon: "ri-shield-check-line", label: "Private documents", sub: "Controlled access", color: "text-primary-600" },
+              { icon: "ri-timer-flash-line", label: "Live reconciliation", sub: "Automatic checks", color: "text-accent-600" },
+              { icon: "ri-key-2-line", label: "Signed API requests", sub: "Verified callbacks", color: "text-secondary-600" },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-lg bg-background-100 flex items-center justify-center shrink-0">

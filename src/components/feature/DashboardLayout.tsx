@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import {
-  Airplay,
   ArrowLeftRight,
   BadgeDollarSign,
   BanknoteArrowDown,
@@ -14,7 +13,6 @@ import {
   Braces,
   Building2,
   CircleHelp,
-  CreditCard,
   FileChartColumn,
   Fingerprint,
   Gauge,
@@ -27,12 +25,8 @@ import {
   ReceiptText,
   RefreshCcw,
   Settings,
-  ShieldCheck,
   Smartphone,
   Sun,
-  WalletCards,
-  X,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 
