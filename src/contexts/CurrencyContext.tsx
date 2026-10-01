@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { platform } from "@/lib/platform";
+import { getEnabledCurrencies } from "@/lib/currencies.functions";
 import {
   getCurrencyInfo,
   getCurrencyByCountry,
@@ -21,6 +22,10 @@ export interface CurrencyState {
   currencyInfo: ReturnType<typeof getCurrencyInfo>;
   loading: boolean;
   refreshBalances: () => Promise<void>;
+  /** Currencies switched on for the whole platform. */
+  platformCurrencies: string[];
+  /** Wallets this account has turned on. */
+  walletCurrencies: string[];
 }
 
 const CurrencyContext = createContext<CurrencyState | undefined>(undefined);
@@ -37,6 +42,23 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [balances, setBalances] = useState<BalancesByCurrency>({});
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [platformCurrencies, setPlatformCurrencies] = useState<string[]>(["UGX"]);
+
+  useEffect(() => {
+    getEnabledCurrencies().then((r) => setPlatformCurrencies(r.currencies)).catch(() => {});
+  }, []);
+
+  const defaultCurr = profile?.default_currency || DEFAULT_CURRENCY;
+  const chosen = ((profile as any)?.enabled_currencies as string[] | null) || [defaultCurr];
+  const walletCurrencies = Array.from(new Set([defaultCurr, ...chosen])).filter(
+    (c) => platformCurrencies.includes(c) || c === defaultCurr,
+  );
+
+  // Keep the active currency on one of the account's wallets.
+  useEffect(() => {
+    if (profile && !walletCurrencies.includes(activeCurrency)) setActiveCurrency(defaultCurr);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, walletCurrencies.join(","), activeCurrency]);
 
   // Derive default currency from profile on mount
   useEffect(() => {
@@ -95,9 +117,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       setBalances(merged);
 
       // Determine available currencies: any currency with a non-zero balance, plus the active currency, plus legacy
+      // Account's wallets, plus any currency that still holds money (never hide funds).
       const currencies = new Set<string>([
-        legacyCurrency,
-        activeCurrency,
+        ...walletCurrencies,
         ...Object.keys(merged).filter((c) => (merged[c] || 0) > 0),
       ]);
       setAvailableCurrencies(Array.from(currencies).filter((c) => SUPPORTED_CURRENCIES.some((sc) => sc.code === c)));
@@ -106,7 +128,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user, profile, activeCurrency]);
+  }, [user, profile, walletCurrencies.join(",")]);
 
   useEffect(() => {
     refreshBalances();
@@ -151,6 +173,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         currencyInfo: getCurrencyInfo(activeCurrency),
         loading,
         refreshBalances,
+        platformCurrencies,
+        walletCurrencies,
       }}
     >
       {children}
