@@ -208,9 +208,9 @@
 }
 
 :root {
-  --font-heading-stack: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-body-stack: "Inter", system-ui, sans-serif;
-  --font-label-stack: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-heading-stack: "Sora", system-ui, sans-serif;
+  --font-body-stack: "Manrope", system-ui, sans-serif;
+  --font-label-stack: "Manrope", system-ui, sans-serif;
 
   --background-50: 0.98 0.005 80;
   --background-100: 0.96 0.01 80;
