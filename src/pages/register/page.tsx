@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { MONEY_COUNTRIES } from "@/lib/countries";
+import { getEnabledCurrencies } from "@/lib/currencies.functions";
 import { Link, useNavigate } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
@@ -11,6 +13,7 @@ export default function Register() {
     full_name: "",
     email: "",
     phone_number: "",
+    currency: "UGX",
     website: "",
     password: "",
     confirm_password: "",
@@ -20,6 +23,11 @@ export default function Register() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [enabled, setEnabled] = useState<string[]>(["UGX"]);
+  useEffect(() => {
+    getEnabledCurrencies().then((r) => setEnabled(r.currencies)).catch(() => {});
+  }, []);
+  const countries = MONEY_COUNTRIES.filter((c) => enabled.includes(c.currency));
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -85,6 +93,7 @@ export default function Register() {
         data: {
           full_name: formData.full_name,
           phone_number: formData.phone_number,
+          default_currency: formData.currency,
           // Optional — stored on the auth user's metadata only when provided.
           ...(formData.website.trim() ? { website: formData.website.trim() } : {}),
         },
@@ -155,6 +164,8 @@ export default function Register() {
       email: formData.email,
       full_name: formData.full_name,
       phone_number: formData.phone_number,
+      default_currency: formData.currency,
+      enabled_currencies: [formData.currency],
       role: "merchant",
       status: "pending",
       email_verified: false,
@@ -246,6 +257,25 @@ export default function Register() {
                   {errors.email && (
                     <p className="text-xs text-accent-600 mt-1">{errors.email}</p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground-700 mb-1.5">
+                    Country
+                  </label>
+                  <select
+                    name="country"
+                    value={formData.currency}
+                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                    className={inputClass("currency")}
+                  >
+                    {countries.map((c) => (
+                      <option key={c.currency} value={c.currency}>
+                        {c.flag} {c.country} ({c.currency})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-foreground-500 mt-1">Your main wallet will be in {formData.currency}. You can add more wallets in Settings.</p>
                 </div>
 
                 <div>

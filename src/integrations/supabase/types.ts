@@ -903,6 +903,7 @@ export type Database = {
           default_currency: string | null
           email: string | null
           email_verified: boolean | null
+          enabled_currencies: string[] | null
           full_name: string | null
           id: string
           login_verification_enabled: boolean | null
@@ -920,6 +921,7 @@ export type Database = {
           default_currency?: string | null
           email?: string | null
           email_verified?: boolean | null
+          enabled_currencies?: string[] | null
           full_name?: string | null
           id: string
           login_verification_enabled?: boolean | null
@@ -937,6 +939,7 @@ export type Database = {
           default_currency?: string | null
           email?: string | null
           email_verified?: boolean | null
+          enabled_currencies?: string[] | null
           full_name?: string | null
           id?: string
           login_verification_enabled?: boolean | null
