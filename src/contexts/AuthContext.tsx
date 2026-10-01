@@ -127,6 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         full_name: authUser.user_metadata?.full_name || email.split("@")[0] || "User",
         phone_number: authUser.user_metadata?.phone_number || "",
+        ...(authUser.user_metadata?.default_currency
+          ? { default_currency: authUser.user_metadata.default_currency, enabled_currencies: [authUser.user_metadata.default_currency] }
+          : {}),
         role: "merchant",
         status: "active",
       });
