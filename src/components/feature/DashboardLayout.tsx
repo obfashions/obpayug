@@ -2,29 +2,61 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "@/lib/router-compat";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import {
+  Airplay,
+  ArrowLeftRight,
+  BadgeDollarSign,
+  BanknoteArrowDown,
+  BanknoteArrowUp,
+  Bell,
+  Bitcoin,
+  Braces,
+  Building2,
+  CircleHelp,
+  CreditCard,
+  FileChartColumn,
+  Fingerprint,
+  Gauge,
+  Headphones,
+  KeyRound,
+  LayoutGrid,
+  Link2,
+  Menu,
+  Moon,
+  ReceiptText,
+  RefreshCcw,
+  Settings,
+  ShieldCheck,
+  Smartphone,
+  Sun,
+  WalletCards,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 
 const BANNER_DISMISSED_KEY = "obpay_verify_banner_dismissed";
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: "ri-dashboard-line", group: "main" },
-  { label: "Collections", href: "/dashboard/collections", icon: "ri-download-cloud-line", group: "main" },
-  { label: "Payouts", href: "/dashboard/payouts", icon: "ri-upload-cloud-line", group: "main" },
-  { label: "Bank Transfer", href: "/dashboard/bank-transfer", icon: "ri-bank-card-line", group: "main" },
-  { label: "Bill Payments", href: "/dashboard/bill-payments", icon: "ri-flashlight-line", group: "main" },
-  { label: "Airtime & Data", href: "/dashboard/airtime-data", icon: "ri-smartphone-line", group: "main" },
-  { label: "Services", href: "/dashboard/services", icon: "ri-apps-2-line", group: "main" },
-
-  { label: "Transactions", href: "/dashboard/transactions", icon: "ri-exchange-line", group: "main" },
-  { label: "Payment Links", href: "/dashboard/payment-links", icon: "ri-link-m", group: "main" },
-  { label: "Refunds", href: "/dashboard/refunds", icon: "ri-refund-2-line", group: "main" },
-  { label: "Currency Exchange", href: "/dashboard/exchange", icon: "ri-exchange-dollar-line", group: "main" },
-  { label: "Crypto", href: "/dashboard/crypto", icon: "ri-bit-coin-line", group: "main" },
-  { label: "Reports", href: "/dashboard/reports", icon: "ri-file-chart-line", group: "main" },
-  { label: "API Keys", href: "/dashboard/api-keys", icon: "ri-key-2-line", group: "dev" },
-  { label: "API Sandbox", href: "/dashboard/api-sandbox", icon: "ri-terminal-box-line", group: "dev" },
-  { label: "Compliance", href: "/dashboard/company-documents", icon: "ri-government-line", group: "account" },
-  { label: "Support", href: "/support", icon: "ri-customer-service-2-line", group: "account" },
-  { label: "Settings", href: "/dashboard/settings", icon: "ri-settings-4-line", group: "account" },
+const navItems: Array<{ label: string; href: string; icon: LucideIcon; group: string }> = [
+  { label: "Dashboard", href: "/dashboard", icon: Gauge, group: "main" },
+  { label: "Collections", href: "/dashboard/collections", icon: BanknoteArrowDown, group: "main" },
+  { label: "Payouts", href: "/dashboard/payouts", icon: BanknoteArrowUp, group: "main" },
+  { label: "Bank Transfer", href: "/dashboard/bank-transfer", icon: Building2, group: "main" },
+  { label: "Bill Payments", href: "/dashboard/bill-payments", icon: ReceiptText, group: "main" },
+  { label: "Airtime & Data", href: "/dashboard/airtime-data", icon: Smartphone, group: "main" },
+  { label: "Services", href: "/dashboard/services", icon: LayoutGrid, group: "main" },
+  { label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight, group: "main" },
+  { label: "Payment Links", href: "/dashboard/payment-links", icon: Link2, group: "main" },
+  { label: "Refunds", href: "/dashboard/refunds", icon: RefreshCcw, group: "main" },
+  { label: "Currency Exchange", href: "/dashboard/exchange", icon: BadgeDollarSign, group: "main" },
+  { label: "Crypto", href: "/dashboard/crypto", icon: Bitcoin, group: "main" },
+  { label: "Reports", href: "/dashboard/reports", icon: FileChartColumn, group: "main" },
+  { label: "API Keys", href: "/dashboard/api-keys", icon: KeyRound, group: "dev" },
+  { label: "API Sandbox", href: "/dashboard/api-sandbox", icon: Braces, group: "dev" },
+  { label: "Compliance", href: "/dashboard/company-documents", icon: Fingerprint, group: "account" },
+  { label: "Support", href: "/support", icon: Headphones, group: "account" },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings, group: "account" },
 ];
 
 interface DashboardLayoutProps {
@@ -53,9 +85,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   });
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isDark, setIsDark] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, profileLoading, signOut, loginVerified, user, loading, globalVerificationEnabled } = useAuth();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const saved = localStorage.getItem("obpay_theme");
+    const dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.classList.toggle("dark", dark);
+    setIsDark(dark);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("obpay_theme", next ? "dark" : "light");
+    setIsDark(next);
+  };
 
   // Auth guard: if session is lost (user closed browser, token expired, etc.)
   // redirect to login so they see a proper login form instead of a broken page.
@@ -226,14 +274,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         navigate(item.href);
                         setIsSidebarOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                      className={`group w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                         isActive
-                          ? "bg-primary-100 text-primary-700"
+                          ? "bg-primary-100 text-primary-800 shadow-sm"
                           : "text-foreground-600 hover:bg-background-200/70 hover:text-foreground-900"
                       }`}
                     >
-                      <div className="w-5 h-5 flex items-center justify-center">
-                        <i className={`${item.icon} text-lg`} />
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${isActive ? "bg-primary-500 text-background-50" : "bg-background-100 text-foreground-600"}`}>
+                        <item.icon className="h-5 w-5" strokeWidth={isActive ? 2.4 : 1.9} />
                       </div>
                       <span className="flex-1 text-left">{item.label}</span>
                     </button>
@@ -357,12 +405,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Top Bar */}
         <header className="h-16 bg-background-50 border-b border-background-200/70 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
           <div className="flex items-center gap-3">
-            <button
+            <Button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden w-9 h-9 flex items-center justify-center text-foreground-600 hover:text-foreground-900 cursor-pointer"
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              aria-label="Open menu"
             >
-              <i className="ri-menu-line text-xl" />
-            </button>
+              <Menu className="h-5 w-5" />
+            </Button>
             <h1 className="font-heading font-semibold text-lg text-foreground-900 hidden sm:block">
               {navItems.find((n) => n.href === location.pathname)?.label || "Dashboard"}
             </h1>
@@ -379,13 +430,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               />
             </div>
 
+            <Button
+              onClick={toggleTheme}
+              variant="ghost"
+              size="icon"
+              className="rounded-lg"
+              aria-label={isDark ? "Use light appearance" : "Use dark appearance"}
+              title={isDark ? "Light mode" : "Dark mode"}
+            >
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+
             {/* Notifications */}
             <div className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
                 className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-background-200/70 text-foreground-600 transition-colors cursor-pointer"
               >
-                <i className="ri-notification-3-line text-lg" />
+                <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-accent-500 text-background-50 text-[10px] font-bold px-1">
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -451,7 +513,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               to="/docs"
               className="hidden md:flex w-9 h-9 items-center justify-center rounded-lg hover:bg-background-200/70 text-foreground-600 transition-colors"
             >
-              <i className="ri-question-line text-lg" />
+              <CircleHelp className="h-5 w-5" />
             </Link>
           </div>
         </header>
