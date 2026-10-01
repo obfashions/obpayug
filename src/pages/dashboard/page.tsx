@@ -536,13 +536,13 @@ export default function DashboardPage() {
         {/* ─── PER-CURRENCY BALANCES ───────────────────────── */}
         {perCurrencyCards.length > 0 && (
           <div>
-            <h3 className="font-heading font-semibold text-sm text-foreground-900 mb-3">Your accounts</h3>
+            <h3 className="font-heading font-bold text-xl md:text-2xl tracking-tight text-foreground-900 mb-4">Your wallets</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {perCurrencyCards.map((card) => (
                 <button
                   key={card.currency}
                   onClick={() => setActiveCurrency(card.currency)}
-                  className={`bg-background-50 rounded-xl p-4 border text-left transition-all cursor-pointer ${
+                  className={`bg-background-50 rounded-3xl p-4 border text-left transition-all cursor-pointer ${
                     card.currency === activeCurrency
                       ? "border-primary-400 ring-1 ring-primary-300"
                       : "border-background-200/70 hover:border-background-300/60"
@@ -564,11 +564,11 @@ export default function DashboardPage() {
 
         {/* ─── RECENT ACTIVITY + SIDE PANEL ────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-background-50 rounded-xl border border-background-200/70">
+          <div className="lg:col-span-2 bg-background-50 rounded-3xl border border-background-200/70">
             <div className="p-5 border-b border-background-200/70 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <i className="ri-exchange-line text-accent-600" />
-                <h3 className="font-heading font-semibold text-base text-foreground-900">Recent Transactions</h3>
+                <h3 className="font-heading font-bold text-lg md:text-xl tracking-tight text-foreground-900">Recent activity</h3>
               </div>
               <a href="/dashboard/transactions" className="text-sm font-medium text-primary-500 hover:text-primary-600">
                 View All
@@ -630,8 +630,8 @@ export default function DashboardPage() {
 
           <div className="space-y-4">
             {/* Money movement summary */}
-            <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
-              <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-4">Money movement</h4>
+            <div className="bg-background-50 rounded-3xl p-5 border border-background-200/70">
+              <h4 className="font-heading font-bold text-lg tracking-tight text-foreground-900 mb-4">Money movement</h4>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
@@ -668,7 +668,7 @@ export default function DashboardPage() {
             </div>
 
             {/* System status */}
-            <div className="bg-background-50 rounded-xl p-5 border border-background-200/70">
+            <div className="bg-background-50 rounded-3xl p-5 border border-background-200/70">
               <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-3">System status</h4>
               <div className="space-y-3">
                 {[
@@ -691,7 +691,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ─── TRUST & COMPLIANCE ──────────────────────────── */}
-        <div className="bg-background-50 rounded-xl border border-background-200/70 p-4">
+        <div className="bg-background-50 rounded-3xl border border-background-200/70 p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { icon: "ri-lock-line", label: "SSL/TLS Encrypted", sub: "256-bit encryption", color: "text-emerald-600" },
