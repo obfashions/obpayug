@@ -275,7 +275,7 @@ export default function Register() {
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-foreground-500 mt-1">Your main wallet will be in {formData.currency}. You can add more wallets in Settings.</p>
+                  <p className="text-xs text-foreground-500 mt-1">This sets your account home currency to {formData.currency}. You can enable other currencies later.</p>
                 </div>
 
                 <div>
