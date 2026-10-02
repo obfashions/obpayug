@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useNavigate } from "@/lib/router-compat";
-import MerchantGuidance from "./components/MerchantGuidance";
 import CollectionBreakdown from "./components/CollectionBreakdown";
 import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
@@ -426,8 +425,6 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-
-        <MerchantGuidance />
 
         {/* Live account pulse */}
         <div className="bank-pulse flex items-center gap-3 overflow-hidden rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3">
