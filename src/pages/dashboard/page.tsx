@@ -229,8 +229,9 @@ export default function DashboardPage() {
 
   // ─── Computed stats ──────────────────────────────────────
 
-  const successTxns = transactions.filter((t) => t.status === "success");
-  const pendingTxns = transactions.filter((t) => t.status === "pending");
+  const currencyTransactions = transactions.filter((t) => (t.currency || "UGX") === activeCurrency);
+  const successTxns = currencyTransactions.filter((t) => t.status === "success");
+  const pendingTxns = currencyTransactions.filter((t) => t.status === "pending");
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -248,9 +249,10 @@ export default function DashboardPage() {
   const totalFees = successTxns.reduce((s, t) => s + (t.fee_amount || 0), 0);
 
   // ── Per-currency balance cards (show all currencies with balances) ──
-  const perCurrencyCards = Object.entries(balances)
-    .filter(([, amount]) => amount > 0)
-    .sort(([, a], [, b]) => b - a)
+  const walletCodes = Array.from(new Set([...(availableCurrencies.length ? availableCurrencies : [activeCurrency]), ...Object.keys(balances)]));
+  const perCurrencyCards = walletCodes
+    .map((currency) => [currency, balances[currency] || 0] as const)
+    .sort(([a], [b]) => a.localeCompare(b))
     .map(([currency, amount]) => {
       const info = SUPPORTED_CURRENCIES.find((c) => c.code === currency);
       return {
@@ -425,7 +427,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <MerchantGuidance kycStatus={profile?.status} hasTransactions={transactions.length > 0} />
+        <MerchantGuidance />
 
         {/* Live account pulse */}
         <div className="bank-pulse flex items-center gap-3 overflow-hidden rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3">
@@ -616,7 +618,7 @@ export default function DashboardPage() {
         )}
 
         {/* ─── COLLECTION BREAKDOWN ────────────────────────── */}
-        <CollectionBreakdown transactions={transactions} activeCurrency={activeCurrency} />
+        <CollectionBreakdown transactions={currencyTransactions} activeCurrency={activeCurrency} />
 
         {/* ─── RECENT ACTIVITY + SIDE PANEL ────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

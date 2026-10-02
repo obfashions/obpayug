@@ -1,0 +1,2 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS operating_country TEXT;
+COMMENT ON COLUMN public.profiles.operating_country IS 'Merchant operating country selected during registration; determines the initial main currency wallet.';
