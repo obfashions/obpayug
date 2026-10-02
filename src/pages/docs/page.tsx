@@ -219,6 +219,63 @@ export default function DocsPage() {
             </section>
           )}
 
+          {active === "operating" && (
+            <section className="space-y-3">
+              <Header icon="ri-compass-3-line" label="How to operate ObPay" />
+              <p className={P}>
+                Use these steps in order. A payment is complete only when its status is confirmed and the correct
+                currency wallet is credited — never deliver an order on a pending payment.
+              </p>
+              <ol className="list-decimal pl-5 space-y-4 text-sm text-foreground-600">
+                <li>
+                  <strong>Verify your account.</strong> Sign in and open{" "}
+                  <Link to="/dashboard/kyc" className="text-primary-600 font-semibold hover:underline">Dashboard → Verification</Link>.
+                  Personal accounts submit a national ID (front and back); business accounts submit their registration
+                  certificate. Review status is shown on the same page, and you get an email when it changes.
+                </li>
+                <li>
+                  <strong>Choose your country and wallets.</strong> The country you picked at sign-up sets your main
+                  currency wallet. Add or remove extra currency wallets any time in{" "}
+                  <Link to="/dashboard/settings" className="text-primary-600 font-semibold hover:underline">Settings → Currency wallets</Link>.
+                  Each wallet holds its own balance; switching the wallet selector only changes which balance you view —
+                  it never converts money. Converting between currencies is done on the Exchange page.
+                </li>
+                <li>
+                  <strong>Receive money.</strong> From{" "}
+                  <Link to="/dashboard/collections" className="text-primary-600 font-semibold hover:underline">Dashboard → Collections</Link>{" "}
+                  request a mobile money payment (the payer gets a PIN prompt on their MTN or Airtel phone), or share a
+                  payment link that needs no code. Developers can send the same requests from their own server with the
+                  REST API — see Quick start below.
+                </li>
+                <li>
+                  <strong>Wait for confirmation.</strong> Every payment starts as <code className={C}>pending</code> and
+                  becomes <code className={C}>success</code> or <code className={C}>failed</code> — usually within a
+                  minute, sometimes a little longer on busy networks. The money is credited to your wallet only when it
+                  turns <code className={C}>success</code>, and you and your admin both receive a receipt email.
+                </li>
+                <li>
+                  <strong>Connect your website (optional).</strong> Create a secret key on{" "}
+                  <Link to="/dashboard/api-keys" className="text-primary-600 font-semibold hover:underline">Dashboard → API Keys</Link>,
+                  save it on your server, and follow the API sections in this documentation. The full secret key is shown
+                  only once when you create it.
+                </li>
+                <li>
+                  <strong>Track and withdraw.</strong> Follow every payment in{" "}
+                  <Link to="/dashboard/transactions" className="text-primary-600 font-semibold hover:underline">Dashboard → Transactions</Link>.
+                  To withdraw, open{" "}
+                  <Link to="/dashboard/withdraw" className="text-primary-600 font-semibold hover:underline">Withdrawals</Link>{" "}
+                  and send to MTN or Airtel mobile money — the transfer fee is taken from the amount you enter, and the
+                  transfer usually completes within 7–20 minutes.
+                </li>
+              </ol>
+              <Note>
+                Stuck on a step? Contact support from your dashboard with the payment reference (e.g.{" "}
+                <code className={C}>OBP123ABC</code>) and the time it happened — support replies fastest with those two
+                details.
+              </Note>
+            </section>
+          )}
+
           {active === "quickstart" && (
             <section className="space-y-3">
               <Header icon="ri-flashlight-line" label="Quick start (5 minutes)" />
