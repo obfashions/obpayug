@@ -57,6 +57,13 @@
       "when": 1790874635453,
       "tag": "0007_profile_enabled_currencies",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790932915564,
+      "tag": "0008_add_profile_operating_country",
+      "breakpoints": true
     }
   ]
 }

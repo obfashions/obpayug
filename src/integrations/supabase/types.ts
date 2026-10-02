@@ -909,6 +909,7 @@ export type Database = {
           login_verification_enabled: boolean | null
           login_verified_at: string | null
           migrated_from_legacy_at: string | null
+          operating_country: string | null
           phone_number: string | null
           role: string | null
           role_tag: string | null
@@ -927,6 +928,7 @@ export type Database = {
           login_verification_enabled?: boolean | null
           login_verified_at?: string | null
           migrated_from_legacy_at?: string | null
+          operating_country?: string | null
           phone_number?: string | null
           role?: string | null
           role_tag?: string | null
@@ -945,6 +947,7 @@ export type Database = {
           login_verification_enabled?: boolean | null
           login_verified_at?: string | null
           migrated_from_legacy_at?: string | null
+          operating_country?: string | null
           phone_number?: string | null
           role?: string | null
           role_tag?: string | null
