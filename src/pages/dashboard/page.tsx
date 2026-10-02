@@ -8,7 +8,7 @@ import MerchantGuidance from "./components/MerchantGuidance";
 import CollectionBreakdown from "./components/CollectionBreakdown";
 import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
-import { Activity, CheckCircle2, Eye, EyeOff, Radio, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { Activity, Eye, EyeOff, Radio, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WalletData {
@@ -526,33 +526,6 @@ export default function DashboardPage() {
             <div className="min-w-0"><p className="text-xs text-foreground-500">Multi-currency</p><p className="font-heading font-bold text-foreground-900">{availableCurrencies.length || 1} active wallet{availableCurrencies.length === 1 ? "" : "s"}</p></div>
           </div>
         </div>
-
-        {/* Getting started */}
-        <section className="rounded-3xl border border-background-200 bg-background-50 p-5 md:p-6" aria-labelledby="getting-started-title">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-md">
-              <p className="text-xs font-bold uppercase text-primary-700">Getting started</p>
-              <h2 id="getting-started-title" className="mt-1 font-heading text-xl font-bold text-foreground-900">Operate your ObPay account</h2>
-              <p className="mt-2 text-sm leading-relaxed text-foreground-600">Start with verification, choose how customers pay, then follow the transaction until it is confirmed before withdrawing or delivering an order.</p>
-            </div>
-            <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              {[
-                { label: "Verify account", detail: "Submit identity or business documents", href: "/dashboard/kyc" },
-                { label: "Receive money", detail: "Request payment or share a link", href: "/dashboard/collections" },
-                { label: "Track status", detail: "Confirm payments and wallet credit", href: "/dashboard/transactions" },
-                { label: "Connect a website", detail: "Create keys and follow the API guide", href: "/dashboard/api-keys" },
-              ].map((step, index) => (
-                <a key={step.label} href={step.href} className="group flex min-h-24 gap-3 rounded-2xl bg-background-100 p-3 transition-colors hover:bg-background-200/70">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700">{index + 1}</span>
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-1 text-sm font-bold text-foreground-900">{step.label}<CheckCircle2 className="h-3.5 w-3.5 text-primary-600 opacity-0 transition-opacity group-hover:opacity-100" /></span>
-                    <span className="mt-1 block text-xs leading-relaxed text-foreground-500">{step.detail}</span>
-                  </span>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* ─── PRIMARY ACTIONS ─────────────────────────────── */}
         <div>
