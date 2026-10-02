@@ -34,7 +34,7 @@ function getMonthStart(date: Date): Date {
 
 export default function CollectionBreakdown({ transactions, activeCurrency = "UGX" }: CollectionBreakdownProps) {
   const successCollections = transactions.filter(
-    (t) => t.type === "collection" && t.status === "success"
+    (t) => t.type === "collection" && t.status === "success" && (t.currency || "UGX") === activeCurrency
   );
 
   const now = new Date();

@@ -14,6 +14,8 @@ export interface Profile {
   login_verification_enabled: boolean;
   support_agent: boolean;
   default_currency?: string | null;
+  enabled_currencies?: string[] | null;
+  operating_country?: string | null;
   merchant_profiles?: Array<Record<string, unknown> & { company_name?: string }> | null;
   role_tag: string | null;
   created_at: string;
@@ -128,7 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         full_name: authUser.user_metadata?.full_name || email.split("@")[0] || "User",
         phone_number: authUser.user_metadata?.phone_number || "",
         ...(authUser.user_metadata?.default_currency
-          ? { default_currency: authUser.user_metadata.default_currency, enabled_currencies: [authUser.user_metadata.default_currency] }
+          ? {
+              default_currency: authUser.user_metadata.default_currency,
+              enabled_currencies: authUser.user_metadata.enabled_currencies || [authUser.user_metadata.default_currency],
+              operating_country: authUser.user_metadata.operating_country || null,
+            }
           : {}),
         role: "merchant",
         status: "active",

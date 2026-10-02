@@ -2,29 +2,29 @@ export default function HowItWorksSection() {
   const steps = [
     {
       number: "01",
-      title: "Create Account",
-      description: "Sign up in minutes with your email and business details. No credit card required.",
+      title: "Choose Your Country",
+      description: "Create your account and choose where your business operates. That country's currency becomes your main wallet.",
       icon: "ri-user-add-line",
       color: "bg-primary-100 text-primary-600",
     },
     {
       number: "02",
       title: "Complete KYC",
-      description: "Upload your ID and business documents. Verification completed within 24-48 hours.",
+      description: "Choose personal or business verification, then upload the requested clear and valid documents for review.",
       icon: "ri-shield-check-line",
       color: "bg-accent-100 text-accent-600",
     },
     {
       number: "03",
-      title: "Get API Keys",
-      description: "Receive your unique merchant ID, public key, secret key, and webhook secret automatically.",
+      title: "Choose How to Collect",
+      description: "Request a mobile money payment, share a payment link, or create an API key for your website.",
       icon: "ri-key-2-line",
       color: "bg-secondary-100 text-secondary-600",
     },
     {
       number: "04",
-      title: "Go Live",
-      description: "Start collecting payments and sending payouts. Use payment links or integrate the API.",
+      title: "Track and Withdraw",
+      description: "Follow each payment to confirmation, see the correct wallet balance, then withdraw available funds.",
       icon: "ri-rocket-line",
       color: "bg-primary-100 text-primary-600",
     },
@@ -45,7 +45,7 @@ export default function HowItWorksSection() {
               <span className="text-primary-500">4 Simple Steps</span>
             </h2>
             <p className="text-base md:text-lg text-foreground-600 leading-relaxed">
-              From signup to your first payment in under an hour. We handle the complexity so you can focus on your business.
+              Open the right currency wallet, complete verification, receive money and follow every transaction from one account.
             </p>
           </div>
 

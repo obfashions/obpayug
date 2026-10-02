@@ -44,7 +44,7 @@ export default function CurrencyWalletsCard() {
   return (
     <div className="bg-background-50 rounded-xl p-6 border border-background-200/70">
       <h3 className="font-heading font-semibold text-base text-foreground-900 mb-1">Currency wallets</h3>
-      <p className="text-sm text-foreground-600 mb-4">Turn on the currencies you want to use. Your main currency is used for all figures by default.</p>
+      <p className="text-sm text-foreground-600 mb-4">Each wallet keeps its own balance. Choose one main wallet for the figures shown when you open ObPay.</p>
       <div className="space-y-2">
         {platformCurrencies.map((c) => {
           const info = getCurrencyInfo(c);
@@ -53,7 +53,7 @@ export default function CurrencyWalletsCard() {
             <div key={c} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-background-200">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground-900">{info.flag} {info.name} ({c})</p>
-                <p className="text-xs text-foreground-600">Balance {formatCurrency(balances[c] || 0, c)}</p>
+                <p className="text-sm font-semibold text-foreground-800 mt-1">{formatCurrency(balances[c] || 0, c)}</p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <label className="flex items-center gap-1 text-xs text-foreground-700 cursor-pointer">
