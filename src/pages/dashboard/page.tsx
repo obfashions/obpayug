@@ -427,7 +427,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <MerchantGuidance kycStatus={profile?.status} hasTransactions={transactions.length > 0} />
+        <MerchantGuidance />
 
         {/* Live account pulse */}
         <div className="bank-pulse flex items-center gap-3 overflow-hidden rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3">

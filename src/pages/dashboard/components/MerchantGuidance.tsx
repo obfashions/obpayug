@@ -1,14 +1,7 @@
 import { Link } from "@/lib/router-compat";
 import { ArrowDownToLine, BookOpen, KeyRound, ShieldCheck } from "lucide-react";
 
-interface MerchantGuidanceProps {
-  kycStatus?: string;
-  hasTransactions: boolean;
-}
-
-export default function MerchantGuidance({ kycStatus, hasTransactions }: MerchantGuidanceProps) {
-  void kycStatus;
-  void hasTransactions;
+export default function MerchantGuidance() {
   const steps = [
     {
       title: "Verify account",
