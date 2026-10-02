@@ -7,6 +7,7 @@ const BASE = "https://obpay.online/api/public/v1";
 
 type SectionId =
   | "overview"
+  | "operating"
   | "quickstart"
   | "authentication"
   | "collect"
@@ -23,6 +24,7 @@ type SectionId =
 
 const sections: Array<{ id: SectionId; label: string; icon: string }> = [
   { id: "overview", label: "Overview", icon: "ri-home-4-line" },
+  { id: "operating", label: "How ObPay works", icon: "ri-compass-3-line" },
   { id: "quickstart", label: "Quick start", icon: "ri-flashlight-line" },
   { id: "authentication", label: "Authentication", icon: "ri-shield-keyhole-line" },
   { id: "collect", label: "Receive money", icon: "ri-download-cloud-line" },
