@@ -426,13 +426,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             <Button
               onClick={toggleTheme}
-              variant="ghost"
-              size="icon"
-              className="rounded-lg"
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2 rounded-full border-background-300 bg-background-100 px-2.5 text-foreground-900 shadow-sm hover:bg-background-200 hover:text-foreground-900"
               aria-label={isDark ? "Use light appearance" : "Use dark appearance"}
               title={isDark ? "Light mode" : "Dark mode"}
+              aria-pressed={isDark}
             >
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {isDark ? (
+                <Sun className="h-4 w-4 text-accent-600" strokeWidth={2.5} />
+              ) : (
+                <Moon className="h-4 w-4 text-primary-700" strokeWidth={2.5} />
+              )}
+              <span className="text-xs font-bold">{isDark ? "Light" : "Dark"}</span>
+              <span
+                aria-hidden="true"
+                className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
+                  isDark ? "border-accent-500 bg-accent-500" : "border-background-400 bg-background-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-background-50 shadow-sm transition-transform ${
+                    isDark ? "translate-x-4" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
             </Button>
 
             {/* Notifications */}
