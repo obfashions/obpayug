@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { JsonLd } from "@/components/base/JsonLd";
