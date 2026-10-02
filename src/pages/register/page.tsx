@@ -28,6 +28,7 @@ export default function Register() {
     getEnabledCurrencies().then((r) => setEnabled(r.currencies)).catch(() => {});
   }, []);
   const countries = MONEY_COUNTRIES.filter((c) => enabled.includes(c.currency));
+  const selectedCountry = countries.find((country) => country.currency === formData.currency);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -94,6 +95,8 @@ export default function Register() {
           full_name: formData.full_name,
           phone_number: formData.phone_number,
           default_currency: formData.currency,
+          enabled_currencies: [formData.currency],
+          operating_country: selectedCountry?.country || "Uganda",
           // Optional — stored on the auth user's metadata only when provided.
           ...(formData.website.trim() ? { website: formData.website.trim() } : {}),
         },
@@ -166,6 +169,7 @@ export default function Register() {
       phone_number: formData.phone_number,
       default_currency: formData.currency,
       enabled_currencies: [formData.currency],
+      operating_country: selectedCountry?.country || "Uganda",
       role: "merchant",
       status: "pending",
       email_verified: false,
@@ -275,7 +279,9 @@ export default function Register() {
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-foreground-500 mt-1">This sets your account home currency to {formData.currency}. You can enable other currencies later.</p>
+                  <p className="text-xs text-foreground-500 mt-1">
+                    Your {selectedCountry?.country || "country"} account will open with a {formData.currency} wallet as its main currency.
+                  </p>
                 </div>
 
                 <div>
