@@ -159,7 +159,7 @@ export default function DocsPage() {
           "@context": "https://schema.org",
           "@type": "TechArticle",
           headline: "ObPay (PawaPay Ptn) API documentation",
-          description: "Receive and send MTN and Airtel mobile money in Uganda with the ObPay REST API.",
+          description: "Receive and send mobile money across East Africa with the ObPay REST API.",
         }}
       />
       <Navbar />
@@ -189,7 +189,7 @@ export default function DocsPage() {
             <section className="space-y-4">
               <Header icon="ri-home-4-line" label="ObPay API" subtitle={`Base URL: ${BASE}`} />
               <p className={P}>
-                Receive and send MTN Mobile Money and Airtel Money in Uganda (UGX) from your own website or app. Every
+                Receive and send mobile money and bank payments across East Africa (Uganda, Kenya, Rwanda) from your own website or app. Every
                 request is JSON over HTTPS, authenticated with your secret key. Every response looks like{" "}
                 <code className={C}>{'{ "success": true, "data": {…} }'}</code> or{" "}
                 <code className={C}>{'{ "success": false, "error": "…" }'}</code>.
@@ -274,7 +274,7 @@ export default function DocsPage() {
               <Table
                 rows={[
                   { name: "amount", type: "integer", required: "Yes", desc: "Whole UGX amount, e.g. 5000. No decimals." },
-                  { name: "currency", type: "string", required: "No", desc: "Always UGX (default)." },
+                  { name: "currency", type: "string", required: "No", desc: "Supported currency for the country (e.g. UGX, KES, RWF)." },
                   { name: "phone_number", type: "string", required: "Yes", desc: "Customer's MTN or Airtel number: 0772123456, 772123456 or 256772123456." },
                   { name: "customer_name", type: "string", required: "Yes", desc: "Customer's full name." },
                   { name: "customer_email", type: "string", required: "Yes", desc: "Customer's email (for the receipt)." },
@@ -383,7 +383,7 @@ print(r.json())`}
               <p className={P}>
                 Sends money from your ObPay balance to an MTN or Airtel mobile money number. The transfer fee is taken
                 out of the amount, so sending 10,000 deducts 10,000 from your balance and the recipient gets 10,000 minus the fee.
-                The response shows <code>fee</code> and <code>recipient_gets</code>. Minimum payout is <strong>UGX 10,000</strong>. Bank payouts are not available yet.
+                The response shows <code>fee</code> and <code>recipient_gets</code>. Minimum payout varies by currency (e.g. UGX 5,000, KES 100). Bank payouts are not available yet.
               </p>
               <Table
                 rows={[
