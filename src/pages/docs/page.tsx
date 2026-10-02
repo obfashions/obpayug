@@ -264,7 +264,7 @@ export default function DocsPage() {
                   <strong>Track and withdraw.</strong> Follow every payment in{" "}
                   <Link to="/dashboard/transactions" className="text-primary-600 font-semibold hover:underline">Dashboard → Transactions</Link>.
                   To withdraw, open{" "}
-                  <Link to="/dashboard/withdraw" className="text-primary-600 font-semibold hover:underline">Withdrawals</Link>{" "}
+                  <Link to="/dashboard/payouts" className="text-primary-600 font-semibold hover:underline">Withdrawals</Link>{" "}
                   and send to MTN or Airtel mobile money — the transfer fee is taken from the amount you enter, and the
                   transfer usually completes within 7–20 minutes.
                 </li>
