@@ -64,6 +64,13 @@
       "when": 1790932915564,
       "tag": "0008_add_profile_operating_country",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791031763567,
+      "tag": "0009_payout_balance_snapshots",
+      "breakpoints": true
     }
   ]
 }

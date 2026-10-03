@@ -15,12 +15,16 @@ interface TxnRow {
   description: string;
   created_at: string;
   profiles: { full_name: string } | null;
+  fee_amount?: number | null;
+  balance_before?: number | null;
+  balance_after?: number | null;
+  metadata?: { balance_before?: number; balance_after?: number };
 }
 
 const PAGE_SIZE = 50;
 
 function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
 }
 
 function timeAgo(dateStr: string): string {
@@ -80,6 +84,11 @@ export default function AdminTransactions() {
         try {
           const accessToken = await getAccessToken();
           const res: any = await listPaymentRecords({ data: { accessToken, all: true, type: typeFilter === "all" ? "" : typeFilter, status: statusFilter === "all" ? "" : statusFilter, search } });
+          const records = new Map<string, any>((res?.rows || []).map((r: any) => [r.reference, r]));
+          rows = rows.map((t) => {
+            const record = records.get(t.reference);
+            return record ? { ...t, fee_amount: record.fee_amount, balance_before: record.balance_before ?? t.metadata?.balance_before, balance_after: record.balance_after ?? t.metadata?.balance_after } : t;
+          });
           const seen = new Set(rows.map((r) => r.reference));
           const extra = (res?.rows || []).filter((r: any) => !seen.has(r.reference));
           rows = [...rows, ...extra].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
@@ -190,6 +199,9 @@ export default function AdminTransactions() {
                       <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Reference</th>
                       <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Merchant</th>
                       <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Amount</th>
+                      <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Fee</th>
+                      <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase whitespace-nowrap">Balance before</th>
+                      <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase whitespace-nowrap">Balance after</th>
                       <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Type</th>
                       <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Method</th>
                       <th className="text-center px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Status</th>
@@ -205,6 +217,10 @@ export default function AdminTransactions() {
                         <td className="px-5 py-3"><code className="text-xs text-foreground-600 bg-background-100 px-1.5 py-0.5 rounded">{t.reference}</code>{t.description && <p className="text-[11px] text-foreground-500 mt-1">{t.description}</p>}</td>
                         <td className="px-5 py-3"><span className="text-xs text-foreground-700">{t.profiles?.full_name || "Unknown"}</span></td>
                         <td className="px-5 py-3 text-right"><span className="text-xs font-medium text-foreground-900">{formatCurrency(t.amount, t.currency)}</span></td>
+                        <td className="px-5 py-3 text-right whitespace-nowrap text-xs text-foreground-600">{t.fee_amount != null ? formatCurrency(t.fee_amount, t.currency) : "Not recorded"}</td>
+                        {[t.balance_before ?? t.metadata?.balance_before, t.balance_after ?? t.metadata?.balance_after].map((balance, index) => (
+                          <td key={index} className="px-5 py-3 text-right whitespace-nowrap text-xs text-foreground-600">{balance != null ? formatCurrency(balance, t.currency) : t.type === "payout" ? "Not recorded" : "—"}</td>
+                        ))}
                         <td className="px-5 py-3"><span className={`text-xs ${adminDeduction ? "text-accent-600 font-medium" : "text-foreground-600"}`}>{adminAdjustment ? (adminDeduction ? "Admin deducted" : "Admin added") : t.type}</span></td>
                         <td className="px-5 py-3"><span className="text-xs text-foreground-600">{adminAdjustment ? "Admin adjustment" : (t.payment_method || "—")}</span></td>
                         <td className="px-5 py-3 text-center">
