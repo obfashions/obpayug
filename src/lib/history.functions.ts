@@ -48,6 +48,8 @@ export const listPaymentRecords = createServerFn({ method: "POST" })
           customer_name: r.metadata?.customer_name || r.metadata?.name || "",
           fee_amount: Number(r.fee_amount || 0),
           net_amount: Number(r.net_amount ?? r.amount),
+          balance_before: r.metadata?.balance_before == null ? null : Number(r.metadata.balance_before),
+          balance_after: r.metadata?.balance_after == null ? null : Number(r.metadata.balance_after),
           provider_reference: "",
           description: r.description || "",
           created_at: r.created_at,

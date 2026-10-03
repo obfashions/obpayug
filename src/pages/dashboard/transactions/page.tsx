@@ -22,6 +22,8 @@ interface Transaction {
   id: string; reference: string; amount: number; currency: string; status: string; type: string;
   payment_method: string; customer_phone: string; customer_name: string; fee_amount: number; net_amount: number;
   provider_reference: string; description: string; created_at: string; completed_at: string;
+  balance_before?: number | null; balance_after?: number | null;
+  metadata?: { balance_before?: number; balance_after?: number };
 }
 
 interface Toast {
@@ -148,8 +150,8 @@ export default function TransactionsPage() {
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
   const exportCSV = () => {
-    const headers = ["Reference","Type","Amount","Fee","Net","Currency","Status","Payment Method","Customer","Date"];
-    const rows = transactions.map((t) => [t.reference, t.type, t.amount, t.fee_amount||0, t.net_amount||0, t.currency, t.status, t.payment_method, t.customer_phone||t.customer_name||"", formatDate(t.created_at)]);
+    const headers = ["Reference","Type","Amount","Fee","Net","Balance before","Balance after","Currency","Status","Payment Method","Customer","Date"];
+    const rows = transactions.map((t) => [t.reference, t.type, t.amount, t.fee_amount ?? "", t.net_amount ?? "", t.balance_before ?? t.metadata?.balance_before ?? "", t.balance_after ?? t.metadata?.balance_after ?? "", t.currency, t.status, t.payment_method, t.customer_phone||t.customer_name||"", formatDate(t.created_at)]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `obpay-transactions-${new Date().toISOString().slice(0,10)}.csv`; a.click();
@@ -235,6 +237,8 @@ export default function TransactionsPage() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-foreground-500 uppercase">Gross</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-foreground-500 uppercase">Fee</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-foreground-500 uppercase">Net</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-foreground-500 uppercase whitespace-nowrap">Balance before</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-foreground-500 uppercase whitespace-nowrap">Balance after</th>
                   <th className="text-center px-4 py-3 text-xs font-medium text-foreground-500 uppercase">Status</th>
                   <th className="text-right px-4 py-3 text-xs font-medium text-foreground-500 uppercase">Date</th>
                 </tr></thead>
@@ -247,8 +251,11 @@ export default function TransactionsPage() {
                       <td className="px-4 py-3"><span className="text-xs font-mono font-medium text-foreground-900">{t.reference}</span><p className="text-[11px] text-foreground-500">{t.description}</p></td>
                       <td className="px-4 py-3"><span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${t.type==="collection"?"bg-primary-100 text-primary-700":"bg-accent-100 text-accent-700"}`}>{adminAdjustment ? (adminDeduction ? "Admin deducted" : "Admin added") : t.type}</span></td>
                       <td className="px-4 py-3"><span className={`text-sm font-semibold ${adminDeduction ? "text-accent-600" : "text-foreground-900"}`}>{adminAdjustment ? (adminDeduction ? "−" : "+") : ""}{formatCurrency(t.amount, t.currency || activeCurrency)}</span></td>
-                      <td className="px-4 py-3"><span className="text-xs text-foreground-600">{t.fee_amount ? formatCurrency(t.fee_amount, t.currency || activeCurrency) : "—"}</span></td>
+                      <td className="px-4 py-3"><span className="text-xs text-foreground-600">{t.fee_amount != null ? formatCurrency(t.fee_amount, t.currency || activeCurrency) : "Not recorded"}</span></td>
                       <td className="px-4 py-3"><span className="text-sm font-medium text-primary-600">{t.net_amount ? formatCurrency(t.net_amount, t.currency || activeCurrency) : "—"}</span></td>
+                      {[t.balance_before ?? t.metadata?.balance_before, t.balance_after ?? t.metadata?.balance_after].map((balance, index) => (
+                        <td key={index} className="px-4 py-3 whitespace-nowrap text-xs text-foreground-600">{balance != null ? formatCurrency(balance, t.currency || activeCurrency) : t.type === "payout" ? "Not recorded" : "—"}</td>
+                      ))}
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${t.status==="success"?"bg-emerald-100 text-emerald-700":t.status==="pending"?"bg-accent-100 text-accent-700":"bg-red-100 text-red-700"}`}>
                           {t.status === "pending" && <i className="ri-loader-4-line animate-spin text-[10px]" />}
