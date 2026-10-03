@@ -716,7 +716,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
         body: JSON.stringify({
           id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
           currency, status: "failed", customer_phone: accountNumber, customer_name: String(customerName).trim(), fee_amount: 0,
-          metadata: { error: out.res.error, code: out.res.code, destination_type: destinationType, bank_code: bankCode },
+          metadata: { error: out.res.error, code: out.res.code, destination_type: destinationType, bank_code: bankCode, balance_before: balance, balance_after: balance },
         }),
       });
       // Nothing was deducted, so the wallet stays untouched.
@@ -741,7 +741,7 @@ export async function runObpayAction(action: string, accessToken: string, body: 
         id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
         currency, status: "pending", customer_phone: accountNumber, customer_name: String(customerName).trim(), provider_reference: out.platformReference,
         fee_amount: fee, net_amount: recipientGets, merchant_reference: ref,
-        metadata: { fee_inclusive: true, recipient_gets: recipientGets, merchant_kyc_status: tag.kyc, platform_reference: out.platformReference, payout_type: payoutType, destination_type: destinationType, bank_code: bankCode, network: bankName(bankCode) },
+        metadata: { fee_inclusive: true, recipient_gets: recipientGets, merchant_kyc_status: tag.kyc, platform_reference: out.platformReference, payout_type: payoutType, destination_type: destinationType, bank_code: bankCode, network: bankName(bankCode), balance_before: balance, balance_after: balance - totalDeduction },
         created_at: now,
       }),
     });

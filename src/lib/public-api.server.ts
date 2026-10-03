@@ -384,6 +384,8 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     status: "pending",
     phone_number: accountNumber,
     description: body.description || null,
+    fee_amount: out.partnerFee,
+    net_amount: out.net,
     metadata: { submission_state: "accepted", merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName, fee_inclusive: true, fee: out.partnerFee, recipient_gets: out.net },
   });
   if (!saved) {
