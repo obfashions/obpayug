@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase } from "@/lib/supabase";
+import { listPaymentRecords } from "@/lib/history.functions";
+import { getAccessToken } from "@/lib/session-token";
 
 interface TxnRow {
   id: string;
@@ -73,7 +75,16 @@ export default function AdminTransactions() {
 
       if (fetchErr) throw fetchErr;
 
-      const rows = (data as TxnRow[]) || [];
+      let rows = (data as TxnRow[]) || [];
+      if (!isLoadMore) {
+        try {
+          const accessToken = await getAccessToken();
+          const res: any = await listPaymentRecords({ data: { accessToken, all: true, type: typeFilter === "all" ? "" : typeFilter, status: statusFilter === "all" ? "" : statusFilter, search } });
+          const seen = new Set(rows.map((r) => r.reference));
+          const extra = (res?.rows || []).filter((r: any) => !seen.has(r.reference));
+          rows = [...rows, ...extra].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+        } catch { /* keep base rows */ }
+      }
       if (isLoadMore) {
         setTransactions((prev) => [...prev, ...rows]);
       } else {
