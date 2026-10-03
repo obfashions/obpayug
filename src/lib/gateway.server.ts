@@ -430,8 +430,8 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
       auth: false,
       body: { reference, currency, phone, ...(country ? { country } : {}) },
     });
-    promptSent = push.ok && push.raw?.success === true && push.raw?.pending !== false;
-    promptMessage = cleanPartnerText(String(push.raw?.message || push.error || ""));
+    promptSent = push.ok && (push.raw?.pending === true || push.raw?.success === true);
+    promptMessage = scrub(String(push.raw?.message || push.error || ""));
     if (!promptSent) console.warn("[gateway] phone prompt not sent", reference, push.httpStatus, promptMessage);
   }
 
