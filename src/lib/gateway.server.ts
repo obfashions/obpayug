@@ -315,7 +315,7 @@ export function networkCode(network?: string, phone?: string): string {
 
   const w = walletNumber(phone);
   const prefix = w.slice(0, 4); // 07xx
-  if (["0700", "0701", "0702", "0703", "0704", "0705", "0740", "0741", "0742", "0743", "0744", "0745", "0746", "0747", "0748", "0749", "0750", "0751", "0752", "0753", "0754", "0755", "0756", "0757", "0758"].includes(prefix)) {
+  if (/^07[045]/.test(prefix)) {
     return AIRTEL_CODE;
   }
   return MTN_CODE;
