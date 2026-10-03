@@ -12,6 +12,11 @@ async function withRecords(base: any[], opts: { type: string; status: string; se
   try {
     const accessToken = await getAccessToken();
     const res: any = await listPaymentRecords({ data: { accessToken, type: opts.type === "all" ? "" : opts.type, status: opts.status === "all" ? "" : opts.status, search: opts.search } });
+    const records = new Map<string, any>((res?.rows || []).map((r: any) => [r.reference, r]));
+    base = base.map((t) => {
+      const record = records.get(t.reference);
+      return record ? { ...t, fee_amount: record.fee_amount, net_amount: record.net_amount, balance_before: record.balance_before ?? t.metadata?.balance_before, balance_after: record.balance_after ?? t.metadata?.balance_after } : t;
+    });
     const seen = new Set(base.map((t) => t.reference));
     const extra = (res?.rows || []).filter((r: any) => !seen.has(r.reference));
     return [...base, ...extra].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));

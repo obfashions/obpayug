@@ -24,7 +24,7 @@ interface TxnRow {
 const PAGE_SIZE = 50;
 
 function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
 }
 
 function timeAgo(dateStr: string): string {
@@ -84,6 +84,11 @@ export default function AdminTransactions() {
         try {
           const accessToken = await getAccessToken();
           const res: any = await listPaymentRecords({ data: { accessToken, all: true, type: typeFilter === "all" ? "" : typeFilter, status: statusFilter === "all" ? "" : statusFilter, search } });
+          const records = new Map<string, any>((res?.rows || []).map((r: any) => [r.reference, r]));
+          rows = rows.map((t) => {
+            const record = records.get(t.reference);
+            return record ? { ...t, fee_amount: record.fee_amount, balance_before: record.balance_before ?? t.metadata?.balance_before, balance_after: record.balance_after ?? t.metadata?.balance_after } : t;
+          });
           const seen = new Set(rows.map((r) => r.reference));
           const extra = (res?.rows || []).filter((r: any) => !seen.has(r.reference));
           rows = [...rows, ...extra].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
