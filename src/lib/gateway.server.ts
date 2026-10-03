@@ -418,22 +418,28 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
   const reference = String(res.data?.reference || req.reference);
   const cryptoUrl = String(res.data?.crypto_payment_url || "");
   let promptSent = false;
+  let promptMessage = "";
   if (currency === "KES") {
     promptSent = res.data?.stk_sent === true;
   } else if (phone && !req.crypto) {
+    // Same request the partner's own checkout page makes (number in
+    // international format plus the two-letter country code).
+    const country = currency === "UGX" ? "UG" : currency === "RWF" ? "RW" : undefined;
     const push = await gatewayFetch(creds, "/payment/pawapay-process", {
       method: "POST",
       auth: false,
-      body: { reference, currency, phone },
+      body: { reference, currency, phone, ...(country ? { country } : {}) },
     });
     promptSent = push.ok && (push.raw?.pending === true || push.raw?.success === true);
-    if (!promptSent) console.warn("[gateway] phone prompt not sent", push.httpStatus, push.error);
+    promptMessage = scrub(String(push.raw?.message || push.error || ""));
+    if (!promptSent) console.warn("[gateway] phone prompt not sent", reference, push.httpStatus, promptMessage);
   }
 
   return {
     ok: true as const,
     res,
     promptSent,
+    promptMessage,
     platformReference: reference,
     cryptoUrl,
     checkoutUrl: req.crypto ? cryptoUrl : promptSent ? "" : String(res.data?.payment_url || ""),

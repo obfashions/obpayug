@@ -229,7 +229,13 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
     status: "pending",
     phone_number: phone,
     description: body.description || null,
-    metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, checkout_url: out.checkoutUrl },
+    metadata: {
+      merchant_metadata: merchantMeta(body),
+      callback_url: cb.url,
+      checkout_url: out.checkoutUrl,
+      prompt_sent: out.promptSent,
+      ...(out.promptMessage ? { prompt_message: out.promptMessage } : {}),
+    },
   });
 
   return ok({
