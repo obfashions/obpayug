@@ -5,6 +5,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate } from "@/lib/currency";
+import { listPaymentRecords } from "@/lib/history.functions";
+import { getAccessToken } from "@/lib/session-token";
+
+async function withRecords(base: any[], opts: { type: string; status: string; search: string }) {
+  try {
+    const accessToken = await getAccessToken();
+    const res: any = await listPaymentRecords({ data: { accessToken, type: opts.type === "all" ? "" : opts.type, status: opts.status === "all" ? "" : opts.status, search: opts.search } });
+    const seen = new Set(base.map((t) => t.reference));
+    const extra = (res?.rows || []).filter((r: any) => !seen.has(r.reference));
+    return [...base, ...extra].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+  } catch { return base; }
+}
 
 interface Transaction {
   id: string; reference: string; amount: number; currency: string; status: string; type: string;
@@ -48,7 +60,7 @@ export default function TransactionsPage() {
       if (search) q = q.or(`reference.ilike.%${search}%,customer_phone.ilike.%${search}%,customer_name.ilike.%${search}%`);
       const { data, error: fErr } = await q;
       if (fErr) throw fErr;
-      setTransactions((data as Transaction[]) || []);
+      setTransactions(await withRecords((data as Transaction[]) || [], { type: filter, status: statusFilter, search }) as Transaction[]);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   }, [user, filter, statusFilter, search]);
@@ -63,7 +75,7 @@ export default function TransactionsPage() {
       if (search) q = q.or(`reference.ilike.%${search}%,customer_phone.ilike.%${search}%,customer_name.ilike.%${search}%`);
       const { data, error } = await q;
       if (!error && data) {
-        setTransactions(data as Transaction[]);
+        setTransactions(await withRecords(data as Transaction[], { type: filter, status: statusFilter, search }) as Transaction[]);
       }
     } catch {
       // silent fail
