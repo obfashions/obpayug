@@ -71,6 +71,13 @@
       "when": 1791031763567,
       "tag": "0009_payout_balance_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791212661758,
+      "tag": "0010_fix_dashboard_balance_settlement",
+      "breakpoints": true
     }
   ]
 }
