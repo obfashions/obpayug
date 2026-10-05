@@ -78,6 +78,13 @@
       "when": 1791212661758,
       "tag": "0010_fix_dashboard_balance_settlement",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791214642883,
+      "tag": "0011_settle_confirmed_pending_payouts",
+      "breakpoints": true
     }
   ]
 }
