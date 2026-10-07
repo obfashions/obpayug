@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.settle_payment_record_and_balance(uuid, text, numeric, text) TO supabase_read_only_user; GRANT EXECUTE ON FUNCTION public.apply_merchant_balance_change(text, text, numeric, numeric, numeric) TO supabase_read_only_user;
