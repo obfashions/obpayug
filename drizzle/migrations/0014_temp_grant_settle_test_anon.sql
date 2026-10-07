@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.settle_payment_record_and_balance(uuid, text, numeric, text) TO anon; GRANT EXECUTE ON FUNCTION public.apply_merchant_balance_change(text, text, numeric, numeric, numeric) TO anon;

@@ -380,6 +380,18 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     return err(`The payment network did not return a tracking reference. Do not retry until support checks reference ${reference}.`);
   }
 
+  // Money leaves the merchant's balance the moment the partner accepts the
+  // payout. If the partner later reports it failed, settlement refunds it.
+  const { data: balanceRow } = await db().rpc("apply_merchant_balance_change", {
+    p_merchant_id: merchantId,
+    p_currency: currency,
+    p_available_delta: -amount,
+    p_collections_delta: 0,
+    p_payouts_delta: amount,
+  });
+  const balanceAfter = Number((balanceRow as any)?.available_balance);
+  const balanceBefore = Number.isFinite(balanceAfter) ? balanceAfter + amount : available;
+
   const saved = await recordPayment(merchantId, {
     reference,
     provider_reference: out.platformReference,
@@ -392,7 +404,18 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     description: body.description || null,
     fee_amount: out.partnerFee,
     net_amount: out.net,
-    metadata: { submission_state: "accepted", merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName, fee_inclusive: true, fee: out.partnerFee, recipient_gets: out.net },
+    metadata: {
+      submission_state: "accepted",
+      merchant_metadata: merchantMeta(body),
+      callback_url: cb.url,
+      recipient_name: recipientName,
+      fee_inclusive: true,
+      fee: out.partnerFee,
+      recipient_gets: out.net,
+      balance_debited: true,
+      balance_before: balanceBefore,
+      balance_after: Number.isFinite(balanceAfter) ? balanceAfter : balanceBefore - amount,
+    },
   });
   if (!saved) {
     console.error("Partner accepted payout but record update failed", reference);
