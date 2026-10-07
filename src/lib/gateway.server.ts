@@ -361,6 +361,11 @@ export function friendlyError(
   if (http === 401) return "Payments are temporarily unavailable. Please contact ObPay support.";
   if (http === 409) return "This reference has already been used. Use a new reference.";
   if (http === 429) return "Too many requests right now. Please wait a minute and try again.";
+  // The partner's own float is too low for this payout — this is not the
+  // merchant's balance. Give a message that does not blame the merchant.
+  if (kind === "payout" && /amount exceeds your available/i.test(raw)) {
+    return "This withdrawal is temporarily above what the payment network can pay out right now. Please try a smaller amount or try again later — ObPay support has been notified.";
+  }
   if (http >= 500 || http === 0) return "The payment network is busy. Please try again in a moment.";
   return raw || `The ${kind} could not be processed. Please try again.`;
 }
