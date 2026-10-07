@@ -120,6 +120,13 @@
       "when": 1791348043091,
       "tag": "0016_revoke_temp_settle_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791384934768,
+      "tag": "0017_reactivate_owner_account",
+      "breakpoints": true
     }
   ]
 }
