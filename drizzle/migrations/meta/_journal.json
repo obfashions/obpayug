@@ -113,6 +113,13 @@
       "when": 1791348013829,
       "tag": "0015_temp_grant_settle_test_readonly",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791348043091,
+      "tag": "0016_revoke_temp_settle_grants",
+      "breakpoints": true
     }
   ]
 }
