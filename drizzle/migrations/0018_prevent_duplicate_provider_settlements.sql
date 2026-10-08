@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS payment_records_provider_reference_success_key ON public.payment_records (provider_reference) WHERE provider_reference IS NOT NULL AND status = 'success';
