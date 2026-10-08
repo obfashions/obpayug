@@ -127,6 +127,13 @@
       "when": 1791384934768,
       "tag": "0017_reactivate_owner_account",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791475525309,
+      "tag": "0018_prevent_duplicate_provider_settlements",
+      "breakpoints": true
     }
   ]
 }
