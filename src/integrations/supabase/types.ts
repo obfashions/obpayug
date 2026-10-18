@@ -1338,6 +1338,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      reserve_payout_and_balance: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_description: string
+          p_merchant_id: string
+          p_metadata?: Json
+          p_phone: string
+          p_reference: string
+          p_source: string
+        }
+        Returns: Json
+      }
       settle_payment_record_and_balance: {
         Args: {
           p_fee?: number
