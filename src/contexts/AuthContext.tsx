@@ -199,6 +199,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  useEffect(() => {
+    if (!user?.id) return;
+    const reloadPermissions = async () => {
+      const next = await fetchProfile(user.id);
+      if (next) setProfile(next);
+    };
+    const channel = supabase.channel(`member-permissions-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "member_roles", filter: `user_id=eq.${user.id}` }, reloadPermissions)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${user.id}` }, reloadPermissions)
+      .subscribe();
+    const interval = window.setInterval(reloadPermissions, 30000);
+    return () => { window.clearInterval(interval); void supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   const retryAuth = async () => {
     setLoading(true);
     setAuthError(null);
