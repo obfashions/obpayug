@@ -5,6 +5,28 @@ const tokenInput = (d: { accessToken: string; days?: number }) => ({
   days: Math.min(Math.max(Number(d?.days) || 7, 1), 365),
 });
 
+/** Same spendable funds as the merchant view, without combining currencies. */
+export const adminAccountBalances = createServerFn({ method: "POST" })
+  .inputValidator((d: { accessToken: string }) => ({ accessToken: String(d.accessToken || "") }))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./identity.server");
+    await requireAdmin(data.accessToken);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { combinedBalances } = await import("./balance-values");
+    const [profiles, wallets, managed] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, default_currency"),
+      supabaseAdmin.from("merchant_wallets").select("*"),
+      supabaseAdmin.from("merchant_balances").select("merchant_id, currency, available_balance"),
+    ]);
+    if (profiles.error || wallets.error || managed.error) throw new Error("Account balances could not be refreshed.");
+    return Object.fromEntries((profiles.data || []).map((p) => {
+      const wallet = wallets.data?.find((w) => w.user_id === p.id);
+      const currency = p.default_currency || "UGX";
+      const values = combinedBalances(wallet || null, managed.data?.filter((b) => b.merchant_id === p.id) || [], currency);
+      return [p.id, { ...wallet, currency, available_balance: values[currency] || 0, pending_balance: Number(wallet?.pending_balance || 0), total_collections: Number(wallet?.total_collections || 0), total_payouts: Number(wallet?.total_payouts || 0) }];
+    }));
+  });
+
 /** Admin-only: real API usage grouped by endpoint. */
 export const adminApiMetrics = createServerFn({ method: "POST" })
   .inputValidator(tokenInput)

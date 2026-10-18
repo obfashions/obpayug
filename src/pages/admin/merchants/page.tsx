@@ -6,6 +6,7 @@ import { supabase, safeGetSession } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { invokeObpay } from "@/lib/edge-function";
 import MerchantAccountPanel from "./MerchantAccountPanel";
+import { adminAccountBalances } from "@/lib/admin-insights.functions";
 
 
 interface Merchant {
@@ -29,6 +30,7 @@ interface Merchant {
 }
 
 interface WalletData {
+  currency?: string;
   withdrawals_enabled?: boolean;
   available_balance: number;
   pending_balance: number;
@@ -36,7 +38,7 @@ interface WalletData {
   total_payouts: number;
 }
 
-function formatCurrency(amount: number) { return "UGX " + amount.toLocaleString("en-UG"); }
+function formatCurrency(amount: number, currency = "UGX") { return currency + " " + amount.toLocaleString("en-UG"); }
 
 export default function AdminMerchants() {
   const { profile: adminProfile, session } = useAuth();
@@ -96,27 +98,8 @@ export default function AdminMerchants() {
       const all = [...(data as Merchant[] || []), ...(admins as Merchant[] || [])];
       setMerchants(all);
 
-      // Fetch wallet balances for all users
-      const userIds = all.map(m => m.id);
-      if (userIds.length > 0) {
-        const { data: wallets } = await supabase
-          .from("merchant_wallets")
-          .select("user_id, available_balance, pending_balance, total_collections, total_payouts, withdrawals_enabled")
-          .in("user_id", userIds);
-        if (wallets) {
-          const map: Record<string, WalletData> = {};
-          wallets.forEach((w: any) => {
-            map[w.user_id] = {
-              available_balance: w.available_balance || 0,
-              pending_balance: w.pending_balance || 0,
-              total_collections: w.total_collections || 0,
-              total_payouts: w.total_payouts || 0,
-              withdrawals_enabled: w.withdrawals_enabled !== false,
-            };
-          });
-          setBalanceData(map);
-        }
-      }
+      const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+      setBalanceData(balances);
     } catch (err: any) {
       setError(err.message || "Failed to load merchants");
     } finally {
@@ -143,19 +126,27 @@ export default function AdminMerchants() {
   const selected = selectedMerchantId ? merchants.find((m) => m.id === selectedMerchantId) : null;
 
   const loadDetailWallet = async (merchantId: string) => {
-    const { data: wallet } = await supabase
-      .from("merchant_wallets")
-      .select("available_balance, pending_balance, total_collections, total_payouts, withdrawals_enabled")
-      .eq("user_id", merchantId)
-      .maybeSingle();
-    setDetailWallet({
-      available_balance: wallet?.available_balance || 0,
-      pending_balance: wallet?.pending_balance || 0,
-      total_collections: wallet?.total_collections || 0,
-      total_payouts: wallet?.total_payouts || 0,
-      withdrawals_enabled: wallet?.withdrawals_enabled !== false,
-    } as WalletData | null);
+    const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+    setBalanceData(balances);
+    setDetailWallet(balances[merchantId] || null);
   };
+
+  useEffect(() => {
+    let stopped = false;
+    const refresh = async () => {
+      try {
+        const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+        if (stopped) return;
+        setBalanceData(balances);
+        if (selectedMerchantId) setDetailWallet(balances[selectedMerchantId] || null);
+      } catch { /* keep the last confirmed values during a temporary outage */ }
+    };
+    const interval = window.setInterval(refresh, 5000);
+    const channel = supabase.channel("admin-account-balances")
+      .on("postgres_changes", { event: "*", schema: "public", table: "merchant_wallets" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "merchant_balances" }, refresh).subscribe();
+    return () => { stopped = true; window.clearInterval(interval); void supabase.removeChannel(channel); };
+  }, [selectedMerchantId]);
 
   const handleToggleStatus = async (merchantId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "suspended" : "active";
@@ -593,7 +584,7 @@ export default function AdminMerchants() {
                           </span>
                         </td>
                         <td className="px-5 py-3 text-right">
-                          <span className="text-xs font-medium text-foreground-900">{balanceData[m.id]?.available_balance !== undefined ? formatCurrency(balanceData[m.id].available_balance) : "—"}</span>
+                          <span className="text-xs font-medium text-foreground-900">{balanceData[m.id]?.available_balance !== undefined ? formatCurrency(balanceData[m.id].available_balance, balanceData[m.id].currency) : "—"}</span>
                         </td>
                         <td className="px-5 py-3 text-right">
                           <div className="flex items-center gap-1 justify-end">
@@ -782,7 +773,7 @@ export default function AdminMerchants() {
             <div className="bg-background-100 rounded-lg p-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Available Balance</p>
-                <p className="font-bold text-foreground-900">{detailWallet ? formatCurrency(detailWallet.available_balance) : "Loading..."}</p>
+                <p className="font-bold text-foreground-900">{detailWallet ? formatCurrency(detailWallet.available_balance, detailWallet.currency) : "Loading..."}</p>
               </div>
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Pending Balance</p>
