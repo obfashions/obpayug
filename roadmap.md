@@ -1,4 +1,5 @@
-- [ ] Make payout reservations and balance deductions atomic across wallet stores.
-- [ ] Unify withdrawal paths and prevent duplicate settlement balance effects.
-- [ ] Refresh merchant and admin balances using the same balance rules.
-- [ ] Run regression tests and verify account balance reads without sending real money.
+- [x] Make payout reservations and balance deductions atomic across wallet stores.
+- [x] Unify withdrawal paths and prevent duplicate settlement balance effects.
+- [x] Refresh merchant and admin balances using the same balance rules.
+- [x] Run 11 regression tests and verify authenticated merchant balance rendering without sending real money.
+- [ ] Verify admin balance rendering with a permitted admin session (current managed session has no admin grant).
