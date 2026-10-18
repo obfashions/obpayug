@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "@/lib/router-compat";
+import { permissionForAdminPath, staffHome } from "@/lib/member-permissions";
 import { useAuth } from "@/contexts/AuthContext";
 
 const adminNavItems = [
@@ -31,7 +32,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, profileLoading, signOut, loginVerified, user, loading, globalVerificationEnabled } = useAuth();
+  const { hasPermission, profile, profileLoading, signOut, loginVerified, user, loading, globalVerificationEnabled } = useAuth();
 
   // Auth guard: if session is lost (user closed browser, token expired, etc.)
   // redirect to login so they see a proper login form instead of a broken page.
@@ -63,6 +64,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       navigate("/verify-login", { replace: true });
     }
   }, [profile, profileLoading, loginVerified, location.pathname, location.state, navigate, globalVerificationEnabled]);
+
+  const allowed = hasPermission(permissionForAdminPath(location.pathname));
+  const visibleNav = adminNavItems.filter((item) => hasPermission(permissionForAdminPath(item.href)));
 
   const handleSignOut = async () => {
     setIsUserMenuOpen(false);
@@ -125,7 +129,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {adminNavItems.map((item) => {
+          {visibleNav.map((item) => {
             const isActive = location.pathname === item.href;
             return (
               <button
@@ -257,7 +261,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Page Content */}
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-          {children}
+          {allowed ? children : <div className="text-foreground-700 py-12 text-center"><p>You do not have access to this area.</p><Link to={staffHome(profile?.memberRoles || [])} className="text-primary-600">Go to your workspace</Link></div>}
         </main>
       </div>
     </div>

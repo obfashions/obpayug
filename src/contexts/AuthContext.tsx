@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import type { User, Session } from "@supabase/supabase-js";
+import { hasPermission, type Permission } from "@/lib/member-permissions";
 import { supabase, safeGetSession, clearCorruptedSession } from "@/lib/supabase";
 
 export interface Profile {
@@ -19,6 +20,7 @@ export interface Profile {
   merchant_profiles?: Array<Record<string, unknown> & { company_name?: string }> | null;
   role_tag: string | null;
   created_at: string;
+  memberRoles?: string[];
 }
 
 interface AuthState {
@@ -33,6 +35,7 @@ interface AuthState {
   globalVerificationEnabled: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  hasPermission: (permission: Permission) => boolean;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -96,7 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (typeof window !== "undefined") window.location.replace("/login");
         return null;
       }
-      if (data) return data as Profile;
+      if (data) {
+        const [base, members] = await Promise.all([supabase.from("user_roles").select("role").eq("user_id", userId), supabase.from("member_roles").select("role").eq("user_id", userId)]);
+        if (base.error || members.error) throw new Error("Permissions could not be loaded.");
+        const roles = [...(base.data || []), ...(members.data || [])].map((r: { role: string }) => r.role);
+        return { ...data, role: hasPermission(roles, "settings") ? "admin" : "merchant", memberRoles: roles } as Profile;
+      }
 
       // No profile — auto-create with plain INSERT
       if (retryCount > 0) return null; // already tried creating, don't loop
@@ -388,6 +396,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       globalVerificationEnabled,
       signOut,
       refreshProfile,
+      hasPermission: (permission) => hasPermission(profile?.memberRoles || [], permission),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [

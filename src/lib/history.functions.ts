@@ -14,7 +14,7 @@ export const listPaymentRecords = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     try {
       const { requireIdentity, requireAdmin } = await import("./identity.server");
-      const who = data.all ? await requireAdmin(data.accessToken) : await requireIdentity(data.accessToken);
+      const who = data.all ? await requireAdmin(data.accessToken, "finance") : await requireIdentity(data.accessToken);
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       let q = (supabaseAdmin as any)
         .from("payment_records")

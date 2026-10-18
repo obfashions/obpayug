@@ -865,8 +865,14 @@ async function runPlatformActionInner(
 
     const id =
       action.startsWith("admin-")
-        ? await requireAdmin(accessToken)
+        ? await requireAdmin(accessToken, action.startsWith("admin-kyc.") ? "kyc" : "settings")
         : await requireIdentity(accessToken);
+
+    if (action.startsWith("refunds.") && action !== "refunds.list") {
+      await requireAdmin(accessToken, "finance");
+      id.isAdmin = true;
+    }
+    if (action === "refunds.list" && id.roles?.some((r) => ["finance_admin", "super_admin", "admin"].includes(r))) id.isAdmin = true;
 
     switch (action) {
       case "api-keys.list":
