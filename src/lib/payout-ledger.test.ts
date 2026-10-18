@@ -4,7 +4,7 @@ import { beforeEach, afterEach, describe, expect, it } from "vitest";
 
 const merchant = "00000000-0000-4000-8000-000000000001";
 let db: PGlite;
-const migration = readFileSync(new URL("../../..//drizzle/migrations/0019_atomic_payout_reservation.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../../drizzle/migrations/0019_atomic_payout_reservation.sql", import.meta.url), "utf8");
 async function reserve(reference: string, amount = 30000, currency = "UGX") {
   const result = await db.query<{ record: { id: string; metadata: Record<string, number> } }>("select public.reserve_payout_and_balance($1,$2,$3,$4,'0700000000','api',null) record", [merchant, reference, amount, currency]);
   return result.rows[0].record;
