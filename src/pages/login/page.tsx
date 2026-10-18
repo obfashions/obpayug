@@ -141,11 +141,17 @@ export default function Login() {
         const userId = result.userId;
 
         // Authentication can succeed for an account that an admin has since blocked.
-        const { data: account, error: accountError } = await supabase
+        let { data: account, error: accountError } = await supabase
           .from("profiles")
           .select("status")
           .eq("id", userId)
           .maybeSingle();
+        if (!account && !accountError) {
+          const { ensureMyProfile } = await import("@/lib/registration.functions");
+          const { getAccessToken } = await import("@/lib/session-token");
+          const repaired = await ensureMyProfile({ data: { accessToken: await getAccessToken() } }).catch(() => null);
+          if (repaired?.success) ({ data: account, error: accountError } = await supabase.from("profiles").select("status").eq("id", userId).maybeSingle());
+        }
         if (accountError || !account || account.status === "suspended" || account.status === "deactivated") {
           await supabase.auth.signOut({ scope: "local" });
           setServerError(account?.status === "suspended" ? "This account is suspended. Please contact support." : account?.status === "deactivated" ? "This account is no longer available. Please contact support." : "We couldn't check your account right now. Please try again.");

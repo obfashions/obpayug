@@ -50,6 +50,23 @@ export const verifyRegistrationCode = createServerFn({ method: "POST" })
     const { error: profileError } = await admin.from("profiles").update({ email_verified: true, login_verified_at: new Date().toISOString() }).eq("id", data.userId);
     if (profileError) return { success: false, error: "Your email is confirmed. Please sign in to continue." };
     // One-time sign-in token so the new merchant goes straight to identity verification.
-    const link = await admin.auth.admin.generateLink({ type: "magiclink", email: u.email });
+    const link = await admin.auth.admin.generateLink({ type: "magiclink", email: u.email! });
     return { success: true, tokenHash: link.data?.properties?.hashed_token || undefined };
+  });
+// Repairs accounts that confirmed their email before the profile row existed.
+export const ensureMyProfile = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ accessToken: z.string().min(10) }).parse(d))
+  .handler(async ({ data }): Promise<{ success: boolean }> => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const { data: got, error } = await admin.auth.getUser(data.accessToken);
+    const u = got?.user;
+    if (error || !u?.email || !u.email_confirmed_at) return { success: false };
+    const m = (u.user_metadata || {}) as Record<string, any>;
+    const currency = m.default_currency || "UGX";
+    const { error: upErr } = await admin.from("profiles").upsert({
+      id: u.id, email: u.email, full_name: m.full_name || "", phone_number: m.phone_number || "",
+      default_currency: currency, enabled_currencies: m.enabled_currencies || [currency],
+      operating_country: m.operating_country || "Uganda", role: "merchant", status: "pending", email_verified: true,
+    } as any, { onConflict: "id", ignoreDuplicates: true });
+    return { success: !upErr };
   });
