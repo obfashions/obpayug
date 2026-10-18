@@ -1,0 +1,4 @@
+- [ ] Make payout reservations and balance deductions atomic across wallet stores.
+- [ ] Unify withdrawal paths and prevent duplicate settlement balance effects.
+- [ ] Refresh merchant and admin balances using the same balance rules.
+- [ ] Run regression tests and verify account balance reads without sending real money.
