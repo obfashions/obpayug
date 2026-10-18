@@ -1354,6 +1354,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_registration_code: {
+        Args: { p_email: string; p_hash: string; p_user_id: string }
+        Returns: string
+      }
+      consume_registration_code: {
+        Args: { p_hash: string; p_user_id: string }
+        Returns: boolean
+      }
       has_permission: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean

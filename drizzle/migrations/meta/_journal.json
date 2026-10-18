@@ -148,6 +148,13 @@
       "when": 1792349401285,
       "tag": "0020_protected_member_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792349457726,
+      "tag": "0021_atomic_registration_codes",
+      "breakpoints": true
     }
   ]
 }
