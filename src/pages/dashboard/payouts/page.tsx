@@ -68,7 +68,7 @@ function getNetworkDisplay(network: string) {
 
 export default function PayoutsPage() {
   const { user, profile } = useAuth();
-  const { activeCurrency, setActiveCurrency, balances, activeBalance, currencyInfo } = useCurrency();
+  const { activeCurrency, setActiveCurrency, balances, activeBalance, currencyInfo, refreshBalances } = useCurrency();
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -272,6 +272,7 @@ export default function PayoutsPage() {
         }
 
         setForm({ destinationType: "mobile", phoneNumber: "", accountNumber: "", bankCode: "", customerName: "", customerEmail: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
+        await refreshBalances();
         fetchData();
       } else {
         const errMsg = apiData?.error || "Payout could not be processed.";
@@ -368,6 +369,7 @@ export default function PayoutsPage() {
         });
         setWithdrawAmount("");
         setWithdrawDesc("");
+        await refreshBalances();
         fetchData();
       } else {
         const errMsg = apiData?.error || apiData?.message || "Withdrawal could not be processed.";
