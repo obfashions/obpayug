@@ -5,10 +5,13 @@
 // (API keys, payment links, webhooks, logs, verification files) lives in
 // ObPay's own managed storage and is reached only from these server helpers.
 
+import { hasPermission, type Permission } from "./member-permissions";
+
 export interface Identity {
   userId: string;
   email: string;
   isAdmin: boolean;
+  roles?: string[];
 }
 
 function legacyUrl(): string {
@@ -52,20 +55,14 @@ export async function resolveIdentity(accessToken: string): Promise<Identity | n
   }
   if (!user?.id) return null;
 
-  let isAdmin = false;
-  try {
-    const profResp = await fetch(`${base}/rest/v1/profiles?id=eq.${user.id}&select=role`, {
-      headers: { apikey: key, Authorization: `Bearer ${token}` },
-    });
-    if (profResp.ok) {
-      const rows = (await profResp.json()) as Array<{ role?: string }>;
-      isAdmin = rows?.[0]?.role === "admin";
-    }
-  } catch {
-    /* role lookup is best-effort */
-  }
-
-  return { userId: user.id, email: user.email || "", isAdmin };
+  const headers = { apikey: key, Authorization: `Bearer ${token}` };
+  const [baseRoles, memberRoles] = await Promise.all([
+    fetch(`${base}/rest/v1/user_roles?user_id=eq.${user.id}&select=role`, { headers }),
+    fetch(`${base}/rest/v1/member_roles?user_id=eq.${user.id}&select=role`, { headers }),
+  ]);
+  if (!baseRoles.ok || !memberRoles.ok) throw new Error("Your permissions could not be checked. Please try again.");
+  const roles = [...await baseRoles.json(), ...await memberRoles.json()].map((r: { role: string }) => r.role);
+  return { userId: user.id, email: user.email || "", isAdmin: hasPermission(roles, "settings"), roles };
 }
 
 export async function requireIdentity(accessToken: string): Promise<Identity> {
@@ -75,8 +72,8 @@ export async function requireIdentity(accessToken: string): Promise<Identity> {
 }
 
 
-export async function requireAdmin(accessToken: string): Promise<Identity> {
+export async function requireAdmin(accessToken: string, permission: Permission = "settings"): Promise<Identity> {
   const identity = await requireIdentity(accessToken);
-  if (!identity.isAdmin) throw new Error("You do not have access to this area.");
+  if (!hasPermission(identity.roles || [], permission)) throw new Error("You do not have access to this area.");
   return identity;
 }

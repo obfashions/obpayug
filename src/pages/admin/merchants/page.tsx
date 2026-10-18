@@ -6,6 +6,8 @@ import { supabase, safeGetSession } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { invokeObpay } from "@/lib/edge-function";
 import MerchantAccountPanel from "./MerchantAccountPanel";
+import { saveMemberRoles } from "@/lib/member-roles.functions";
+import { MEMBER_ROLES, ROLE_LABELS, type MemberRole } from "@/lib/member-permissions";
 import { adminAccountBalances } from "@/lib/admin-insights.functions";
 
 
@@ -18,6 +20,7 @@ interface Merchant {
   status: string;
   support_agent: boolean;
   role_tag: string | null;
+  memberRoles?: MemberRole[];
   created_at: string;
   merchant_profiles: {
     company_name: string;
@@ -96,7 +99,9 @@ export default function AdminMerchants() {
         .order("created_at", { ascending: false });
 
       const all = [...(data as Merchant[] || []), ...(admins as Merchant[] || [])];
-      setMerchants(all);
+      const { data: memberships, error: membershipError } = await supabase.from("member_roles").select("user_id,role");
+      if (membershipError) throw membershipError;
+      setMerchants(all.map((m) => ({ ...m, memberRoles: (memberships || []).filter((r: any) => r.user_id === m.id).map((r: any) => r.role) })));
 
       const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
       setBalanceData(balances);
@@ -198,7 +203,7 @@ export default function AdminMerchants() {
     if (!roleConfirm) return;
     setRoleSubmitting(true);
     try {
-      await supabase.from("profiles").update({ role: roleConfirm.newRole }).eq("id", roleConfirm.merchantId);
+      await saveMemberRoles({ data: { accessToken: await getAccessToken(), userId: roleConfirm.merchantId, roles: roleConfirm.newRole === "admin" ? ["super_admin"] : [] } });
       setActionMsg({ ok: true, message: `${roleConfirm.merchantName} is now ${roleConfirm.newRole === "admin" ? "an Admin" : "a Merchant"}.` });
       setTimeout(() => setActionMsg(null), 3000);
       setRoleConfirm(null);
@@ -211,29 +216,12 @@ export default function AdminMerchants() {
     }
   };
 
-  const handleChangeRoleTag = async (merchantId: string, merchantName: string, newTag: string | null) => {
+  const handleMemberRoles = async (merchantId: string, roles: MemberRole[]) => {
     try {
-      await supabase.from("profiles").update({ role_tag: newTag }).eq("id", merchantId);
-      setActionMsg({ ok: true, message: `${merchantName}'s role updated to ${newTag || "none"}.` });
-      setTimeout(() => setActionMsg(null), 3000);
-      fetchMerchants();
-    } catch (err: any) {
-      setActionMsg({ ok: false, message: err.message || "Failed to update role" });
-      setTimeout(() => setActionMsg(null), 3000);
-    }
-  };
-
-  const handleToggleSupportAgent = async (merchantId: string, merchantName: string, currentValue: boolean) => {
-    const newVal = !currentValue;
-    try {
-      await supabase.from("profiles").update({ support_agent: newVal }).eq("id", merchantId);
-      setActionMsg({ ok: true, message: `${merchantName} is ${newVal ? "now" : "no longer"} a support agent.` });
-      setTimeout(() => setActionMsg(null), 3000);
-      fetchMerchants();
-    } catch (err: any) {
-      setActionMsg({ ok: false, message: err.message || "Failed to toggle support agent" });
-      setTimeout(() => setActionMsg(null), 3000);
-    }
+      await saveMemberRoles({ data: { accessToken: await getAccessToken(), userId: merchantId, roles } });
+      setActionMsg({ ok: true, message: "Member permissions updated." });
+      await fetchMerchants();
+    } catch (err: any) { setActionMsg({ ok: false, message: err.message || "Permissions could not be saved." }); }
   };
 
   const handleAdjustBalance = async () => {
@@ -686,37 +674,16 @@ export default function AdminMerchants() {
                 {selected.role === "admin" ? "Demote to Merchant" : "Promote to Admin"}
               </button>
 
-              {/* Role Tag Selector */}
-              <div className="relative inline-flex items-center gap-1">
-                <select
-                  value={selected.role_tag || ""}
-                  onChange={(e) => {
-                    const val = e.target.value || null;
-                    handleChangeRoleTag(selected.id, selected.full_name, val);
-                  }}
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer whitespace-nowrap bg-background-100 text-foreground-600 hover:bg-background-200 border border-background-300/60 transition-colors appearance-none pr-7"
-                >
-                  <option value="">No Role Tag</option>
-                  <option value="super_admin">Super Admin</option>
-                  <option value="support_agent">Support Agent</option>
-                  <option value="finance_admin">Finance Admin</option>
-                  <option value="kyc_reviewer">KYC Reviewer</option>
-                </select>
-                <i className="ri-arrow-down-s-line text-[10px] text-foreground-400 absolute right-2 pointer-events-none" />
-              </div>
-
-              {/* Support Agent Toggle */}
-              <button
-                onClick={() => handleToggleSupportAgent(selected.id, selected.full_name, selected.support_agent)}
-                className={`text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer whitespace-nowrap transition-colors ${
-                  selected.support_agent
-                    ? "text-primary-700 bg-primary-100 hover:bg-primary-200"
-                    : "text-foreground-600 bg-background-100 hover:bg-background-200 border border-background-300/60"
-                }`}
-              >
-                <i className={selected.support_agent ? "ri-headphone-fill" : "ri-headphone-line"} />
-                <span className="ml-1">{selected.support_agent ? "Support Agent" : "Make Support Agent"}</span>
-              </button>
+              <fieldset className="flex flex-wrap gap-3 border border-background-300/60 rounded-lg p-3">
+                <legend className="text-xs text-foreground-600 px-1">Member roles</legend>
+                {MEMBER_ROLES.map((role) => (
+                  <label key={role} className="flex items-center gap-2 text-xs text-foreground-700 cursor-pointer">
+                    <input type="checkbox" checked={(selected.memberRoles || []).includes(role)}
+                      onChange={(e) => handleMemberRoles(selected.id, e.target.checked ? [...(selected.memberRoles || []), role] : (selected.memberRoles || []).filter((r) => r !== role))} />
+                    {ROLE_LABELS[role]}
+                  </label>
+                ))}
+              </fieldset>
 
               {/* Balance Controls */}
               <button

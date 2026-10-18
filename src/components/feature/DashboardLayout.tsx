@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "@/lib/router-compat";
 import { useAuth } from "@/contexts/AuthContext";
+import { staffHome } from "@/lib/member-permissions";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import {
@@ -287,10 +288,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </nav>
 
         {/* Admin Panel */}
-        {isAdmin && (
+        {staffHome(profile?.memberRoles || []) !== "/dashboard" && (
           <div className="px-3 pb-1">
             <button
-              onClick={() => navigate("/admin")}
+              onClick={() => navigate(staffHome(profile?.memberRoles || []))}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-foreground-900 text-background-50 hover:bg-foreground-800 transition-colors cursor-pointer"
             >
               <div className="w-5 h-5 flex items-center justify-center">

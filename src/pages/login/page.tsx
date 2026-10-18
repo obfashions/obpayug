@@ -184,7 +184,9 @@ export default function Login() {
           .maybeSingle();
 
         const userVerificationEnabled = profileData?.login_verification_enabled ?? true;
-        const userRole = profileData?.role || "merchant";
+        const [baseRoles, memberRoles] = await Promise.all([supabase.from("user_roles").select("role").eq("user_id", userId), supabase.from("member_roles").select("role").eq("user_id", userId)]);
+        const { staffHome } = await import("@/lib/member-permissions");
+        const destination = staffHome([...(baseRoles.data || []), ...(memberRoles.data || [])].map((r: { role: string }) => r.role));
 
         // Verification is required ONLY if BOTH global and user-level settings say so
         const verificationRequired = globalVerificationEnabled; void userVerificationEnabled;
@@ -203,11 +205,7 @@ export default function Login() {
           // This prevents the layout guards from redirecting back to verify-login
           await refreshProfile();
 
-          if (userRole === "admin") {
-            navigate("/admin", { replace: true, state: { skipVerificationGuard: true } });
-          } else {
-            navigate("/dashboard", { replace: true, state: { skipVerificationGuard: true } });
-          }
+          navigate(destination, { replace: true, state: { skipVerificationGuard: true } });
         }
         setSubmitting(false);
         return;

@@ -103,7 +103,7 @@ export async function runGatewayAdminAction(
   accessToken: string,
   body: Record<string, unknown> = {},
 ) {
-  const admin = await requireAdmin(accessToken);
+  const admin = await requireAdmin(accessToken, ["account", "withdraw"].includes(action) ? "finance" : "settings");
   const rowId = String(body?.["id"] || "").trim();
 
   if (action === "status") return statusPayload();
