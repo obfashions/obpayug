@@ -63,8 +63,10 @@ export default function VerifyLogin() {
                 .select("role")
                 .eq("id", user.id)
                 .maybeSingle()
-                .then(({ data: pData }) => {
-                  const dest = pData?.role === "admin" ? "/admin" : "/dashboard";
+                .then(async () => {
+                  const [base, members] = await Promise.all([supabase.from("user_roles").select("role").eq("user_id", user.id), supabase.from("member_roles").select("role").eq("user_id", user.id)]);
+                  const { staffHome } = await import("@/lib/member-permissions");
+                  const dest = staffHome([...(base.data || []), ...(members.data || [])].map((r: { role: string }) => r.role));
                   navigate(dest, { replace: true, state: { skipVerificationGuard: true } });
                 });
             });

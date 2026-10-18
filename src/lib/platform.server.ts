@@ -930,7 +930,7 @@ async function runPlatformActionInner(
       case "admin-kyc.review":
         return await adminReviewKyc(id, body.id, body.status, body.notes);
       case "admin-kyc.document-url":
-        return await documentUrl(id, body.id);
+        return await documentUrl({ ...id, isAdmin: true }, body.id);
 
       case "intl.collect":
       case "intl.payout":
