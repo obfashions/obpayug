@@ -3,3 +3,5 @@
 - [x] Refresh merchant and admin balances using the same balance rules.
 - [x] Run 11 regression tests and verify authenticated merchant balance rendering without sending real money.
 - [ ] Verify admin balance rendering with a permitted admin session (current managed session has no admin grant).
+- [ ] Fix registration verification delivery without requiring an existing signed-in session.
+- [ ] Replace decorative member tags with protected multi-role permissions and verify changes.
