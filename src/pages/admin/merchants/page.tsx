@@ -203,7 +203,7 @@ export default function AdminMerchants() {
     if (!roleConfirm) return;
     setRoleSubmitting(true);
     try {
-      await supabase.from("profiles").update({ role: roleConfirm.newRole }).eq("id", roleConfirm.merchantId);
+      await saveMemberRoles({ data: { accessToken: await getAccessToken(), userId: roleConfirm.merchantId, roles: roleConfirm.newRole === "admin" ? ["super_admin"] : [] } });
       setActionMsg({ ok: true, message: `${roleConfirm.merchantName} is now ${roleConfirm.newRole === "admin" ? "an Admin" : "a Merchant"}.` });
       setTimeout(() => setActionMsg(null), 3000);
       setRoleConfirm(null);

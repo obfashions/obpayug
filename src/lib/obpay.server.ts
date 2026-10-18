@@ -273,10 +273,8 @@ export const LOCAL_ACTIONS = [
 
 /** Admin credit/debit of a merchant's available balance, verified by re-reading the wallet. */
 async function adminAdjustBalance(accessToken: string, body: any) {
-  const { resolveIdentity } = await import("./identity.server");
-  const me = await resolveIdentity(accessToken);
-  if (!me) return { success: false, error: "Please sign in again to continue." };
-  if (!me.isAdmin) return { success: false, error: "You do not have access to this area." };
+  const { requireAdmin } = await import("./identity.server");
+  const me = await requireAdmin(accessToken, "finance");
 
   const target = String(body?.target_user_id || "").trim();
   const type = body?.adjustment_type;
@@ -357,11 +355,12 @@ async function adminAdjustBalance(accessToken: string, body: any) {
   };
 }
 
-async function adminOnly(accessToken: string) {
+async function adminOnly(accessToken: string, permission: "settings" | "finance" = "settings") {
   const { resolveIdentity } = await import("./identity.server");
   const me = await resolveIdentity(accessToken);
   if (!me) return { error: "Please sign in again to continue." };
-  if (!me.isAdmin) return { error: "You do not have access to this area." };
+  const { hasPermission } = await import("./member-permissions");
+  if (!hasPermission(me.roles || [], permission)) return { error: "You do not have access to this area." };
   return { me };
 }
 
@@ -389,7 +388,7 @@ async function adminImpersonate(accessToken: string, body: any) {
 
 /** Admin: turn withdrawals on/off or set a daily limit. */
 async function adminWithdrawalLimit(accessToken: string, body: any) {
-  const gate = await adminOnly(accessToken);
+  const gate = await adminOnly(accessToken, "finance");
   if ("error" in gate) return { success: false, error: gate.error };
   const target = String(body?.target_user_id || "").trim();
   if (!/^[0-9a-f-]{36}$/i.test(target)) return { success: false, error: "Merchant not found." };
