@@ -1,0 +1,35 @@
+CREATE TABLE public.member_roles (user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE, role text NOT NULL CHECK(role IN ('super_admin','finance_admin','kyc_reviewer','support_agent')), PRIMARY KEY(user_id,role));
+GRANT SELECT ON public.member_roles TO authenticated;
+GRANT ALL ON public.member_roles TO service_role;
+ALTER TABLE public.member_roles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Read own or admin memberships" ON public.member_roles FOR SELECT TO authenticated USING(user_id=auth.uid() OR public.has_role(auth.uid(),'admin'));
+INSERT INTO public.member_roles(user_id,role) SELECT id,role_tag FROM public.profiles WHERE role_tag IN ('super_admin','finance_admin','kyc_reviewer','support_agent') ON CONFLICT DO NOTHING;
+INSERT INTO public.member_roles(user_id,role) SELECT id,'support_agent' FROM public.profiles WHERE support_agent=true ON CONFLICT DO NOTHING;
+CREATE OR REPLACE FUNCTION public.has_permission(_user_id uuid,_permission text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT public.has_role(_user_id,'admin') OR EXISTS(SELECT 1 FROM public.member_roles WHERE user_id=_user_id AND (role='super_admin' OR (role='finance_admin' AND _permission='finance') OR (role='kyc_reviewer' AND _permission='kyc') OR (role='support_agent' AND _permission='support'))) $$;
+REVOKE ALL ON FUNCTION public.has_permission(uuid,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.has_permission(uuid,text) TO authenticated,service_role;
+CREATE OR REPLACE FUNCTION public.set_member_roles(p_user_id uuid,p_roles text[]) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE actor uuid:=auth.uid(); BEGIN
+ IF actor IS NULL OR NOT public.has_permission(actor,'roles') THEN RAISE EXCEPTION 'Not allowed to manage roles'; END IF;
+ IF EXISTS(SELECT 1 FROM unnest(p_roles) r WHERE r NOT IN ('super_admin','finance_admin','kyc_reviewer','support_agent')) THEN RAISE EXCEPTION 'Invalid member role'; END IF;
+ IF p_user_id=actor AND NOT ('super_admin'=ANY(p_roles)) AND NOT public.has_role(actor,'admin') THEN RAISE EXCEPTION 'You cannot remove your own administrative access'; END IF;
+ DELETE FROM public.member_roles WHERE user_id=p_user_id;
+ INSERT INTO public.member_roles(user_id,role) SELECT p_user_id,r FROM (SELECT DISTINCT unnest(p_roles) r) roles;
+ INSERT INTO public.audit_logs(user_id,action,resource,resource_id,details) VALUES(actor,'member_roles_updated','merchant',p_user_id::text,jsonb_build_object('roles',p_roles));
+END $$;
+REVOKE ALL ON FUNCTION public.set_member_roles(uuid,text[]) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.set_member_roles(uuid,text[]) TO authenticated;
+CREATE POLICY "Staff profile read" ON public.profiles FOR SELECT TO authenticated USING(public.has_permission(auth.uid(),'finance') OR public.has_permission(auth.uid(),'kyc') OR public.has_permission(auth.uid(),'support'));
+CREATE POLICY "Finance wallet read" ON public.merchant_wallets FOR SELECT TO authenticated USING(public.has_permission(auth.uid(),'finance'));
+CREATE POLICY "Finance transaction read" ON public.transactions FOR SELECT TO authenticated USING(public.has_permission(auth.uid(),'finance'));
+CREATE POLICY "Finance payout read" ON public.payout_requests FOR SELECT TO authenticated USING(public.has_permission(auth.uid(),'finance'));
+CREATE POLICY "Finance payout update" ON public.payout_requests FOR UPDATE TO authenticated USING(public.has_permission(auth.uid(),'finance')) WITH CHECK(public.has_permission(auth.uid(),'finance'));
+CREATE POLICY "KYC merchant read" ON public.merchant_profiles FOR SELECT TO authenticated USING(public.has_permission(auth.uid(),'kyc'));
+CREATE POLICY "Support message read" ON public.support_messages FOR SELECT TO authenticated USING(public.has_permission(auth.uid(),'support'));
+CREATE POLICY "Support message update" ON public.support_messages FOR UPDATE TO authenticated USING(public.has_permission(auth.uid(),'support')) WITH CHECK(public.has_permission(auth.uid(),'support'));
+CREATE POLICY "Support ticket read" ON public.support_tickets FOR SELECT TO authenticated USING(public.has_permission(auth.uid(),'support'));
+CREATE POLICY "Support ticket update" ON public.support_tickets FOR UPDATE TO authenticated USING(public.has_permission(auth.uid(),'support')) WITH CHECK(public.has_permission(auth.uid(),'support'));
+CREATE POLICY "Support replies read" ON public.support_ticket_replies FOR SELECT TO authenticated USING(public.has_permission(auth.uid(),'support'));
+CREATE POLICY "Support replies insert" ON public.support_ticket_replies FOR INSERT TO authenticated WITH CHECK(user_id=auth.uid() AND public.has_permission(auth.uid(),'support'));
+COMMENT ON COLUMN public.profiles.role_tag IS 'DEPRECATED: authorization and multiple member roles are stored in public.member_roles';
+COMMENT ON COLUMN public.profiles.support_agent IS 'DEPRECATED: use public.member_roles for staff authorization';

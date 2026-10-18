@@ -295,6 +295,29 @@ export type Database = {
         }
         Relationships: []
       }
+      member_roles: {
+        Row: {
+          role: string
+          user_id: string
+        }
+        Insert: {
+          role: string
+          user_id: string
+        }
+        Update: {
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_api_keys: {
         Row: {
           created_at: string
@@ -1331,6 +1354,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1350,6 +1377,10 @@ export type Database = {
           p_source: string
         }
         Returns: Json
+      }
+      set_member_roles: {
+        Args: { p_roles: string[]; p_user_id: string }
+        Returns: undefined
       }
       settle_payment_record_and_balance: {
         Args: {
