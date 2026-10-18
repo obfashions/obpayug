@@ -1,3 +1,4 @@
+import { sendRegistrationCode, verifyRegistrationCode } from "@/lib/registration.functions";
 import { sendVerificationCode, checkVerificationCode } from "@/lib/verification.functions";
 import { getAccessToken } from "@/lib/session-token";
 import { useState, useEffect, useRef } from "react";
@@ -15,6 +16,10 @@ export default function VerifyEmail() {
 
   const emailFromParam = searchParams.get("email") || "";
   const email = profile?.email || emailFromParam;
+  const [registrationId, setRegistrationId] = useState(searchParams.get("userId") || "");
+  useEffect(() => {
+    try { const saved = JSON.parse(sessionStorage.getItem("obpay-registration") || "null"); if (saved?.email === emailFromParam) setRegistrationId(saved.userId); } catch { /* no pending registration */ }
+  }, [emailFromParam]);
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [submitting, setSubmitting] = useState(false);
@@ -28,21 +33,13 @@ export default function VerifyEmail() {
   const codeSentRef = useRef(false);
   const sendAttemptedRef = useRef(false);
 
-  // Wait for auth to load, then send code
   useEffect(() => {
     if (authLoading) return;
     setPageLoading(false);
-
-    if (sendAttemptedRef.current) return;
+    if ((!user?.id && !registrationId) || !email || sendAttemptedRef.current) return;
     sendAttemptedRef.current = true;
-
-    // Small delay to ensure session is fully settled
-    const timer = setTimeout(() => {
-      sendCode();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [authLoading, user, email]);
+    void sendCode();
+  }, [authLoading, user?.id, registrationId, email]);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -73,8 +70,8 @@ export default function VerifyEmail() {
   };
 
   const sendCode = async () => {
-    if (!user?.id || !email) {
-      setError("Session not ready yet. Please refresh the page or try registering again.");
+    if ((!user?.id && !registrationId) || !email) {
+      setError("Please open verification from registration, or sign in to request a new code.");
       return;
     }
 
@@ -83,7 +80,7 @@ export default function VerifyEmail() {
 
     try {
       const result = await withTimeout(
-        (async () => { try { const data = await sendVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration" } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
+        (async () => { try { const data = registrationId ? await sendRegistrationCode({ data: { userId: registrationId } }) : await sendVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration" } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
         15000,
         "send-code"
       );
@@ -155,7 +152,7 @@ export default function VerifyEmail() {
       return;
     }
 
-    if (!user?.id || !email) {
+    if ((!user?.id && !registrationId) || !email) {
       setError("Session expired. Please register again.");
       return;
     }
@@ -165,7 +162,7 @@ export default function VerifyEmail() {
 
     try {
       const result = await withTimeout(
-        (async () => { try { const data = await checkVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration", code: fullCode } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
+        (async () => { try { const data = registrationId ? await verifyRegistrationCode({ data: { userId: registrationId, code: fullCode } }) : await checkVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration", code: fullCode } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
         15000,
         "verify-code"
       );
@@ -184,24 +181,12 @@ export default function VerifyEmail() {
         return;
       }
 
-      // Mark login as verified too since they just proved identity
-      await supabase
-        .from("profiles")
-        .update({ login_verified_at: new Date().toISOString() })
-        .eq("id", user.id);
-
-      // Update status from pending to active
-      await supabase
-        .from("profiles")
-        .update({ status: "active" })
-        .eq("id", user.id)
-        .eq("status", "pending");
-
-      await refreshProfile();
+      sessionStorage.removeItem("obpay-registration");
+      if (user) await refreshProfile();
 
       setSuccess(true);
       setTimeout(() => {
-        navigate("/dashboard", { replace: true });
+        navigate(user ? "/dashboard" : "/login", { replace: true });
       }, 1500);
     } catch {
       setError("We couldn't reach the server. Please check your connection and try again.");
@@ -232,7 +217,7 @@ export default function VerifyEmail() {
                     Email Verified!
                   </h1>
                   <p className="text-sm text-foreground-600">
-                    Your account is now active. Redirecting you to your dashboard...
+                    Your email is confirmed. You can now sign in.
                   </p>
                 </div>
               ) : (
@@ -245,7 +230,7 @@ export default function VerifyEmail() {
                       Verify Your Email
                     </h1>
                     <p className="text-sm text-foreground-600">
-                      We&apos;ve sent a 6-digit verification code to{" "}
+                      {codeSent ? "We sent a 6-digit verification code to " : "Verify the email for "}
                       <strong className="text-foreground-900">{email}</strong>
                     </p>
                     {!codeSent && !sendingCode && (

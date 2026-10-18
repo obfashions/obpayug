@@ -157,9 +157,8 @@ export default function Register() {
       return;
     }
 
-    // Wait a tick for the auth session to propagate before navigating
-    // This prevents the verify-email page from mounting before AuthContext picks up the session
-    await new Promise((r) => setTimeout(r, 500));
+    // Email confirmation intentionally has no session until the code is checked.
+    sessionStorage.setItem("obpay-registration", JSON.stringify({ userId: data.user.id, email: formData.email }));
 
     // Create the profile record
     const profilePayload = {
@@ -175,7 +174,7 @@ export default function Register() {
       email_verified: false,
     };
 
-    try {
+    if (data.session) try {
       const { error: profileError } = await supabase
         .from("profiles")
         .upsert(profilePayload, { onConflict: "id", ignoreDuplicates: false });
@@ -191,7 +190,7 @@ export default function Register() {
     }
 
     // Navigate to email verification
-    navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+    navigate(`/verify-email?email=${encodeURIComponent(formData.email)}&userId=${encodeURIComponent(data.user.id)}`);
   };
 
   const inputClass = (field: string) =>
