@@ -23,7 +23,7 @@ export const adminAccountBalances = createServerFn({ method: "POST" })
       const wallet = wallets.data?.find((w) => w.user_id === p.id);
       const currency = p.default_currency || "UGX";
       const values = combinedBalances(wallet || null, managed.data?.filter((b) => b.merchant_id === p.id) || [], currency);
-      return [p.id, { ...wallet, currency, available_balance: values[currency] || 0, pending_balance: Number(wallet?.pending_balance || 0), total_collections: Number(wallet?.total_collections || 0), total_payouts: Number(wallet?.total_payouts || 0) }];
+      return [p.id, { currency, withdrawals_enabled: wallet?.withdrawals_enabled !== false, available_balance: values[currency] || 0, pending_balance: Number(wallet?.pending_balance || 0), total_collections: Number(wallet?.total_collections || 0), total_payouts: Number(wallet?.total_payouts || 0) }];
     }));
   });
 

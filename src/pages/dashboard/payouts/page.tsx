@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { invokeObpay } from "@/lib/edge-function";
 import { platform } from "@/lib/platform";
+import { listPaymentRecords } from "@/lib/history.functions";
+import { getAccessToken } from "@/lib/session-token";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const PAYOUT_BANKS = [
@@ -114,7 +116,16 @@ export default function PayoutsPage() {
         supabase.from("platform_settings").select("min_payout_amount, max_payout_amount").limit(1).maybeSingle(),
       ]);
       if (pErr) throw pErr;
-      setPayouts((pData as Payout[]) || []);
+      const history = await listPaymentRecords({ data: { accessToken: await getAccessToken(), type: "payout" } });
+      const managedPayouts: Payout[] = (history.rows || []).map((row: any) => ({
+        id: row.id, amount: row.amount, currency: row.currency, status: row.status,
+        phone_number: row.customer_phone, network: "mobile money", description: row.description,
+        rejection_reason: "", provider_reference: row.reference, fee_amount: row.fee_amount,
+        requested_at: row.created_at, processed_at: row.created_at, completed_at: row.completed_at || "",
+      }));
+      const references = new Set(managedPayouts.map((p) => p.provider_reference));
+      setPayouts([...managedPayouts, ...((pData as Payout[]) || []).filter((p) => !references.has(p.provider_reference))]
+        .sort((a, b) => b.requested_at.localeCompare(a.requested_at)));
       setWallet({ available_balance: wData?.available_balance || 0, pending_balance: wData?.pending_balance || 0 });
       setMerchantSlug(mData?.merchant_slug || null);
       if (psData?.min_payout_amount != null) setMinPayout(psData.min_payout_amount);
@@ -166,6 +177,11 @@ export default function PayoutsPage() {
     // Realtime: watch transactions and payout_requests for instant updates
     const channel = supabase
       .channel("payouts-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payment_records", filter: `merchant_id=eq.${user.id}` },
+        () => { fetchData(); void refreshBalances(); }
+      )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "transactions", filter: `user_id=eq.${user.id}` },
