@@ -18,3 +18,6 @@
 - Reserve each payout reference before contacting the partner, never treat a failed or unconfirmed duplicate as a new success, and alert only on confirmed partner acceptance — why: retries must neither send money twice nor announce an unsent payout.
 - A merchant's operating country sets the initial main-currency wallet; keep wallet balances separate and filter displayed totals by the selected wallet — why: amounts from different currencies must never be combined or relabeled.
 - Payout history uses stored currency-specific balance snapshots at debit time; missing historical snapshots remain unavailable, never inferred from today's balance — why: financial history must not invent past balances.
+- All mobile-money payouts use reserve_payout_and_balance before network submission; it locks funds across the main wallet and managed currency store and records each store's debit for one-time refunds — why: separate references must not spend the same balance, and a failed write must never be reported as a deduction.
+- The main wallet scalar replaces its same-currency JSON mirror; combine it with managed funds using balance-values.ts — why: an old JSON value must not restore already withdrawn money.
+- Settlement does not also adjust managed balances for legacy transaction mirrors — why: the legacy transaction settlement already owns their wallet credit/refund.

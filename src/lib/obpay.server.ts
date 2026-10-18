@@ -637,145 +637,15 @@ export async function runObpayAction(action: string, accessToken: string, body: 
 
   // ── Payout / withdrawal ──────────────────────────────────
   if (action === "payout") {
-    const { phoneNumber, amount, description, network, customerName, customerEmail } = body || {};
-    const payoutType = body?.payout_type || body?._payout_type || "send";
-    const destinationType = body?.destinationType === "bank" ? "bank" : "mobile";
-    const numericAmount = Number(amount);
-    const numAmount = Math.round(numericAmount);
-    if (!Number.isFinite(numericAmount)) return { success: false, error: "Amount is required." };
-    if (numericAmount <= 0) return { success: false, error: "Enter an amount greater than zero." };
-    if (!Number.isInteger(numericAmount)) return { success: false, error: "Enter a whole UGX amount without decimals." };
-    if (!String(customerName || "").trim()) return { success: false, error: "Enter the recipient's full name." };
-    if (customerEmail && !/^\S+@\S+\.\S+$/.test(String(customerEmail).trim())) return { success: false, error: "Enter a valid recipient email address." };
-    const rawAccount = String(body?.accountNumber || phoneNumber || "").replace(/\s/g, "");
-    const wallet = destinationType === "mobile" ? walletNumber(rawAccount) : "";
-    if (destinationType === "mobile" && !wallet) return { success: false, error: "Enter a valid mobile money number in the 07XXXXXXXX format." };
-    const requestedBankCode = String(body?.bankCode || "").toUpperCase();
-    const validBank = destinationType === "bank" && /^UG00(?:0[1-9]|1\d|2\d)$/.test(requestedBankCode);
-    if (destinationType === "bank" && !validBank) return { success: false, error: "Choose a supported Ugandan bank." };
-    if (destinationType === "bank" && !/^\d+$/.test(rawAccount)) return { success: false, error: "Bank account numbers must contain digits only." };
-    const currency = "UGX";
-
-    const merchantWallet = first(await rest(accessToken, `/merchant_wallets?user_id=eq.${userId}&select=*`));
-    if (merchantWallet && merchantWallet.withdrawals_enabled === false) {
-      return { success: false, error: "Withdrawals are currently disabled on your account. Please contact support." };
-    }
-
-    const isWithdraw = payoutType === "withdraw";
-    const totalDeduction = numAmount;
-
-    const balance = Number(merchantWallet?.available_balance || 0);
-    if (balance < totalDeduction) {
-      return {
-        success: false,
-        error: `Insufficient balance. You tried to send ${totalDeduction.toLocaleString()} ${currency} but your available balance is ${balance.toLocaleString()} ${currency}.`,
-      };
-    }
-
-    const ref = String(body?.reference || `PAY${Date.now().toString(36).toUpperCase()}`).replace(/\s/g, "").slice(0, 30);
-    const now = new Date().toISOString();
-    const txnId = crypto.randomUUID();
-    const bankCode = destinationType === "bank" ? requestedBankCode : networkCode(network, wallet);
-    const accountNumber = destinationType === "bank" ? rawAccount : wallet;
-
-    const { merchantTag } = await import("./merchant-identity.server");
-    const tag = await merchantTag(userId);
-    const out = await gatewayPayout(creds, {
-      reference: ref,
-      amount: numAmount,
-      feeInclusive: true,
-      merchant: tag,
-      channel: isWithdraw ? "dashboard_withdrawal" : "dashboard_payout",
-      typeTrans: destinationType === "bank" ? 3 : 2,
-      bankCode,
-      accountNumber,
-      customerName: String(customerName).trim(),
-      ...(destinationType === "mobile" ? { customerPhone: wallet } : {}),
-      ...(customerEmail ? { customerEmail: String(customerEmail).trim() } : {}),
-      remark: description || (isWithdraw ? "Withdrawal" : "Payout"),
-      notifyUrl: callbackUrl(),
-    });
-
-    if (!out.ok) {
-      const message = friendlyError(out.res, "payout");
-      // Rejected before submission (including a fractional net) must not
-      // appear as a failed money transfer or change the merchant's wallet.
-      if (["whole_amount_required", "below_minimum", "fee_unavailable", "bad_number", "bank_unsupported"].includes(out.res.code)) {
-        return { success: false, error: message };
-      }
-      await rest(accessToken, `/payout_requests`, {
-        method: "POST",
-        body: JSON.stringify({
-          user_id: userId, amount: numAmount, currency, phone_number: accountNumber,
-          network: bankName(bankCode), status: "failed", fee_amount: 0,
-          rejection_reason: message, requested_at: now,
-        }),
-      });
-      await rest(accessToken, `/transactions`, {
-        method: "POST",
-        body: JSON.stringify({
-          id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
-          currency, status: "failed", customer_phone: accountNumber, customer_name: String(customerName).trim(), fee_amount: 0,
-          metadata: { error: out.res.error, code: out.res.code, destination_type: destinationType, bank_code: bankCode, balance_before: balance, balance_after: balance },
-        }),
-      });
-      // Nothing was deducted, so the wallet stays untouched.
-      return { success: false, error: message, data: { reference: ref, transaction_id: txnId, status: "failed" } };
-    }
-
-    const fee = out.partnerFee;
-    const recipientGets = out.net;
-
-    await rest(accessToken, `/payout_requests`, {
-      method: "POST",
-      body: JSON.stringify({
-        user_id: userId, amount: numAmount, currency, phone_number: accountNumber,
-        network: bankName(bankCode), status: "processing",
-        fee_amount: fee, provider_reference: out.platformReference, requested_at: now, processed_at: now,
-      }),
-    });
-
-    await rest(accessToken, `/transactions`, {
-      method: "POST",
-      body: JSON.stringify({
-        id: txnId, user_id: userId, reference: ref, type: "payout", amount: numAmount,
-        currency, status: "pending", customer_phone: accountNumber, customer_name: String(customerName).trim(), provider_reference: out.platformReference,
-        fee_amount: fee, net_amount: recipientGets, merchant_reference: ref,
-        metadata: { fee_inclusive: true, recipient_gets: recipientGets, merchant_kyc_status: tag.kyc, platform_reference: out.platformReference, payout_type: payoutType, destination_type: destinationType, bank_code: bankCode, network: bankName(bankCode), balance_before: balance, balance_after: balance - totalDeduction },
-        created_at: now,
-      }),
-    });
-
-    await mirrorRecord(userId, {
-      reference: ref,
-      provider_reference: out.platformReference,
-      type: "payout",
-      source: "dashboard",
-      amount: numAmount,
-      currency,
-      status: "pending",
-      phone_number: accountNumber,
-      description: description || null,
-    });
-
-    // Funds leave the wallet as soon as the payout is accepted; a later failure
-    // is refunded by the pending-transaction sync.
-    await rest(accessToken, `/merchant_wallets?user_id=eq.${userId}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        available_balance: balance - totalDeduction,
-        total_payouts: Number(merchantWallet?.total_payouts || 0) + numAmount,
-        updated_at: now,
-      }),
-    });
-
-    return {
-      success: true,
-      data: {
-        transaction_id: txnId, reference: ref, provider_reference: out.platformReference, status: "pending",
-        amount: numAmount, currency, fee_amount: fee, total_deducted: totalDeduction, recipient_gets: recipientGets,
-      },
-    };
+    const { apiPayout } = await import("./public-api.server");
+    if (body?.destinationType === "bank") return { success: false, error: "Bank payouts are not available. Use MTN or Airtel mobile money." };
+    return apiPayout(userId, {
+      ...body,
+      phone_number: body?.phone_number || body?.accountNumber || body?.phoneNumber,
+      customer_name: body?.customer_name || body?.customerName,
+      customer_email: body?.customer_email || body?.customerEmail,
+      currency: body?.currency || "UGX",
+    }, "dashboard");
   }
 
   return { success: false, error: `Unsupported action: ${action}` };

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { platform } from "@/lib/platform";
+import { combinedBalances } from "@/lib/balance-values";
 import { getEnabledCurrencies } from "@/lib/currencies.functions";
 import {
   getCurrencyInfo,
@@ -100,19 +101,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      const rawBalances: BalancesByCurrency = (data?.balances_by_currency as BalancesByCurrency) || {};
-      // Merge the legacy single-currency fields into balances_by_currency for the active currency
-      const legacyCurrency = profile?.default_currency || DEFAULT_CURRENCY;
-      const merged: BalancesByCurrency = { ...rawBalances };
-      if (data?.available_balance != null) {
-        merged[legacyCurrency] = Math.max(merged[legacyCurrency] || 0, Number(data.available_balance));
-      }
-      if (managed.success) {
-        for (const row of managed.data || []) {
-          const currency = String(row.currency || DEFAULT_CURRENCY).toUpperCase();
-          merged[currency] = (merged[currency] || 0) + (Number(row.available_balance) || 0);
-        }
-      }
+      if (!managed.success) throw new Error(managed.error || "Balance could not be refreshed.");
+      const merged = combinedBalances(data, managed.data || [], profile?.default_currency || DEFAULT_CURRENCY);
 
       setBalances(merged);
 
@@ -147,6 +137,11 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const channel = supabase
       .channel("currency-wallet-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "merchant_balances", filter: `merchant_id=eq.${user.id}` },
+        () => { void refreshBalances(); }
+      )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "merchant_wallets", filter: `user_id=eq.${user.id}` },
