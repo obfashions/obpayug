@@ -2,6 +2,7 @@
 - [x] Unify withdrawal paths and prevent duplicate settlement balance effects.
 - [x] Refresh merchant and admin balances using the same balance rules.
 - [x] Run 11 regression tests and verify authenticated merchant balance rendering without sending real money.
-- [ ] Verify admin balance rendering with a permitted admin session (current managed session has no admin grant).
-- [ ] Fix registration verification delivery without requiring an existing signed-in session.
-- [ ] Replace decorative member tags with protected multi-role permissions and verify changes.
+- [x] Verify admin merchant page access using an approved admin session.
+- [x] Fix registration verification without requiring an existing signed-in session; code rules tested locally.
+- [x] Replace decorative member tags with protected multi-role permissions; two selections survived UI reload and test changes were restored.
+- [ ] Confirm real signup code delivery and verification using a new recipient (no test recipient supplied).
