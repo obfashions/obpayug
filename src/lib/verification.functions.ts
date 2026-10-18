@@ -35,13 +35,13 @@ export const sendVerificationCode = createServerFn({ method: "POST" })
     crypto.getRandomValues(buf);
     const code = String(buf[0] % 1_000_000).padStart(6, "0");
     await me.admin.from("verification_codes").update({ used: true }).eq("user_id", me.user.id).eq("type", data.type).eq("used", false);
-    const { error } = await me.admin.from("verification_codes").insert({
+    const { data: savedCode, error } = await me.admin.from("verification_codes").insert({
       user_id: me.user.id,
       email,
       type: data.type,
       code_hash: await hash(code, me.user.id),
       expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
-    });
+    }).select("id").single();
     if (error) return { success: false, error: "We couldn't create a code right now. Please try again." };
 
     const { sendMailjet, brandedHtml } = await import("./mailjet.server");
@@ -58,7 +58,10 @@ export const sendVerificationCode = createServerFn({ method: "POST" })
         ),
       },
     ]);
-    if (!res.sent) return { success: false, error: "We couldn't send the code email right now. Please try again shortly." };
+    if (!res.sent) {
+      if (savedCode?.id) await me.admin.from("verification_codes").delete().eq("id", savedCode.id);
+      return { success: false, error: "We couldn't send the code email right now. Please try again shortly." };
+    }
     return { success: true };
   });
 

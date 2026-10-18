@@ -51,6 +51,7 @@ export default function AdminMerchants() {
   const [verificationFilter, setVerificationFilter] = useState("all");
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [savingMemberRoles, setSavingMemberRoles] = useState(false);
   const [error, setError] = useState("");
   const [actionMsg, setActionMsg] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -101,7 +102,13 @@ export default function AdminMerchants() {
       const all = [...(data as Merchant[] || []), ...(admins as Merchant[] || [])];
       const { data: memberships, error: membershipError } = await supabase.from("member_roles").select("user_id,role");
       if (membershipError) throw membershipError;
-      setMerchants(all.map((m) => ({ ...m, memberRoles: (memberships || []).filter((r: any) => r.user_id === m.id).map((r: any) => r.role) })));
+      const { data: baseRoles, error: rolesError } = await supabase.from("user_roles").select("user_id,role");
+      if (rolesError) throw rolesError;
+      setMerchants(all.map((m) => {
+        const roles: MemberRole[] = (memberships || []).filter((r: any) => r.user_id === m.id).map((r: any) => r.role);
+        const admin = roles.includes("super_admin") || (baseRoles || []).some((r: any) => r.user_id === m.id && r.role === "admin");
+        return { ...m, role: admin ? "admin" : "merchant", memberRoles: roles, role_tag: roles.join(", ") || null, support_agent: roles.includes("support_agent") };
+      }));
 
       const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
       setBalanceData(balances);
@@ -217,11 +224,14 @@ export default function AdminMerchants() {
   };
 
   const handleMemberRoles = async (merchantId: string, roles: MemberRole[]) => {
+    if (savingMemberRoles) return;
+    setSavingMemberRoles(true);
     try {
       await saveMemberRoles({ data: { accessToken: await getAccessToken(), userId: merchantId, roles } });
       setActionMsg({ ok: true, message: "Member permissions updated." });
       await fetchMerchants();
     } catch (err: any) { setActionMsg({ ok: false, message: err.message || "Permissions could not be saved." }); }
+    finally { setSavingMemberRoles(false); }
   };
 
   const handleAdjustBalance = async () => {
@@ -678,7 +688,7 @@ export default function AdminMerchants() {
                 <legend className="text-xs text-foreground-600 px-1">Member roles</legend>
                 {MEMBER_ROLES.map((role) => (
                   <label key={role} className="flex items-center gap-2 text-xs text-foreground-700 cursor-pointer">
-                    <input type="checkbox" checked={(selected.memberRoles || []).includes(role)}
+                    <input type="checkbox" disabled={savingMemberRoles} checked={(selected.memberRoles || []).includes(role)}
                       onChange={(e) => handleMemberRoles(selected.id, e.target.checked ? [...(selected.memberRoles || []), role] : (selected.memberRoles || []).filter((r) => r !== role))} />
                     {ROLE_LABELS[role]}
                   </label>

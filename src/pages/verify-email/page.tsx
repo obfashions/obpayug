@@ -80,7 +80,7 @@ export default function VerifyEmail() {
 
     try {
       const result = await withTimeout(
-        (async () => { try { const data = registrationId ? await sendRegistrationCode({ data: { userId: registrationId } }) : await sendVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration" } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
+        (async () => { try { const data = !user && registrationId ? await sendRegistrationCode({ data: { userId: registrationId } }) : await sendVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration" } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
         15000,
         "send-code"
       );
@@ -162,7 +162,7 @@ export default function VerifyEmail() {
 
     try {
       const result = await withTimeout(
-        (async () => { try { const data = registrationId ? await verifyRegistrationCode({ data: { userId: registrationId, code: fullCode } }) : await checkVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration", code: fullCode } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
+        (async () => { try { const data = !user && registrationId ? await verifyRegistrationCode({ data: { userId: registrationId, code: fullCode } }) : await checkVerificationCode({ data: { accessToken: await getAccessToken(), type: "registration", code: fullCode } }); return { data, error: null }; } catch (e: any) { return { data: null, error: e }; } })(),
         15000,
         "verify-code"
       );
