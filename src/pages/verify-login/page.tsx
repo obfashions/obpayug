@@ -218,11 +218,9 @@ export default function VerifyLogin() {
         .eq("id", user.id)
         .maybeSingle();
 
-      if (profileData?.role === "admin") {
-        navigate("/admin", { replace: true });
-      } else {
-        navigate("/dashboard", { replace: true });
-      }
+      const [baseRoles, memberRoles] = await Promise.all([supabase.from("user_roles").select("role").eq("user_id", user.id), supabase.from("member_roles").select("role").eq("user_id", user.id)]);
+      const { staffHome } = await import("@/lib/member-permissions");
+      navigate(staffHome([...(baseRoles.data || []), ...(memberRoles.data || [])].map((r: { role: string }) => r.role)), { replace: true });
     } catch {
       setError("Network error. Please check your connection and try again.");
       setSubmitting(false);
