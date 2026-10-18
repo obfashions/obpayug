@@ -510,6 +510,8 @@ export async function runObpayAction(action: string, accessToken: string, body: 
 
   // ── Sync pending ─────────────────────────────────────────
   if (action === "sync-all-pending") {
+    const { refreshMerchantPendingPayments } = await import("./settle.server");
+    await refreshMerchantPendingPayments(userId);
     const out = await syncPending(accessToken, userId);
     return { success: true, data: out, updated: out.updated, checked: out.checked };
   }
