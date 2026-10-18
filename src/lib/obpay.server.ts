@@ -410,7 +410,7 @@ async function adminWithdrawalLimit(accessToken: string, body: any) {
   return { success: true, data };
 }
 
-export async function runObpayAction(action: string, accessToken: string, body: any) {
+export async function runObpayAction(action: string, accessToken: string, body: any): Promise<any> {
   if (action === "admin-adjust-balance") return adminAdjustBalance(accessToken, body);
   if (action === "impersonate-user") return adminImpersonate(accessToken, body);
   if (action === "set-withdrawal-limit") return adminWithdrawalLimit(accessToken, body);
