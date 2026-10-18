@@ -182,12 +182,17 @@ export default function VerifyEmail() {
       }
 
       sessionStorage.removeItem("obpay-registration");
-      if (user) await refreshProfile();
+      let signedIn = !!user;
+      if (!user && data.tokenHash) {
+        const { error: otpError } = await supabase.auth.verifyOtp({ token_hash: data.tokenHash, type: "magiclink" });
+        signedIn = !otpError;
+      }
+      if (signedIn) await refreshProfile();
 
       setSuccess(true);
       setTimeout(() => {
-        navigate(user ? "/dashboard" : "/login", { replace: true });
-      }, 1500);
+        navigate(signedIn ? "/dashboard/kyc" : "/login", { replace: true, state: { skipVerificationGuard: true } } as any);
+      }, 1200);
     } catch {
       setError("We couldn't reach the server. Please check your connection and try again.");
       setSubmitting(false);

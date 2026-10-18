@@ -32,13 +32,24 @@ export const sendRegistrationCode = createServerFn({ method: "POST" })
 
 export const verifyRegistrationCode = createServerFn({ method: "POST" })
   .inputValidator((d) => input.extend({ code: z.string().regex(/^\d{6}$/) }).parse(d))
-  .handler(async ({ data }): Promise<{ success: boolean; error?: string }> => {
+  .handler(async ({ data }): Promise<{ success: boolean; error?: string; tokenHash?: string }> => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     const { data: valid, error } = await admin.rpc("consume_registration_code", { p_user_id: data.userId, p_hash: await digest(data.userId, data.code) });
     if (error || !valid) return { success: false, error: "That code is incorrect or expired. Please request a new code." };
     const confirmed = await admin.auth.admin.updateUserById(data.userId, { email_confirm: true });
-    if (confirmed.error) return { success: false, error: "We couldn't confirm your email. Please request a new code." };
+    if (confirmed.error || !confirmed.data.user?.email) return { success: false, error: "We couldn't confirm your email. Please request a new code." };
+    const u = confirmed.data.user;
+    const m = (u.user_metadata || {}) as Record<string, any>;
+    const currency = m.default_currency || "UGX";
+    // Signup without a session never created the profile row; create it now so sign-in works.
+    await admin.from("profiles").upsert({
+      id: u.id, email: u.email, full_name: m.full_name || "", phone_number: m.phone_number || "",
+      default_currency: currency, enabled_currencies: m.enabled_currencies || [currency],
+      operating_country: m.operating_country || "Uganda", role: "merchant", status: "pending",
+    } as any, { onConflict: "id", ignoreDuplicates: true });
     const { error: profileError } = await admin.from("profiles").update({ email_verified: true, login_verified_at: new Date().toISOString() }).eq("id", data.userId);
     if (profileError) return { success: false, error: "Your email is confirmed. Please sign in to continue." };
-    return { success: true };
+    // One-time sign-in token so the new merchant goes straight to identity verification.
+    const link = await admin.auth.admin.generateLink({ type: "magiclink", email: u.email });
+    return { success: true, tokenHash: link.data?.properties?.hashed_token || undefined };
   });
