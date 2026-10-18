@@ -17,6 +17,7 @@ import {
   listWebhookDeliveries,
 } from "./platform.server";
 import type { Identity } from "./identity.server";
+import { combinedBalances } from "./balance-values";
 
 export { merchantForSecret };
 
@@ -79,11 +80,7 @@ export async function apiBalance(merchantId: string) {
       db().from("profiles").select("default_currency").eq("id", merchantId).maybeSingle(),
     ]);
     if (wallet) {
-      const walletBalances: Record<string, number> = { ...((wallet.balances_by_currency as any) || {}) };
-      const legacyCurrency = String(profile?.default_currency || "UGX").toUpperCase();
-      if (wallet.available_balance != null) {
-        walletBalances[legacyCurrency] = Math.max(Number(walletBalances[legacyCurrency]) || 0, Number(wallet.available_balance) || 0);
-      }
+      const walletBalances = combinedBalances(wallet, [], String(profile?.default_currency || "UGX"));
       for (const [cur, amt] of Object.entries(walletBalances)) {
         const value = Number(amt) || 0;
         if (!value) continue;
@@ -315,23 +312,14 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     });
   }
 
-  // Only pay out money the merchant has actually collected through ObPay.
-  const balance: any = await apiBalance(merchantId);
-  const row = (balance?.data?.balances || []).find((b: any) => b.currency === currency);
-  const available = Number(row?.available_balance ?? 0);
-  if (Number.isFinite(available) && amount > available) {
-    return err(`Insufficient balance. Available: ${available.toLocaleString()} ${currency}.`);
-  }
-
-  // Reserve the unique reference before the money-moving request. Concurrent
-  // submissions must not both reach the partner, and a missing record must not
-  // make a timed-out request safe to repeat.
-  const { error: reservationError } = await db().from("payment_records").insert({
-    merchant_id: merchantId, reference, type: "payout", source, amount, currency,
-    status: "pending", phone_number: accountNumber, description: body.description || null,
-    metadata: { submission_state: "submitting" },
+  // Reserve funds and the reference together before contacting the network.
+  // Different simultaneous references must not spend the same money.
+  const { data: reservation, error: reservationError } = await db().rpc("reserve_payout_and_balance", {
+    p_merchant_id: merchantId, p_reference: reference, p_amount: amount, p_currency: currency,
+    p_phone: accountNumber, p_source: source, p_description: body.description || null,
+    p_metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName, fee_inclusive: true },
   });
-  if (reservationError) return err("Could not reserve this payout reference. No payout was sent. Check its status before trying again.");
+  if (reservationError || !reservation) return err(reservationError?.message || "Could not reserve this payout. No payout was sent.");
 
   const { merchantTag } = await import("./merchant-identity.server");
   const out = await gatewayPayout(creds, {
@@ -360,18 +348,8 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
       console.error("Payout submission status uncertain", reference, out.res?.httpStatus);
       return err(`We could not confirm whether this payout reached the payment network. Do not retry until support checks reference ${reference}.`);
     }
-    const failed = await recordPayment(merchantId, {
-      reference,
-      type: "payout",
-      source,
-      amount,
-      currency,
-      status: "failed",
-      phone_number: accountNumber,
-      description: body.description || null,
-      metadata: { submission_state: "rejected", reason: friendlyError(out.res, "payout") },
-    });
-    if (!failed) console.error("Payout rejection could not be recorded", reference);
+    const { settlePaymentRecord } = await import("./settle.server");
+    await settlePaymentRecord(reservation, "failed");
     return err(friendlyError(out.res, "payout"));
   }
 
@@ -380,44 +358,14 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     return err(`The payment network did not return a tracking reference. Do not retry until support checks reference ${reference}.`);
   }
 
-  // Money leaves the merchant's balance the moment the partner accepts the
-  // payout. If the partner later reports it failed, settlement refunds it.
-  const { data: balanceRow } = await db().rpc("apply_merchant_balance_change", {
-    p_merchant_id: merchantId,
-    p_currency: currency,
-    p_available_delta: -amount,
-    p_collections_delta: 0,
-    p_payouts_delta: amount,
-  });
-  const balanceAfter = Number((balanceRow as any)?.available_balance);
-  const balanceBefore = Number.isFinite(balanceAfter) ? balanceAfter + amount : available;
-
-  const saved = await recordPayment(merchantId, {
-    reference,
+  // Save acceptance without overwriting the settlement state: a callback may
+  // already have completed this record while the network request was running.
+  const { data: saved, error: saveError } = await db().from("payment_records").update({
     provider_reference: out.platformReference,
-    type: "payout",
-    source,
-    amount,
-    currency,
-    status: "pending",
-    phone_number: accountNumber,
-    description: body.description || null,
     fee_amount: out.partnerFee,
     net_amount: out.net,
-    metadata: {
-      submission_state: "accepted",
-      merchant_metadata: merchantMeta(body),
-      callback_url: cb.url,
-      recipient_name: recipientName,
-      fee_inclusive: true,
-      fee: out.partnerFee,
-      recipient_gets: out.net,
-      balance_debited: true,
-      balance_before: balanceBefore,
-      balance_after: Number.isFinite(balanceAfter) ? balanceAfter : balanceBefore - amount,
-    },
-  });
-  if (!saved) {
+  }).eq("id", reservation.id).select("*").single();
+  if (saveError || !saved) {
     console.error("Partner accepted payout but record update failed", reference);
     return err(`Your payout was accepted but its status could not be saved. Do not retry. Contact support with reference ${reference}.`);
   }
@@ -428,9 +376,10 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     callback_url: cb.url,
     amount,
     fee: out.partnerFee,
+    fee_amount: out.partnerFee,
     recipient_gets: out.net,
     currency,
-    status: "pending",
+    status: saved.status,
     type: "payout",
   });
 }
