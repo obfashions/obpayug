@@ -1362,6 +1362,18 @@ export type Database = {
         Args: { p_hash: string; p_user_id: string }
         Returns: boolean
       }
+      exchange_wallet_balance: {
+        Args: {
+          p_amount: number
+          p_fee_percent: number
+          p_from: string
+          p_merchant_id: string
+          p_rate: number
+          p_to: string
+          p_to_amount: number
+        }
+        Returns: Json
+      }
       has_permission: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean

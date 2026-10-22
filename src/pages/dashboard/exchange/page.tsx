@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { platform } from "@/lib/platform";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { exchangeReceive } from "@/lib/exchange-math";
 
 const CURS = ["UGX", "KES", "RWF", "USD"];
 
 export default function ExchangePage() {
+  const { balances, refreshBalances } = useCurrency();
   const [rates, setRates] = useState<Record<string, number> | null>(null);
   const [fee, setFee] = useState(1.5);
-  const [balances, setBalances] = useState<Record<string, number>>({});
   const [history, setHistory] = useState<any[]>([]);
   const [from, setFrom] = useState("UGX");
   const [to, setTo] = useState("KES");
@@ -16,25 +18,19 @@ export default function ExchangePage() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
-    const [r, b, h] = await Promise.all([
+    const [r, h] = await Promise.all([
       platform<any>("exchange.rates"),
-      platform<Array<{ currency: string; available_balance: number }>>("balances.get"),
       platform<any[]>("exchange.list"),
     ]);
     if (r.success) { setRates(r.data.rates); setFee(r.data.fee_percent); } else setMsg({ ok: false, text: r.error || "Rates unavailable." });
-    const map: Record<string, number> = {};
-    for (const row of b.data || []) map[row.currency] = Number(row.available_balance) || 0;
-    setBalances(map);
     setHistory(h.data || []);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
   const rate = rates ? rates[to]! / rates[from]! : 0;
-  const receive = useMemo(() => {
-    const n = Number(amount) || 0;
-    const v = n * rate * (1 - fee / 100);
-    return to === "USD" ? Math.floor(v * 100) / 100 : Math.floor(v);
-  }, [amount, rate, fee, to]);
+  const receive = useMemo(() => exchangeReceive(Number(amount) || 0, rate, fee, to), [amount, rate, fee, to]);
+  const fromBalance = balances[from] || 0;
+  const over = (Number(amount) || 0) > fromBalance;
 
   async function convert() {
     if (busy) return;
@@ -45,6 +41,7 @@ export default function ExchangePage() {
     setMsg({ ok: true, text: `Converted ${res.data.from_amount.toLocaleString()} ${from} to ${res.data.to_amount.toLocaleString()} ${to}.` });
     setAmount("");
     void load();
+    void refreshBalances();
   }
 
   const sel = "px-3 py-2.5 rounded-lg border border-background-200 bg-background-50 text-sm";
@@ -73,10 +70,11 @@ export default function ExchangePage() {
             <select value={to} onChange={(e) => setTo(e.target.value)} className={sel}>{CURS.map((c) => <option key={c}>{c}</option>)}</select>
           </div>
           <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`Amount in ${from}`} className={`${sel} w-full`} />
-          {rates && from !== to && <p className="text-sm text-foreground-700">1 {from} = {rate.toFixed(to === "USD" ? 6 : 4)} {to} · You get <b>{receive.toLocaleString()} {to}</b></p>}
-          <button disabled={busy || !amount || from === to} onClick={convert} className="w-full py-2.5 rounded-lg bg-primary-500 text-background-50 text-sm font-medium cursor-pointer disabled:opacity-50">{busy ? "Converting…" : "Convert"}</button>
+          {rates && from !== to && <p className="text-sm text-foreground-700">1 {from} = {rate.toFixed(to === "USD" ? 6 : 4)} {to} · You get <b>{receive.toLocaleString()} {to}</b> after the {fee}% fee</p>}
+          {over && <p className="text-sm text-red-700">Your {from} wallet holds {fromBalance.toLocaleString()} {from}.</p>}
+          <button disabled={busy || !amount || from === to || over} onClick={convert} className="w-full py-2.5 rounded-lg bg-primary-500 text-background-50 text-sm font-medium cursor-pointer disabled:opacity-50">{busy ? "Converting…" : "Convert"}</button>
           {msg && <div className={`text-sm rounded-lg p-3 ${msg.ok ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700"}`}>{msg.text}</div>}
-          <p className="text-xs text-foreground-500">Only balances received through Kenya, Rwanda, crypto, payment links or the API can be converted.</p>
+          <p className="text-xs text-foreground-500">Conversion moves money between your own wallets instantly. Each wallet keeps its own currency and balance.</p>
         </div>
 
         {history.length > 0 && (
