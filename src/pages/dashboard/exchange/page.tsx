@@ -70,10 +70,11 @@ export default function ExchangePage() {
             <select value={to} onChange={(e) => setTo(e.target.value)} className={sel}>{CURS.map((c) => <option key={c}>{c}</option>)}</select>
           </div>
           <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`Amount in ${from}`} className={`${sel} w-full`} />
-          {rates && from !== to && <p className="text-sm text-foreground-700">1 {from} = {rate.toFixed(to === "USD" ? 6 : 4)} {to} · You get <b>{receive.toLocaleString()} {to}</b></p>}
-          <button disabled={busy || !amount || from === to} onClick={convert} className="w-full py-2.5 rounded-lg bg-primary-500 text-background-50 text-sm font-medium cursor-pointer disabled:opacity-50">{busy ? "Converting…" : "Convert"}</button>
+          {rates && from !== to && <p className="text-sm text-foreground-700">1 {from} = {rate.toFixed(to === "USD" ? 6 : 4)} {to} · You get <b>{receive.toLocaleString()} {to}</b> after the {fee}% fee</p>}
+          {over && <p className="text-sm text-red-700">Your {from} wallet holds {fromBalance.toLocaleString()} {from}.</p>}
+          <button disabled={busy || !amount || from === to || over} onClick={convert} className="w-full py-2.5 rounded-lg bg-primary-500 text-background-50 text-sm font-medium cursor-pointer disabled:opacity-50">{busy ? "Converting…" : "Convert"}</button>
           {msg && <div className={`text-sm rounded-lg p-3 ${msg.ok ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700"}`}>{msg.text}</div>}
-          <p className="text-xs text-foreground-500">Only balances received through Kenya, Rwanda, crypto, payment links or the API can be converted.</p>
+          <p className="text-xs text-foreground-500">Conversion moves money between your own wallets instantly. Each wallet keeps its own currency and balance.</p>
         </div>
 
         {history.length > 0 && (
