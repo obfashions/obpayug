@@ -2,6 +2,7 @@
 // Uses ObPay's managed records (payment_records / merchant_balances).
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { exchangeReceive } from "./exchange-math";
 import type { Identity } from "./identity.server";
 
 const db = () => supabaseAdmin as any;
@@ -155,32 +156,22 @@ export async function convertBalance(id: Identity, body: Record<string, any>) {
   const r: any = await getRates();
   if (!r.success) return r;
   const { rates, fee_percent } = r.data;
-  const { data: bal } = await db().from("merchant_balances").select("available_balance")
-    .eq("merchant_id", id.userId).eq("currency", from).maybeSingle();
-  const available = Number(bal?.available_balance || 0);
-  if (amount > available) return fail(`Insufficient ${from} balance. Available: ${available.toLocaleString()} ${from}.`);
   const rate = rates[to] / rates[from];
-  const raw = amount * rate * (1 - fee_percent / 100);
-  const toAmount = to === "USD" ? Math.floor(raw * 100) / 100 : Math.floor(raw);
+  const toAmount = exchangeReceive(amount, rate, fee_percent, to);
   if (toAmount <= 0) return fail("That amount is too small to convert.");
 
-  const debit = await db().rpc("apply_merchant_balance_change", {
-    p_merchant_id: id.userId, p_currency: from, p_available_delta: -amount, p_collections_delta: 0, p_payouts_delta: 0,
+  // Atomic across the main wallet and the managed store: checks the combined balance,
+  // debits the source wallet and credits the destination wallet in one transaction.
+  const { data, error } = await db().rpc("exchange_wallet_balance", {
+    p_merchant_id: id.userId, p_from: from, p_to: to,
+    p_amount: amount, p_to_amount: toAmount, p_rate: rate, p_fee_percent: fee_percent,
   });
-  if (debit.error) return fail("The conversion could not be completed.");
-  const credit = await db().rpc("apply_merchant_balance_change", {
-    p_merchant_id: id.userId, p_currency: to, p_available_delta: toAmount, p_collections_delta: 0, p_payouts_delta: 0,
-  });
-  if (credit.error) {
-    await db().rpc("apply_merchant_balance_change", {
-      p_merchant_id: id.userId, p_currency: from, p_available_delta: amount, p_collections_delta: 0, p_payouts_delta: 0,
-    });
+  if (error) {
+    const msg = String(error.message || "");
+    if (msg.startsWith("Insufficient") || msg.startsWith("Choose") || msg.startsWith("Invalid")) return fail(msg);
     return fail("The conversion could not be completed.");
   }
-  await db().from("currency_exchanges").insert({
-    merchant_id: id.userId, from_currency: from, to_currency: to, from_amount: amount, to_amount: toAmount, rate, fee_percent,
-  });
-  return ok({ from, to, from_amount: amount, to_amount: toAmount, rate, fee_percent });
+  return ok(data);
 }
 
 export async function listExchanges(id: Identity) {
