@@ -583,6 +583,9 @@ export default function AdminMerchants() {
                         </td>
                         <td className="px-5 py-3 text-right">
                           <span className="text-xs font-medium text-foreground-900">{balanceData[m.id]?.available_balance !== undefined ? formatCurrency(balanceData[m.id].available_balance, balanceData[m.id].currency) : "—"}</span>
+                          {Object.entries((balanceData[m.id] as any)?.wallets || {}).filter(([c, v]) => c !== balanceData[m.id]?.currency && Number(v) !== 0).map(([c, v]) => (
+                            <span key={c} className="block text-[10px] text-foreground-500">{formatCurrency(Number(v), c)}</span>
+                          ))}
                         </td>
                         <td className="px-5 py-3 text-right">
                           <div className="flex items-center gap-1 justify-end">
@@ -751,18 +754,21 @@ export default function AdminMerchants() {
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Available Balance</p>
                 <p className="font-bold text-foreground-900">{detailWallet ? formatCurrency(detailWallet.available_balance, detailWallet.currency) : "Loading..."}</p>
+                {detailWallet && Object.entries((detailWallet as any).wallets || {}).filter(([c]) => c !== detailWallet.currency).map(([c, v]) => (
+                  <p key={c} className="text-[11px] text-foreground-600">{formatCurrency(Number(v), c)}</p>
+                ))}
               </div>
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Pending Balance</p>
-                <p className="font-medium text-foreground-700">{detailWallet ? formatCurrency(detailWallet.pending_balance) : "—"}</p>
+                <p className="font-medium text-foreground-700">{detailWallet ? formatCurrency(detailWallet.pending_balance, detailWallet.currency) : "—"}</p>
               </div>
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Total Collections</p>
-                <p className="font-medium text-primary-600">{detailWallet ? formatCurrency(detailWallet.total_collections) : "—"}</p>
+                <p className="font-medium text-primary-600">{detailWallet ? formatCurrency(detailWallet.total_collections, detailWallet.currency) : "—"}</p>
               </div>
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Total Payouts</p>
-                <p className="font-medium text-accent-600">{detailWallet ? formatCurrency(detailWallet.total_payouts) : "—"}</p>
+                <p className="font-medium text-accent-600">{detailWallet ? formatCurrency(detailWallet.total_payouts, detailWallet.currency) : "—"}</p>
               </div>
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Withdrawals</p>

@@ -3,6 +3,7 @@ import { Link } from "@/lib/router-compat";
 import { supabase } from "@/lib/supabase";
 import { getAccessToken } from "@/lib/session-token";
 import { merchantMonthRecords } from "@/lib/merchant-report.functions";
+import { adminMerchantActivity } from "@/lib/admin-insights.functions";
 
 interface Props {
   userId: string;
@@ -187,19 +188,13 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const [mpRes, keyRes, txRes, poRes, plRes] = await Promise.all([
-        supabase.from("merchant_profiles").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("api_keys").select("public_key, environment, status, created_at").eq("user_id", userId).maybeSingle(),
-        supabase.from("transactions").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(300),
-        supabase.from("payout_requests").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
-        supabase.from("payment_links").select("id", { count: "exact", head: true }).eq("user_id", userId),
-      ]);
+      const res: any = await adminMerchantActivity({ data: { accessToken: await getAccessToken(), userId } });
       if (cancelled) return;
-      setMp((mpRes.data as MerchantProfileRow) || null);
-      setApiKey((keyRes.data as ApiKeyRow) || null);
-      setTxs((txRes.data as TxRow[]) || []);
-      setPayouts((poRes.data as PayoutRow[]) || []);
-      setLinkCount(plRes.count || 0);
+      setMp(res.mp);
+      setApiKey(res.apiKey);
+      setTxs(res.txs || []);
+      setPayouts(res.payouts || []);
+      setLinkCount(res.linkCount || 0);
       setLoading(false);
     };
     load().then(undefined, () => {
@@ -210,11 +205,16 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
     };
   }, [userId, refreshVersion]);
 
-  const ok = (s?: string | null) => s === "successful" || s === "completed" || s === "success";
+  const ok = (s?: string | null) => s === "successful" || s === "completed" || s === "success" || s === "settled";
   const settled = txs.filter((t) => ok(t.status));
   const failed = txs.filter((t) => t.status === "failed");
   const pending = txs.filter((t) => t.status === "pending" || t.status === "processing");
-  const sum = (rows: TxRow[]) => rows.reduce((a, t) => a + Number(t.amount || 0), 0);
+  const sum = (rows: TxRow[]) => {
+    const by: Record<string, number> = {};
+    for (const t of rows) { const c = t.currency || "UGX"; by[c] = (by[c] || 0) + Number(t.amount || 0); }
+    const parts = Object.entries(by).map(([c, v]) => money(v, c));
+    return parts.length ? parts.join(" · ") : money(0);
+  };
   const inflow = sum(settled.filter((t) => t.type !== "payout" && t.type !== "withdrawal"));
   const outflow = sum(settled.filter((t) => t.type === "payout" || t.type === "withdrawal"));
   const today = new Date().toDateString();
@@ -223,8 +223,8 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
   const rate = decided ? Math.round((settled.length / decided) * 100) : 0;
   const risk = failed.length >= 5 && rate < 50 ? "High" : failed.length >= 3 || todayCount > 30 ? "Medium" : "Low";
   const stats: Array<[string, string, string]> = [
-    ["Money in (settled)", money(inflow), "text-primary-600"],
-    ["Money out (settled)", money(outflow), "text-accent-600"],
+    ["Money in (settled)", inflow, "text-primary-600"],
+    ["Money out (settled)", outflow, "text-accent-600"],
     ["Success rate", `${rate}%`, "text-foreground-900"],
     ["Transactions", String(txs.length), "text-foreground-900"],
     ["Pending", String(pending.length), "text-secondary-700"],
@@ -360,7 +360,7 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
             <p className="text-xs text-foreground-500">No transactions yet.</p>
           ) : (
             <ul className="space-y-2">
-              {txs.slice(0, 15).map((t) => {
+              {txs.slice(0, 30).map((t) => {
                 const adminAdjustment = t.payment_method === "admin_adjustment" || t.reference?.startsWith("ADMIN_");
                 const deducted = t.reference?.startsWith("ADMIN_DEDUCT_");
                 return (
@@ -378,7 +378,7 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
                     </p>
                     <span
                       className={`text-[10px] font-medium ${
-                        t.status === "successful" || t.status === "completed"
+                        ok(t.status)
                           ? "text-primary-600"
                           : t.status === "failed"
                             ? "text-accent-600"
@@ -407,7 +407,7 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
               {payouts.map((p) => (
                 <li key={p.id} className="flex items-center justify-between gap-3 text-xs">
                   <div className="min-w-0">
-                    <p className="font-medium text-foreground-900">{money(p.amount)}</p>
+                    <p className="font-medium text-foreground-900">{money(p.amount, (p as any).currency || "UGX")}</p>
                     <p className="text-[11px] text-foreground-500">{fmtDate(p.requested_at || p.created_at)}</p>
                   </div>
                   <span

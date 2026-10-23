@@ -10,7 +10,7 @@ export const adminAccountBalances = createServerFn({ method: "POST" })
   .inputValidator((d: { accessToken: string }) => ({ accessToken: String(d.accessToken || "") }))
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./identity.server");
-    await requireAdmin(data.accessToken);
+    await requireAdmin(data.accessToken, "finance");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { combinedBalances } = await import("./balance-values");
     const [profiles, wallets, managed] = await Promise.all([
@@ -23,7 +23,7 @@ export const adminAccountBalances = createServerFn({ method: "POST" })
       const wallet = wallets.data?.find((w) => w.user_id === p.id);
       const currency = p.default_currency || "UGX";
       const values = combinedBalances(wallet || null, managed.data?.filter((b) => b.merchant_id === p.id) || [], currency);
-      return [p.id, { currency, withdrawals_enabled: wallet?.withdrawals_enabled !== false, available_balance: values[currency] || 0, pending_balance: Number(wallet?.pending_balance || 0), total_collections: Number(wallet?.total_collections || 0), total_payouts: Number(wallet?.total_payouts || 0) }];
+      return [p.id, { currency, withdrawals_enabled: wallet?.withdrawals_enabled !== false, available_balance: values[currency] || 0, wallets: values, pending_balance: Number(wallet?.pending_balance || 0), total_collections: Number(wallet?.total_collections || 0), total_payouts: Number(wallet?.total_payouts || 0) }];
     }));
   });
 
@@ -110,4 +110,77 @@ export const revokeAllApiKeys = createServerFn({ method: "POST" })
     } catch (err: any) {
       return { success: false, error: err?.message || "Could not revoke keys.", count: 0 };
     }
+  });
+
+/** Admin-only: one merchant's full activity — dashboard, API and payment-link payments together. */
+export const adminMerchantActivity = createServerFn({ method: "POST" })
+  .inputValidator((d: { accessToken: string; userId: string }) => ({ accessToken: String(d?.accessToken || ""), userId: String(d?.userId || "") }))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./identity.server");
+    await requireAdmin(data.accessToken, "finance");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const id = data.userId;
+    const [mp, key, legacy, records, payouts, links] = await Promise.all([
+      db.from("merchant_profiles").select("*").eq("user_id", id).maybeSingle(),
+      db.from("merchant_api_keys").select("public_key, environment, status, created_at, last_used_at").eq("merchant_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      db.from("transactions").select("id, amount, currency, status, type, created_at, customer_phone, customer_name, description, payment_method, reference, fee_amount").eq("user_id", id).order("created_at", { ascending: false }).limit(500),
+      db.from("payment_records").select("id, amount, currency, status, type, created_at, phone_number, description, source, reference, fee_amount").eq("merchant_id", id).order("created_at", { ascending: false }).limit(500),
+      db.from("payout_requests").select("id, amount, currency, status, requested_at, phone_number").eq("user_id", id).order("requested_at", { ascending: false }).limit(10),
+      db.from("payment_links").select("id", { count: "exact", head: true }).eq("merchant_id", id),
+    ]);
+    if (legacy.error || records.error) throw new Error("Transactions could not be loaded.");
+    const seen = new Set((legacy.data || []).map((t: any) => t.reference).filter(Boolean));
+    const fromRecords = (records.data || []).filter((r: any) => !seen.has(r.reference)).map((r: any) => ({
+      id: r.id, amount: r.amount, currency: r.currency, status: r.status, type: r.type, created_at: r.created_at,
+      customer_phone: r.phone_number, description: r.description, reference: r.reference, fee_amount: r.fee_amount,
+      payment_method: r.source === "payment_link" ? "Payment link" : "API",
+    }));
+    const txs = [...(legacy.data || []), ...fromRecords].sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at)));
+    return { mp: mp.data || null, apiKey: key.data || null, txs, payouts: payouts.data || [], linkCount: links.count || 0 };
+  });
+
+/** Admin-only: platform totals and recent activity across dashboard, API and payment-link payments, never counted twice. */
+export const adminDashboardActivity = createServerFn({ method: "POST" })
+  .inputValidator((d: { accessToken: string }) => ({ accessToken: String(d?.accessToken || "") }))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./identity.server");
+    await requireAdmin(data.accessToken, "finance");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const page = async (table: string, cols: string) => {
+      const out: any[] = [];
+      for (let from = 0; from < 50000; from += 1000) {
+        const { data: rows, error } = await db.from(table).select(cols).order("created_at", { ascending: false }).range(from, from + 999);
+        if (error) throw new Error("Activity could not be loaded.");
+        out.push(...(rows || []));
+        if (!rows || rows.length < 1000) break;
+      }
+      return out;
+    };
+    const [legacy, records, names] = await Promise.all([
+      page("transactions", "id, user_id, reference, amount, currency, status, type, payment_method, customer_phone, created_at"),
+      page("payment_records", "id, merchant_id, reference, amount, currency, status, type, source, phone_number, created_at"),
+      db.from("profiles").select("id, full_name"),
+    ]);
+    const nameOf = new Map((names.data || []).map((p: any) => [p.id, p.full_name]));
+    const refs = new Set(legacy.map((t) => t.reference).filter(Boolean));
+    const all = [
+      ...legacy,
+      ...records.filter((r) => !refs.has(r.reference)).map((r) => ({ id: r.id, user_id: r.merchant_id, reference: r.reference, amount: r.amount, currency: r.currency, status: r.status, type: r.type, payment_method: r.source === "payment_link" ? "Payment link" : "API", customer_phone: r.phone_number, created_at: r.created_at })),
+    ].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+    const volume: Record<string, number> = {}; const todayVolume: Record<string, number> = {};
+    let success = 0;
+    for (const t of all) {
+      if (t.status !== "success" && t.status !== "successful" && t.status !== "completed") continue;
+      success++;
+      const c = String(t.currency || "UGX").toUpperCase();
+      volume[c] = (volume[c] || 0) + (Number(t.amount) || 0);
+      if (new Date(t.created_at) >= today) todayVolume[c] = (todayVolume[c] || 0) + (Number(t.amount) || 0);
+    }
+    return {
+      total: all.length, success, volume, todayVolume,
+      recent: all.slice(0, 50).map((t) => ({ ...t, profiles: { full_name: nameOf.get(t.user_id) || null } })),
+    };
   });

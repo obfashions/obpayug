@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "@/lib/router-compat";
 import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase } from "@/lib/supabase";
+import { getAccessToken } from "@/lib/session-token";
+import { adminDashboardActivity } from "@/lib/admin-insights.functions";
 
 function formatCurrency(amount: number, currency: string = "UGX"): string {
   return new Intl.NumberFormat("en-US", {
@@ -10,6 +12,11 @@ function formatCurrency(amount: number, currency: string = "UGX"): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function multi(by: Record<string, number>): string {
+  const parts = Object.entries(by).sort((a, b) => (a[0] === "UGX" ? -1 : b[0] === "UGX" ? 1 : 0)).map(([c, v]) => formatCurrency(v, c));
+  return parts.length ? parts.join(" · ") : formatCurrency(0);
 }
 
 function formatNumber(num: number): string {
@@ -42,8 +49,8 @@ export default function AdminDashboard() {
     totalMerchants: 0,
     activeMerchants: 0,
     pendingKYC: 0,
-    totalVolume: 0,
-    todayVolume: 0,
+    volume: {} as Record<string, number>,
+    todayVolume: {} as Record<string, number>,
     totalTransactions: 0,
     successRate: 0,
   });
@@ -61,40 +68,21 @@ export default function AdminDashboard() {
           { count: totalMerchants },
           { count: activeMerchants },
           { count: pendingKYC },
-          { data: txns },
-          { count: txCount },
-          { data: okTx },
         ] = await Promise.all([
           supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "merchant").neq("status", "deactivated"),
           supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "merchant").eq("status", "active"),
           supabase.from("merchant_profiles").select("*", { count: "exact", head: true }).eq("verification_status", "pending"),
-          supabase.from("transactions").select("*, profiles!transactions_user_id_fkey(full_name)").order("created_at", { ascending: false }).limit(50),
-          supabase.from("transactions").select("*", { count: "exact", head: true }),
-          supabase.from("transactions").select("amount, created_at").eq("status", "success").limit(20000),
         ]);
-
-        const txnList = txns as TxnRow[] || [];
-        const today = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-
-        let totalVolume = 0;
-        let todayVolume = 0;
-        let successCount = 0;
-
-        ((okTx as any[]) || []).forEach((t) => {
-          const amt = Number(t.amount) || 0;
-          totalVolume += amt;
-          successCount++;
-          if (new Date(t.created_at) >= today) todayVolume += amt;
-        });
-
+        const activity: any = await adminDashboardActivity({ data: { accessToken: await getAccessToken() } });
+        const txnList = (activity.recent || []) as TxnRow[];
         setStats({
           totalMerchants: totalMerchants || 0,
           activeMerchants: activeMerchants || 0,
           pendingKYC: pendingKYC || 0,
-          totalVolume,
-          todayVolume,
-          totalTransactions: txCount || txnList.length,
-          successRate: (txCount || 0) > 0 ? Math.round((successCount / (txCount || 1)) * 100) : 0,
+          volume: activity.volume || {},
+          todayVolume: activity.todayVolume || {},
+          totalTransactions: activity.total || 0,
+          successRate: activity.total ? Math.round((activity.success / activity.total) * 100) : 0,
         });
 
         setRecentTxns(txnList);
@@ -111,7 +99,7 @@ export default function AdminDashboard() {
   const statCards = [
     { label: "Total Merchants", value: formatNumber(stats.totalMerchants), sub: `${formatNumber(stats.activeMerchants)} active`, icon: "ri-store-3-line", accent: "bg-primary-100 text-primary-600" },
     { label: "Pending KYC", value: formatNumber(stats.pendingKYC), sub: "Awaiting review", icon: "ri-shield-check-line", accent: "bg-accent-100 text-accent-600" },
-    { label: "Total Volume", value: formatCurrency(stats.totalVolume), sub: `${formatCurrency(stats.todayVolume)} today`, icon: "ri-funds-line", accent: "bg-secondary-100 text-secondary-600" },
+    { label: "Total Volume", value: multi(stats.volume), sub: `${multi(stats.todayVolume)} today`, icon: "ri-funds-line", accent: "bg-secondary-100 text-secondary-600" },
     { label: "Total Transactions", value: formatNumber(stats.totalTransactions), sub: `${stats.successRate}% success rate`, icon: "ri-exchange-line", accent: "bg-primary-100 text-primary-600" },
   ];
 
