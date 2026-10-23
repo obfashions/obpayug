@@ -764,11 +764,11 @@ export default function AdminMerchants() {
               </div>
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Total Collections</p>
-                <p className="font-medium text-primary-600">{detailWallet ? formatCurrency(detailWallet.total_collections) : "—"}</p>
+                <p className="font-medium text-primary-600">{detailWallet ? formatCurrency(detailWallet.total_collections, detailWallet.currency) : "—"}</p>
               </div>
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Total Payouts</p>
-                <p className="font-medium text-accent-600">{detailWallet ? formatCurrency(detailWallet.total_payouts) : "—"}</p>
+                <p className="font-medium text-accent-600">{detailWallet ? formatCurrency(detailWallet.total_payouts, detailWallet.currency) : "—"}</p>
               </div>
               <div>
                 <p className="text-xs text-foreground-500 mb-1">Withdrawals</p>
