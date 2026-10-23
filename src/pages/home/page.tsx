@@ -112,7 +112,7 @@ export default function Home() {
               name: "What are the transaction fees?",
               acceptedAnswer: {
                 "@type": "Answer",
-                text: "ObPay uses simple tiered pricing on payouts and withdrawals: a flat 2,000 UGX for amounts 500–70,000 UGX, and 3% for 70,001–5M UGX. Collections are free. No setup fees or monthly minimums.",
+                text: "ObPay uses simple tiered pricing on payouts and withdrawals: a flat 2,000 UGX for amounts 500–70,000 UGX, and 3% for 70,001–5M UGX. Receiving payments has a small platform fee shown before each payment. No setup fees or monthly minimums.",
               },
             },
             {

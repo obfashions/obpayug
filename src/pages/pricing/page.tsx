@@ -32,7 +32,7 @@ export default function PricingPage() {
           "@context": "https://schema.org",
           "@type": "WebPage",
           name: "ObPay Pricing & Fees - Transparent East African Payment Platform",
-          description: "ObPay charges tiered fees on payouts and withdrawals: a flat 2,000 UGX for amounts 500–70,000 UGX, and 3% for amounts 70,001–5M UGX. Collections are free. No hidden fees, no monthly charges — just straightforward pricing for businesses across East Africa.",
+          description: "ObPay charges tiered fees on payouts and withdrawals: a flat 2,000 UGX for amounts 500–70,000 UGX, and 3% for amounts 70,001–5M UGX. Receiving payments has a small platform fee shown before each payment. No hidden fees, no monthly charges — just straightforward pricing for businesses across East Africa.",
           url: import.meta.env.VITE_SITE_URL ? `${import.meta.env.VITE_SITE_URL}/pricing` : "/pricing",
         }}
       />
@@ -122,7 +122,7 @@ export default function PricingPage() {
             </h1>
 
             <p className="text-sm sm:text-base md:text-lg text-background-50/80 max-w-2xl mx-auto leading-relaxed mb-8">
-              No hidden charges. No monthly subscriptions. No setup costs. Just pay for what you use — simple tiered pricing on payouts and withdrawals. Collections are always free.
+              No hidden charges. No monthly subscriptions. No setup costs. Just pay for what you use — simple tiered pricing on payouts and withdrawals. Receiving payments has a small platform fee shown before each payment.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -493,7 +493,7 @@ export default function PricingPage() {
                 },
                 {
                   q: "Are there any monthly fees, subscription costs, or setup charges?",
-                  a: "No. ObPay has zero setup fees, zero monthly charges, and zero subscription costs. You only pay when you use the platform — tiered pricing on payouts and withdrawals: 2,000 UGX flat for amounts 500–70,000 UGX, and 3% for amounts 70,001–5M UGX. Collections are always free. There are no contracts, no commitments, and no surprises.",
+                  a: "No. ObPay has zero setup fees, zero monthly charges, and zero subscription costs. You only pay when you use the platform — tiered pricing on payouts and withdrawals: 2,000 UGX flat for amounts 500–70,000 UGX, and 3% for amounts 70,001–5M UGX. Receiving payments has a small platform fee shown before each payment. There are no contracts, no commitments, and no surprises.",
                 },
                 {
                   q: "Does ObPay support both Airtel Money and MTN Mobile Money?",
