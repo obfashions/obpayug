@@ -502,6 +502,8 @@ export interface PayoutRequest {
   channel?: string;
   /** When true the partner fee is taken from `amount` instead of added on top. */
   feeInclusive?: boolean;
+  /** ObPay's own fee, kept back from `amount` before the rest is sent to the partner. */
+  platformFee?: number;
   /** UGX (default), KES or RWF. */
   currency?: string;
   /** KES: mpesa / airtel_money. */
@@ -558,8 +560,9 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
   }
   let gross: number;
   let net: number;
+  const platformFee = Math.max(Number(req.platformFee) || 0, 0);
   if (req.feeInclusive) {
-    gross = req.amount;
+    gross = req.amount - platformFee;
     const f = rules.flat ? rules.flat : rules.percent ? Math.max(gross * rules.percent / 100, rules.floor) : 0;
     net = gross - f;
     if (gross < rules.min || net <= 0) {
@@ -615,7 +618,7 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
   const res = await gatewayFetch(creds, "/api/v1/payout", { method: "POST", body });
   if (!res.ok) return { ok: false as const, res };
   const payout = res.raw?.payout || res.data?.payout || {};
-  return { ok: true as const, res, platformReference: String(payout.reference || ""), gross, net, partnerFee: gross - net };
+  return { ok: true as const, res, platformReference: String(payout.reference || ""), gross, net, partnerFee: gross - net, platformFee };
 }
 
 /** Current state of a payout, by the partner's reference. */

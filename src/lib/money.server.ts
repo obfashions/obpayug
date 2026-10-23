@@ -94,7 +94,7 @@ export async function createRefund(id: Identity, body: Record<string, any>) {
     phone_number: rec.phone_number,
     customer_name: String(rec.metadata?.customer_name || "ObPay customer"),
     description: `Refund of ${reference}${reason ? ` – ${reason}` : ""}`,
-  }, "refund");
+  }, "refund", true);
 
   await db().from("merchant_refunds").insert({
     merchant_id: merchantId, original_reference: reference, refund_reference: refundRef, amount,
