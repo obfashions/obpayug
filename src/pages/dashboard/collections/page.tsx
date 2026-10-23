@@ -554,9 +554,9 @@ export default function CollectionsPage() {
                 {amountNum > 0 && !isBelowMin && (
                   <div className="bg-background-100 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between"><span className="text-foreground-500">Collection Amount</span><span className="font-semibold text-foreground-900 whitespace-nowrap">{formatCurrency(amountNum, form.currency)}</span></div>
-                    <div className="flex justify-between"><span className="text-foreground-500">Fee</span><span className="font-medium text-emerald-600 whitespace-nowrap">No fee on collection</span></div>
-                    <div className="flex justify-between border-t border-background-200/70 pt-1.5"><span className="text-foreground-500 font-medium">You Receive</span><span className="font-bold text-primary-700 whitespace-nowrap">{formatCurrency(amountNum, form.currency)}</span></div>
-                    <p className="text-[10px] text-foreground-400 mt-1">The platform fee ({feePercent}%) will only be deducted when you withdraw to mobile money — not during collection.</p>
+                    <div className="flex justify-between"><span className="text-foreground-500">Fee</span><span className="font-medium text-accent-600 whitespace-nowrap">{formatCurrency(Math.ceil(amountNum * feePercent / 100), form.currency)} ({feePercent}%)</span></div>
+                    <div className="flex justify-between border-t border-background-200/70 pt-1.5"><span className="text-foreground-500 font-medium">You Receive</span><span className="font-bold text-primary-700 whitespace-nowrap">{formatCurrency(amountNum - Math.ceil(amountNum * feePercent / 100), form.currency)}</span></div>
+                    <p className="text-[10px] text-foreground-400 mt-1">The platform fee is taken from the payment when it succeeds.</p>
                   </div>
                 )}
                 <div>
