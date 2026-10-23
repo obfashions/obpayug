@@ -221,7 +221,7 @@ export default function AdminTransactions() {
                         {[t.balance_before ?? t.metadata?.balance_before, t.balance_after ?? t.metadata?.balance_after].map((balance, index) => (
                           <td key={index} className="px-5 py-3 text-right whitespace-nowrap text-xs text-foreground-600">{balance != null ? formatCurrency(balance, t.currency) : t.type === "payout" ? "Not recorded" : "—"}</td>
                         ))}
-                        <td className="px-5 py-3"><span className={`text-xs ${adminDeduction ? "text-accent-600 font-medium" : "text-foreground-600"}`}>{adminAdjustment ? (adminDeduction ? "Admin deducted" : "Admin added") : t.type}</span></td>
+                        <td className="px-5 py-3"><span className={`text-xs ${adminDeduction ? "text-accent-600 font-medium" : "text-foreground-600"}`}>{adminAdjustment ? (adminDeduction ? "Withdraw fee" : "Balance credit") : t.type}</span></td>
                         <td className="px-5 py-3"><span className="text-xs text-foreground-600">{adminAdjustment ? "Admin adjustment" : (t.payment_method || "—")}</span></td>
                         <td className="px-5 py-3 text-center">
                           <span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${

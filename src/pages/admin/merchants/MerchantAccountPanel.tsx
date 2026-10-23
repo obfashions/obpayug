@@ -367,7 +367,7 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
                 <li key={t.id} className="flex items-center justify-between gap-3 text-xs">
                   <div className="min-w-0">
                     <p className="font-medium text-foreground-900 truncate">
-                      {adminAdjustment ? (deducted ? "Admin deducted" : "Admin added") : (t.type || "payment")} · {t.customer_phone || t.reference || t.id.slice(0, 8)}
+                      {adminAdjustment ? (deducted ? "Withdraw fee" : "Balance credit") : (t.type || "payment")} · {t.customer_phone || t.reference || t.id.slice(0, 8)}
                     </p>
                     {t.description && <p className="text-[11px] text-foreground-600 truncate">{t.description}</p>}
                     <p className="text-[11px] text-foreground-500">{fmtDate(t.created_at)}</p>

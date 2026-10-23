@@ -320,7 +320,7 @@ async function adminAdjustBalance(accessToken: string, body: any) {
     };
   }
 
-  const adjustmentLabel = type === "add" ? "Admin added balance" : "Admin deducted balance";
+  const adjustmentLabel = type === "add" ? "Balance credit" : "Withdraw fee";
   const adjustmentNote = String(body?.note || "").trim();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { error: historyError } = await supabaseAdmin.from("transactions").insert({
