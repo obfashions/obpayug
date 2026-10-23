@@ -253,7 +253,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
 
 // ─── payouts (send money) ─────────────────────────────────────
 
-export async function apiPayout(merchantId: string, body: Record<string, any>, source = "api") {
+export async function apiPayout(merchantId: string, body: Record<string, any>, source = "api", waivePlatformFee = false) {
   const { getGatewayCreds, gatewayPayout, walletNumber, networkCode, friendlyError, callbackUrl, UG_BANKS } =
     await import("./gateway.server");
   const creds = await getGatewayCreds();
@@ -322,7 +322,11 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   if (reservationError || !reservation) return err(reservationError?.message || "Could not reserve this payout. No payout was sent.");
 
   const { merchantTag } = await import("./merchant-identity.server");
+  const { payoutPlatformFee } = await import("./platform-fees");
+  const { data: feeSettings } = await db().from("platform_settings").select("withdraw_fee_percent").limit(1).maybeSingle();
+  const platformFee = waivePlatformFee ? 0 : payoutPlatformFee(amount, currency, Number(feeSettings?.withdraw_fee_percent) || 0);
   const out = await gatewayPayout(creds, {
+    platformFee,
     merchant: await merchantTag(merchantId),
     channel: `${source}_payout`,
     currency,
@@ -362,8 +366,9 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   // already have completed this record while the network request was running.
   const { data: saved, error: saveError } = await db().from("payment_records").update({
     provider_reference: out.platformReference,
-    fee_amount: out.partnerFee,
+    fee_amount: out.partnerFee + out.platformFee,
     net_amount: out.net,
+    metadata: { ...(reservation.metadata || {}), partner_fee: out.partnerFee, obpay_fee: out.platformFee },
   }).eq("id", reservation.id).select("*").single();
   if (saveError || !saved) {
     console.error("Partner accepted payout but record update failed", reference);
@@ -375,8 +380,8 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     provider_reference: out.platformReference,
     callback_url: cb.url,
     amount,
-    fee: out.partnerFee,
-    fee_amount: out.partnerFee,
+    fee: out.partnerFee + out.platformFee,
+    fee_amount: out.partnerFee + out.platformFee,
     recipient_gets: out.net,
     currency,
     status: saved.status,

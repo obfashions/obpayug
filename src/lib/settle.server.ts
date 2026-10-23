@@ -29,6 +29,16 @@ export interface SettleResult {
   record: Record<string, any> | null;
 }
 
+export async function collectionFeeFor(record: Record<string, any>) {
+  const { collectionFee, PARTNER_COLLECTION_PERCENT } = await import("./platform-fees");
+  const amount = Number(record.amount) || 0;
+  const currency = String(record.currency || "UGX");
+  if (currency === "USD" || amount <= 0) return Number(record.fee_amount) || 0;
+  const { data: ps } = await db().from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle();
+  const partner = Number(record.metadata?.partner_fee) || amount * PARTNER_COLLECTION_PERCENT / 100;
+  return collectionFee(amount, currency, Number(ps?.platform_fee_percent) || 0, partner);
+}
+
 /**
  * Moves a pending payment record to a terminal state exactly once and fires
  * the webhook + notification side effects for the caller that won the claim.
@@ -40,7 +50,9 @@ export async function settlePaymentRecord(
 ): Promise<SettleResult> {
   const now = new Date().toISOString();
   const amount = Number(record.amount) || 0;
-  const fee = Number.isFinite(opts.fee) ? Number(opts.fee) : Number(record.fee_amount) || 0;
+  let fee = Number.isFinite(opts.fee) ? Number(opts.fee) : Number(record.fee_amount) || 0;
+  // Received payments carry ObPay's admin-set fee, which also covers the partner's charge.
+  if (record.type !== "payout" && next === "success" && !opts.fee) fee = await collectionFeeFor(record);
 
   const { data: settlement, error } = await db().rpc("settle_payment_record_and_balance", {
     p_record_id: record.id,

@@ -113,7 +113,7 @@ export default function SupportPage() {
     },
     {
       q: "What are the fees?",
-      a: "ObPay charges a platform fee on collections (default 5%, set by admin). There are no fees for receiving collections — fees are only applied during payouts. Mobile network fees are handled by the payment provider."
+      a: "ObPay charges a platform fee on collections (default 5%, set by admin). The fee is taken from each payment you receive, and payouts carry a withdrawal fee set by admin."
     },
     {
       q: "How do I integrate ObPay into my website?",

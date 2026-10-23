@@ -14,7 +14,7 @@ const faqs = [
   {
     question: "What are the transaction fees?",
     answer:
-      "ObPay uses simple tiered pricing on payouts and withdrawals — no setup fees, no monthly minimums. For amounts between 500 and 70,000 UGX, the fee is a flat 2,000 UGX. For amounts between 70,001 and 5,000,000 UGX, the fee is 3%. Collections are always free. Volume discounts are available for businesses processing over UGX 50 million monthly. Contact our sales team for custom enterprise pricing.",
+      "ObPay uses simple tiered pricing on payouts and withdrawals — no setup fees, no monthly minimums. For amounts between 500 and 70,000 UGX, the fee is a flat 2,000 UGX. For amounts between 70,001 and 5,000,000 UGX, the fee is 3%. Receiving payments has a small platform fee shown before each payment. Volume discounts are available for businesses processing over UGX 50 million monthly. Contact our sales team for custom enterprise pricing.",
   },
   {
     question: "How do I get verified as a merchant?",
