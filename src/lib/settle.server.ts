@@ -29,7 +29,7 @@ export interface SettleResult {
   record: Record<string, any> | null;
 }
 
-async function collectionFeeFor(record: Record<string, any>) {
+export async function collectionFeeFor(record: Record<string, any>) {
   const { collectionFee, PARTNER_COLLECTION_PERCENT } = await import("./platform-fees");
   const amount = Number(record.amount) || 0;
   const currency = String(record.currency || "UGX");

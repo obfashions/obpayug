@@ -140,11 +140,13 @@ async function providerStateFor(txn: any): Promise<{ status: "success" | "failed
     const out = await gatewayCollectionStatus(creds, txn.reference);
     if (!out.ok || !out.status || out.status === "pending") return null;
     const short = out.status === "success" && out.amount > 0 && out.amount < Number(txn.amount || 0);
-    return { status: short ? "failed" : out.status, fee: Number(txn.fee_amount || 0), providerRef: txn.reference };
+    const st = short ? "failed" : out.status;
+    const { collectionFeeFor } = await import("./settle.server");
+    return { status: st, fee: st === "success" ? await collectionFeeFor(txn) : 0, providerRef: txn.reference };
   }
   return {
     status: record.status,
-    fee: Number(record.fee_amount || txn.fee_amount || 0),
+    fee: record.status === "success" ? Number(record.fee_amount) || await (await import("./settle.server")).collectionFeeFor(txn) : 0,
     providerRef: record.provider_reference || null,
   };
 }
