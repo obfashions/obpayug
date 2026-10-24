@@ -24,10 +24,14 @@ export function payoutPlatformFee(amount: number, currency: string, withdrawPerc
 }
 
 /** Entered amount needed to leave the partner's minimum after ObPay's charge. */
-export function minimumFeeInclusivePayout(partnerMinimum: number, currency: string, withdrawPercent: number) {
+export function minimumFeeInclusivePayout(partnerMinimum: number, currency: string, withdrawPercent: number, partnerFee?: { type?: string; floor?: number; amount?: number; value?: number }) {
   const pct = Math.min(Math.max(Number(withdrawPercent) || 0, 0), 100);
   if (pct >= 100) return null;
-  return roundUp(partnerMinimum / (1 - pct / 100), currency);
+  const unit = WHOLE.has(currency.toUpperCase()) ? 1 : 0.01;
+  const fixedFee = partnerFee?.type === "flat" ? Number(partnerFee.amount ?? partnerFee.value) || 0 : Number(partnerFee?.floor) || 0;
+  // The partner fee must leave a positive recipient amount, even when its floor equals its minimum.
+  const sendMinimum = Math.max(partnerMinimum, fixedFee > 0 ? fixedFee + unit : 0);
+  return roundUp(sendMinimum / (1 - pct / 100), currency);
 }
 
 /** The partner's documented collection fee (1.5%), used when it is not reported. */

@@ -16,7 +16,7 @@ export function usePayoutMinimum(currency: string, enabled = true) {
       if (cancelled) return;
       const partnerMinimum = Number(rules.data?.minimum);
       const calculated = rules.success && rules.data?.available && !settings.error && settings.data && partnerMinimum > 0
-        ? minimumFeeInclusivePayout(partnerMinimum, currency, Number(settings.data.withdraw_fee_percent) || 0)
+        ? minimumFeeInclusivePayout(partnerMinimum, currency, Number(settings.data.withdraw_fee_percent) || 0, rules.data?.fee)
         : null;
       const minimum = calculated == null ? null : Math.max(calculated, currency === "UGX" ? Number(settings.data?.min_payout_amount) || 0 : 0);
       setResult({ currency, minimum, loading: false });

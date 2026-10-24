@@ -512,11 +512,8 @@ export interface PayoutRequest {
   network?: string;
 }
 
-const payoutRuleCache = new Map<string, { at: number; min: number; percent: number; floor: number; flat: number }>();
 async function payoutRules(creds: GatewayCreds, currency = "UGX") {
-  const cacheKey = `${creds.key}:${currency}`;
-  const hit = payoutRuleCache.get(cacheKey);
-  if (hit && Date.now() - hit.at < 10 * 60_000) return hit;
+  // Match the form's live rules: a cached minimum can reject a newly lowered limit.
   const res = await gatewayFetch(creds, `/api/v1/payout-methods?currency=${currency}`);
   if (!res.ok || !res.raw?.payout_methods?.fee) return null;
   const pm = res.raw?.payout_methods || {};
@@ -532,7 +529,6 @@ async function payoutRules(creds: GatewayCreds, currency = "UGX") {
     floor: Number(fee.floor) || 0,
     flat: fee.type === "flat" ? Number(fee.amount ?? fee.value) || 0 : 0,
   };
-  payoutRuleCache.set(cacheKey, rules);
   return rules;
 }
 
@@ -571,7 +567,7 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       const { minimumFeeInclusivePayout } = await import("./platform-fees");
       const enteredMinimum = req.platformFeePercent == null
         ? rules.min + platformFee
-        : minimumFeeInclusivePayout(rules.min, currency, req.platformFeePercent);
+        : minimumFeeInclusivePayout(rules.min, currency, req.platformFeePercent, { type: rules.flat ? "flat" : "percent", amount: rules.flat, floor: rules.floor });
       const minimumMessage = enteredMinimum == null
         ? "The configured withdrawal fee leaves no money to send. Contact ObPay support."
         : `Enter at least ${currency} ${enteredMinimum.toLocaleString("en")}. The payment network requires ${currency} ${rules.min.toLocaleString("en")} after ObPay's withdrawal fee; its own fee is then deducted. No money was sent.`;
