@@ -176,6 +176,13 @@
       "when": 1792709640751,
       "tag": "0024_atomic_wallet_exchange",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792858179852,
+      "tag": "0025_payout_reservation_debits_amount_plus_fees",
+      "breakpoints": true
     }
   ]
 }

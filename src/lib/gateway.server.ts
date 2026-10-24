@@ -534,6 +534,23 @@ async function payoutRules(creds: GatewayCreds, currency = "UGX") {
   return rules;
 }
 
+/**
+ * Fee-on-top quote for a payout: the recipient receives `amount` in full and
+ * the partner's fee is added on top. Returns null when the live rules are
+ * unavailable, or an error message when the amount cannot be sent.
+ */
+export async function payoutQuote(creds: GatewayCreds, currency: string, amount: number) {
+  const cur = String(currency || "UGX").toUpperCase();
+  const rules = await payoutRules(creds, cur);
+  if (!rules) return { rules: null, gross: 0, net: 0, partnerFee: 0, error: "Withdrawal fees are temporarily unavailable. Please try again shortly." };
+  if (!Number.isFinite(amount) || amount <= 0) return { rules, gross: 0, net: 0, partnerFee: 0, error: "`amount` must be greater than zero." };
+  if (amount < rules.min) {
+    return { rules, gross: 0, net: 0, partnerFee: 0, error: `The minimum payout is ${cur} ${rules.min.toLocaleString("en")}. No money was sent.` };
+  }
+  const gross = rules.flat ? amount + rules.flat : rules.percent ? Math.max(amount / (1 - rules.percent / 100), amount + rules.floor) : amount;
+  return { rules, gross, net: amount, partnerFee: gross - amount, error: null };
+}
+
 /** Sends money to a mobile money wallet. */
 export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
   const currency = String(req.currency || "UGX").toUpperCase();

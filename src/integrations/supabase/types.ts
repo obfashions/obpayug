@@ -1385,19 +1385,34 @@ export type Database = {
         }
         Returns: boolean
       }
-      reserve_payout_and_balance: {
-        Args: {
-          p_amount: number
-          p_currency: string
-          p_description: string
-          p_merchant_id: string
-          p_metadata?: Json
-          p_phone: string
-          p_reference: string
-          p_source: string
-        }
-        Returns: Json
-      }
+      reserve_payout_and_balance:
+        | {
+            Args: {
+              p_amount: number
+              p_currency: string
+              p_description: string
+              p_merchant_id: string
+              p_metadata?: Json
+              p_phone: string
+              p_reference: string
+              p_source: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_currency: string
+              p_debit?: number
+              p_description: string
+              p_merchant_id: string
+              p_metadata?: Json
+              p_phone: string
+              p_reference: string
+              p_source: string
+            }
+            Returns: Json
+          }
       set_member_roles: {
         Args: { p_roles: string[]; p_user_id: string }
         Returns: undefined
