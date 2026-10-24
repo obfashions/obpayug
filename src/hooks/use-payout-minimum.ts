@@ -16,7 +16,7 @@ export function usePayoutMinimum(currency: string, enabled = true) {
     setResult({ currency, minimum: null, loading: true });
     void Promise.all([
       platform("payout-methods", { currency }),
-      supabase.from("platform_settings").select("withdraw_fee_percent,min_payout_amount").limit(1).maybeSingle(),
+      supabase.from("platform_settings").select("withdraw_fee_percent,min_payout_amount,currency_fees").limit(1).maybeSingle(),
     ]).then(([rules, settings]) => {
       if (cancelled) return;
       const partnerMinimum = Number(rules.data?.minimum);

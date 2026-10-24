@@ -36,7 +36,7 @@ describe("platform fees", () => {
     expect(payoutPlatformFee(1001, "NGN", 4.1)).toBe(41.05);
   });
   it("requires 507 RWF at 1% with the separate 500 RWF partner fee floor", () => {
-    const rate = payoutFeePercent("RWF", 5);
+    const rate = payoutFeePercent("RWF", 5, { RWF: { withdraw: 1 } });
     expect(minimumFeeInclusivePayout(500, "RWF", rate, { type: "percent", floor: 500 })).toBe(507);
     expect(507 - payoutPlatformFee(507, "RWF", rate) - 500).toBe(1);
     expect(506 - payoutPlatformFee(506, "RWF", rate) - 500).toBe(0);
