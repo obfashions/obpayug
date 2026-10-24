@@ -142,7 +142,7 @@ async function providerStateFor(txn: any): Promise<{ status: "success" | "failed
     const short = out.status === "success" && out.amount > 0 && out.amount < Number(txn.amount || 0);
     const st = short ? "failed" : out.status;
     const { collectionFeeFor } = await import("./settle.server");
-    return { status: st, fee: st === "success" ? await collectionFeeFor(txn) : 0, providerRef: txn.reference };
+    return { status: st, fee: st === "success" ? await collectionFeeFor(txn, out.partnerFee) : 0, providerRef: txn.reference };
   }
   return {
     status: record.status,
@@ -672,11 +672,15 @@ export async function applyCallbackToDashboard(
 
 async function resolveTransactionWithStatus(txn: any, status: "success" | "failed"): Promise<boolean> {
   const now = new Date().toISOString();
-  const fee = Number(txn.fee_amount || 0);
+  const fee = status === "success" && txn.type === "collection"
+    ? (await providerStateFor(txn))?.fee
+    : Number(txn.fee_amount || 0);
+  if (fee == null) return false;
   const upd = await restWrite("", `/transactions?id=eq.${txn.id}&status=eq.pending`, {
     method: "PATCH",
     body: JSON.stringify({
       status,
+      fee_amount: fee,
       ...(status === "success" ? { completed_at: now, net_amount: Number(txn.amount) - fee } : {}),
     }),
   });

@@ -17,6 +17,21 @@ export function collectionFee(amount: number, currency: string, platformPercent:
   return Math.min(fee, amount);
 }
 
+/** Read only trusted gateway responses; an explicit zero fee is not missing data. */
+export function reportedCollectionFee(data: { fee?: unknown; net_amount?: unknown; amount?: unknown } | null | undefined): number | undefined {
+  if (!data) return undefined;
+  if (data.fee != null && data.fee !== "") {
+    const fee = Number(data.fee);
+    if (Number.isFinite(fee) && fee >= 0) return fee;
+  }
+  if (data.amount != null && data.net_amount != null && data.net_amount !== "") {
+    const amount = Number(data.amount);
+    const net = Number(data.net_amount);
+    if (Number.isFinite(amount) && Number.isFinite(net) && amount >= 0 && net >= 0 && net <= amount) return amount - net;
+  }
+  return undefined;
+}
+
 /** Resolve the currency's current ObPay payout rate; refunds bypass this rate. */
 export function payoutFeePercent(currency: string, configuredPercent: number) {
   return currency.toUpperCase() === "RWF" ? 1 : Math.min(Math.max(Number(configuredPercent) || 0, 0), 100);
