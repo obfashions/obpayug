@@ -388,7 +388,6 @@ export interface CollectionRequest {
   currency?: string;
   /** KES only: "airtel_money" skips the M-Pesa prompt. */
   network?: string;
-  preparedQuote?: Awaited<ReturnType<typeof payoutQuote>>;
   /** Send the payer to the crypto checkout. */
   crypto?: boolean;
 }
@@ -514,6 +513,8 @@ export interface PayoutRequest {
   currency?: string;
   /** KES: mpesa / airtel_money. */
   network?: string;
+  /** Server-only quote used to reserve exactly what is submitted. */
+  preparedQuote?: Awaited<ReturnType<typeof payoutQuote>>;
 }
 
 async function payoutRules(creds: GatewayCreds, currency = "UGX") {
