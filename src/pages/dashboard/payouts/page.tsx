@@ -9,6 +9,7 @@ import { platform } from "@/lib/platform";
 import { listPaymentRecords } from "@/lib/history.functions";
 import { getAccessToken } from "@/lib/session-token";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
+import { usePayoutMinimum } from "@/hooks/use-payout-minimum";
 
 const PAYOUT_BANKS = [
   ["UG0001", "Absa Bank Uganda"], ["UG0002", "Bank of Africa Uganda"], ["UG0003", "BRAC Uganda Bank"], ["UG0004", "Centenary Bank"], ["UG0005", "Cairo Bank Uganda"], ["UG0006", "DFCU Bank"], ["UG0007", "Diamond Trust Bank"], ["UG0008", "Equity Bank Uganda"], ["UG0009", "Ecobank Uganda"], ["UG0010", "Exim Bank Uganda"], ["UG0011", "EFC Uganda"], ["UG0012", "Finance Trust Bank"], ["UG0013", "FINCA Uganda"], ["UG0014", "Guaranty Trust Bank Uganda"], ["UG0015", "Housing Finance Bank"], ["UG0016", "I&M Bank Uganda"], ["UG0017", "KCB Bank Uganda"], ["UG0018", "Mercantile Credit Bank"], ["UG0019", "NCBA Bank Uganda"], ["UG0020", "Opportunity Bank Uganda"], ["UG0021", "Pride Microfinance"], ["UG0022", "PostBank Uganda"], ["UG0023", "Stanbic Bank Uganda"], ["UG0024", "Standard Chartered Uganda"], ["UG0025", "Tropical Bank"], ["UG0026", "Salaam Bank Uganda"], ["UG0027", "UGAFODE Microfinance"], ["UG0028", "United Bank for Africa"], ["UG0029", "Wazalendo SACCO"],
@@ -81,7 +82,9 @@ export default function PayoutsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [merchantSlug, setMerchantSlug] = useState<string | null>(null);
-  const [minPayout, setMinPayout] = useState(0);
+  const ugandaMinimum = usePayoutMinimum("UGX");
+  const selectedMinimum = usePayoutMinimum(activeCurrency);
+  const minPayout = ugandaMinimum.minimum ?? 0;
   const [maxPayout, setMaxPayout] = useState(0);
   const [showFundingQR, setShowFundingQR] = useState(false);
   const [copiedFunding, setCopiedFunding] = useState(false);
@@ -128,7 +131,6 @@ export default function PayoutsPage() {
         .sort((a, b) => b.requested_at.localeCompare(a.requested_at)));
       setWallet({ available_balance: wData?.available_balance || 0, pending_balance: wData?.pending_balance || 0 });
       setMerchantSlug(mData?.merchant_slug || null);
-      if (psData?.min_payout_amount != null) setMinPayout(psData.min_payout_amount);
       if (psData?.max_payout_amount != null) setMaxPayout(psData.max_payout_amount);
 
       // Compute withdrawal limit info
@@ -224,6 +226,7 @@ export default function PayoutsPage() {
     setSubmitting(true); setSubmitStatus(null);
     try {
       const amount = parseFloat(form.amount);
+      if (ugandaMinimum.minimum == null) { setSubmitStatus({ ok: false, message: "Withdrawal minimum is unavailable. Please try again shortly." }); return; }
       const destination = form.destinationType === "bank" ? form.accountNumber : form.phoneNumber;
       if (!form.customerName.trim() || !destination.trim() || isNaN(amount) || amount <= 0 || !Number.isInteger(amount) || (form.destinationType === "bank" && !form.bankCode)) {
         setSubmitStatus({ ok: false, message: "Complete all required fields and enter a whole UGX amount." });
@@ -321,6 +324,7 @@ export default function PayoutsPage() {
     setWithdrawSubmitting(true); setWithdrawStatus(null);
     try {
       const amount = parseFloat(withdrawAmount);
+      if (ugandaMinimum.minimum == null) { setWithdrawStatus({ ok: false, message: "Withdrawal minimum is unavailable. Please try again shortly." }); return; }
       if (isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
         setWithdrawStatus({ ok: false, message: "Please enter a whole UGX amount." });
         setWithdrawSubmitting(false); return;
@@ -484,6 +488,8 @@ export default function PayoutsPage() {
         </div>
 
 
+        <p aria-live="polite" className="text-sm font-medium text-foreground-700">{selectedMinimum.loading ? "Checking minimum payout…" : selectedMinimum.minimum == null ? `Payouts in ${activeCurrency} are currently unavailable.` : `Minimum payout: ${activeCurrency} ${selectedMinimum.minimum.toLocaleString("en")} (includes ObPay’s fee).`}</p>
+
         {/* Wallet summary - enhanced */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="relative overflow-hidden bg-background-50 rounded-xl border border-background-200/70 p-5 hover:border-background-300/60 transition-all">
@@ -617,12 +623,12 @@ export default function PayoutsPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({activeCurrency}) *</label>
+                      <label className="block text-xs font-medium text-foreground-600 mb-1">Amount (UGX) *</label>
                       <input
                         type="number"
                         value={withdrawAmount}
                         onChange={(e) => setWithdrawAmount(e.target.value)}
-                        placeholder={minPayout > 0 ? `Min ${formatCurrency(minPayout, activeCurrency)}` : "50000"}
+                        placeholder={minPayout > 0 ? `Min UGX ${minPayout.toLocaleString("en")}` : "Checking minimum…"}
                         className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400"
                         required
                         min={minPayout || 1000}
@@ -631,7 +637,7 @@ export default function PayoutsPage() {
                       />
                       {(minPayout > 0 || maxPayout > 0) && (
                         <p className="text-[11px] text-foreground-500 mt-1">
-                          {minPayout > 0 && `Min: ${formatCurrency(minPayout, activeCurrency)}`}
+                          {minPayout > 0 && `Minimum payout: UGX ${minPayout.toLocaleString("en")}`}
                           {minPayout > 0 && maxPayout > 0 && " · "}
                           {maxPayout > 0 && `Max: ${formatCurrency(maxPayout, activeCurrency)}`}
                         </p>
