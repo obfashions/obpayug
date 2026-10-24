@@ -7,7 +7,7 @@ const rwfRules = { success: true, payout_methods: { available: true, minimum_wit
 afterEach(() => vi.unstubAllGlobals());
 
 function stubRules(body: unknown) {
-  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+  const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify(body), { status: 200 })));
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
