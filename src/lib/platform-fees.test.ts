@@ -15,16 +15,25 @@ describe("platform fees", () => {
     expect(collectionFee(10000, "RWF", 4.8, 600)).toBe(600);
     expect(collectionFee(10000, "RWF", 4.8, 150)).toBe(480);
   });
-  it("charges 1% ObPay on Rwanda payouts, rounded to whole RWF", () => {
-    const rate = payoutFeePercent("RWF", 5);
+  it("charges the admin-set per-currency override on Rwanda payouts, rounded to whole RWF", () => {
+    const overrides = { RWF: { withdraw: 1 } };
+    const rate = payoutFeePercent("RWF", 5, overrides);
     expect(rate).toBe(1);
-    expect(payoutFeePercent("rwf", 4.8)).toBe(1);
+    expect(payoutFeePercent("rwf", 4.8, overrides)).toBe(1);
     expect(payoutPlatformFee(10000, "RWF", rate)).toBe(100);
     expect(payoutPlatformFee(507, "RWF", rate)).toBe(6);
   });
   it("keeps Uganda and Kenya's configured payout rates unchanged", () => {
-    expect(payoutFeePercent("UGX", 4.8)).toBe(4.8);
-    expect(payoutFeePercent("KES", 5)).toBe(5);
+    const overrides = { RWF: { withdraw: 1 } };
+    expect(payoutFeePercent("UGX", 4.8, overrides)).toBe(4.8);
+    expect(payoutFeePercent("KES", 5, overrides)).toBe(5);
+    expect(payoutFeePercent("RWF", 4.8)).toBe(4.8);
+  });
+  it("rounds fees up to whole units for every mobile-money currency", () => {
+    for (const cur of ["UGX", "RWF", "KES", "XOF", "XAF", "CDF", "ZMW", "SLL"]) {
+      expect(payoutPlatformFee(1001, cur, 4.1)).toBe(42);
+    }
+    expect(payoutPlatformFee(1001, "NGN", 4.1)).toBe(41.05);
   });
   it("requires 507 RWF at 1% with the separate 500 RWF partner fee floor", () => {
     const rate = payoutFeePercent("RWF", 5);
