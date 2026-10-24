@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { platform } from "@/lib/platform";
-import { minimumFeeInclusivePayout, payoutFeePercent } from "@/lib/platform-fees";
 
+/**
+ * Live minimum for a payout in the given currency. Fees are charged on top of
+ * the entered amount, so the minimum is simply the partner's minimum (with the
+ * configured UGX floor). The balance must cover amount + fees, which the
+ * server checks atomically when reserving the payout.
+ */
 export function usePayoutMinimum(currency: string, enabled = true) {
   const [result, setResult] = useState<{ currency: string; minimum: number | null; loading: boolean }>({ currency: "", minimum: null, loading: true });
   useEffect(() => {
@@ -16,7 +21,7 @@ export function usePayoutMinimum(currency: string, enabled = true) {
       if (cancelled) return;
       const partnerMinimum = Number(rules.data?.minimum);
       const calculated = rules.success && rules.data?.available && !settings.error && settings.data && partnerMinimum > 0
-        ? minimumFeeInclusivePayout(partnerMinimum, currency, payoutFeePercent(currency, Number(settings.data.withdraw_fee_percent) || 0), rules.data?.fee)
+        ? partnerMinimum
         : null;
       const minimum = calculated == null ? null : Math.max(calculated, currency === "UGX" ? Number(settings.data?.min_payout_amount) || 0 : 0);
       setResult({ currency, minimum, loading: false });
