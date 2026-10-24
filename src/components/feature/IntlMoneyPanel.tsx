@@ -78,7 +78,7 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
           <div>
             <input aria-label={`Amount (${cur})`} type="number" step={1} min={mode === "payout" ? payoutMinimum.minimum ?? 1 : 1} required value={form.amount} onChange={set("amount")} placeholder={`Amount (${cur}, whole number)`} inputMode="numeric" className={input} />
             {mode === "payout" && <p aria-live="polite" className="mt-1 text-xs text-foreground-600">{payoutMinimum.loading ? "Checking minimum…" : payoutMinimum.minimum == null ? "Minimum unavailable. Try again shortly." : `Minimum payout: ${cur} ${payoutMinimum.minimum.toLocaleString("en")}. Fees are added on top.`}</p>}
-...
+</div>
           {mode === "payout" && <p className="sm:col-span-2 text-xs text-foreground-600">Paid from your {cur} balance. The recipient gets the full amount you enter; the withdrawal fee is charged on top of it.</p>}
           <Button disabled={busy || mode === "payout" && payoutMinimum.minimum == null} className="sm:col-span-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-background-50 rounded-lg py-2.5 text-sm font-medium cursor-pointer">
             {busy ? "Please wait…" : mode === "collect" ? `Request ${cur} payment` : `Send ${cur}`}
