@@ -2,14 +2,17 @@ import { useState } from "react";
 import { platform } from "@/lib/platform";
 import { MONEY_COUNTRIES } from "@/lib/countries";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { usePayoutMinimum } from "@/hooks/use-payout-minimum";
+import { Button } from "@/components/ui/button";
 
 /** Kenya / Rwanda collections and payouts (Uganda uses the main form on the page). */
 export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" }) {
-  const { walletCurrencies } = useCurrency();
+  const { walletCurrencies, activeCurrency, setActiveCurrency } = useCurrency();
   const intl = MONEY_COUNTRIES.filter((c) => c.currency !== "UGX" && walletCurrencies.includes(c.currency));
   const [picked, setCur] = useState<string>("");
-  const cur = intl.some((c) => c.currency === picked) ? picked : intl[0]?.currency || "";
+  const cur = intl.some((c) => c.currency === activeCurrency) ? activeCurrency : intl.some((c) => c.currency === picked) ? picked : intl[0]?.currency || "";
   const country = intl.find((c) => c.currency === cur);
+  const payoutMinimum = usePayoutMinimum(cur, mode === "payout");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ phone: "", network: "", amount: "", name: "", email: "", description: "" });
   const [busy, setBusy] = useState(false);
@@ -20,13 +23,17 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
     if (!country) return;
     e.preventDefault();
     if (busy) return;
+    if (mode === "payout" && (payoutMinimum.minimum == null || Number(form.amount) < payoutMinimum.minimum)) {
+      setMsg({ ok: false, text: payoutMinimum.minimum == null ? "Withdrawal minimum is unavailable. Please try again shortly." : `Minimum payout: ${cur} ${payoutMinimum.minimum.toLocaleString("en")}.` });
+      return;
+    }
     setBusy(true);
     setMsg(null);
     const body: Record<string, unknown> = {
       currency: cur,
       amount: Number(form.amount),
       phone_number: form.phone,
-      network: form.network || country.networks[0]!.value,
+      network: form.network || country.networks[0]?.value || "",
       customer_name: form.name,
       customer_email: form.email,
       description: form.description,
@@ -58,24 +65,27 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
         <form onSubmit={submit} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="sm:col-span-2 flex gap-2">
             {intl.map((c) => (
-              <button key={c.currency} type="button" onClick={() => { setCur(c.currency); setForm({ ...form, network: "" }); }}
+              <Button key={c.currency} variant="outline" type="button" onClick={() => { setCur(c.currency); setActiveCurrency(c.currency); setForm({ ...form, network: "" }); setMsg(null); }}
                 className={`flex-1 px-3 py-2 rounded-lg text-sm border cursor-pointer ${cur === c.currency ? "border-primary-500 bg-primary-50 text-primary-700 font-medium" : "border-background-200 text-foreground-700"}`}>
                 {c.flag} {c.country} ({c.currency})
-              </button>
+              </Button>
             ))}
           </div>
-          <select value={form.network || country.networks[0]!.value} onChange={set("network")} className={input}>
+          <select value={form.network || country.networks[0]?.value || ""} onChange={set("network")} className={input}>
             {country.networks.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
           </select>
           <input required value={form.phone} onChange={set("phone")} placeholder={`Mobile number, e.g. ${country.example}`} inputMode="tel" className={input} />
-          <input required value={form.amount} onChange={set("amount")} placeholder={`Amount (${cur}, whole number)`} inputMode="numeric" className={input} />
+          <div>
+            <input aria-label={`Amount (${cur})`} type="number" step={1} min={mode === "payout" ? payoutMinimum.minimum ?? 1 : 1} required value={form.amount} onChange={set("amount")} placeholder={`Amount (${cur}, whole number)`} inputMode="numeric" className={input} />
+            {mode === "payout" && <p aria-live="polite" className="mt-1 text-xs text-foreground-600">{payoutMinimum.loading ? "Checking minimum…" : payoutMinimum.minimum == null ? "Minimum unavailable. Try again shortly." : `Minimum payout: ${cur} ${payoutMinimum.minimum.toLocaleString("en")} (includes ObPay’s fee).`}</p>}
+          </div>
           <input required value={form.name} onChange={set("name")} placeholder={mode === "collect" ? "Customer full name" : "Recipient full name"} className={input} />
           <input required={mode === "collect"} type="email" value={form.email} onChange={set("email")} placeholder={mode === "collect" ? "Customer email" : "Recipient email (optional)"} className={input} />
           <input value={form.description} onChange={set("description")} placeholder="Description (optional)" className={input} />
           {mode === "payout" && <p className="sm:col-span-2 text-xs text-foreground-600">Paid from your {cur} balance. The fee comes out of the amount sent.</p>}
-          <button disabled={busy} className="sm:col-span-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-background-50 rounded-lg py-2.5 text-sm font-medium cursor-pointer">
+          <Button disabled={busy || mode === "payout" && payoutMinimum.minimum == null} className="sm:col-span-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-background-50 rounded-lg py-2.5 text-sm font-medium cursor-pointer">
             {busy ? "Please wait…" : mode === "collect" ? `Request ${cur} payment` : `Send ${cur}`}
-          </button>
+          </Button>
           {msg && (
             <div className={`sm:col-span-2 text-sm rounded-lg p-3 ${msg.ok ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700"}`}>
               {msg.text}

@@ -8,3 +8,4 @@
 - [ ] Confirm real signup code delivery and verification using a new recipient (no test recipient supplied).
 - [x] Identify Mukoya's failed payout and verify its refund and live RWF fee rules.
 - [x] Correct and test fee-inclusive payout minimum guidance without sending real money (17 relevant checks passed).
+- [ ] Show fee-inclusive payout minimums when selecting each currency and verify the displayed RWF amount.
