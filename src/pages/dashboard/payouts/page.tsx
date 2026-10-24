@@ -488,7 +488,7 @@ export default function PayoutsPage() {
         </div>
 
 
-        <p aria-live="polite" className="text-sm font-medium text-foreground-700">{selectedMinimum.loading ? "Checking minimum payout…" : selectedMinimum.minimum == null ? `Payouts in ${activeCurrency} are currently unavailable.` : `Minimum payout: ${activeCurrency} ${selectedMinimum.minimum.toLocaleString("en")} (includes ObPay’s fee).`}</p>
+        <p aria-live="polite" className="text-sm font-medium text-foreground-700">{selectedMinimum.loading ? "Checking minimum payout…" : selectedMinimum.minimum == null ? `Payouts in ${activeCurrency} are currently unavailable.` : `Minimum payout: ${activeCurrency} ${selectedMinimum.minimum.toLocaleString("en")}. Fees are added on top.`}</p>
 
         {/* Wallet summary - enhanced */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -663,7 +663,7 @@ export default function PayoutsPage() {
                         <span className="text-foreground-500">Withdrawal Amount</span>
                         <span className="font-semibold text-foreground-900 whitespace-nowrap">{formatCurrency(wAmt, activeCurrency)}</span>
                       </div>
-                      <p className="text-foreground-500">The current withdrawal fee comes out of this amount. If the fee would leave a fractional mobile-money amount, you will see a compatible amount before any money is sent.</p>
+                      <p className="text-foreground-500">The recipient gets this full amount. The withdrawal fee is charged on top of it, so your balance drops by the amount plus the fee.</p>
                     </div>
                     );
                   })()}
@@ -909,7 +909,7 @@ export default function PayoutsPage() {
                   return (
                   <div className="bg-background-100 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between"><span className="text-foreground-500">Payout Amount</span><span className="font-semibold text-foreground-900 whitespace-nowrap">{formatCurrency(pAmt, form.currency)}</span></div>
-                    <p className="text-foreground-500 mt-1">The current payout fee comes out of this amount. If it would leave a fractional mobile-money amount, you will see a compatible amount before any money is sent.</p>
+                    <p className="text-foreground-500 mt-1">The recipient gets this full amount. The payout fee is charged on top of it, so your balance drops by the amount plus the fee.</p>
                   </div>
                   );
                 })()}
