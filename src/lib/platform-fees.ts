@@ -23,5 +23,12 @@ export function payoutPlatformFee(amount: number, currency: string, withdrawPerc
   return Math.min(roundUp(amount * pct / 100, currency), amount);
 }
 
+/** Entered amount needed to leave the partner's minimum after ObPay's charge. */
+export function minimumFeeInclusivePayout(partnerMinimum: number, currency: string, withdrawPercent: number) {
+  const pct = Math.min(Math.max(Number(withdrawPercent) || 0, 0), 100);
+  if (pct >= 100) return null;
+  return roundUp(partnerMinimum / (1 - pct / 100), currency);
+}
+
 /** The partner's documented collection fee (1.5%), used when it is not reported. */
 export const PARTNER_COLLECTION_PERCENT = 1.5;

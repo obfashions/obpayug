@@ -327,6 +327,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   const platformFee = waivePlatformFee ? 0 : payoutPlatformFee(amount, currency, Number(feeSettings?.withdraw_fee_percent) || 0);
   const out = await gatewayPayout(creds, {
     platformFee,
+    platformFeePercent: waivePlatformFee ? 0 : Number(feeSettings?.withdraw_fee_percent) || 0,
     merchant: await merchantTag(merchantId),
     channel: `${source}_payout`,
     currency,
