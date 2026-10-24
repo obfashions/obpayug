@@ -2,22 +2,22 @@ import { describe, expect, it } from "vitest";
 import { collectionFee, payoutPlatformFee, minimumFeeInclusivePayout, payoutFeePercent } from "./platform-fees";
 
 describe("platform fees", () => {
-  it("charges 2% ObPay on Rwanda payouts, rounded to whole RWF", () => {
+  it("charges 1% ObPay on Rwanda payouts, rounded to whole RWF", () => {
     const rate = payoutFeePercent("RWF", 5);
-    expect(rate).toBe(2);
-    expect(payoutFeePercent("rwf", 4.8)).toBe(2);
-    expect(payoutPlatformFee(10000, "RWF", rate)).toBe(200);
-    expect(payoutPlatformFee(512, "RWF", rate)).toBe(11);
+    expect(rate).toBe(1);
+    expect(payoutFeePercent("rwf", 4.8)).toBe(1);
+    expect(payoutPlatformFee(10000, "RWF", rate)).toBe(100);
+    expect(payoutPlatformFee(507, "RWF", rate)).toBe(6);
   });
   it("keeps Uganda and Kenya's configured payout rates unchanged", () => {
     expect(payoutFeePercent("UGX", 4.8)).toBe(4.8);
     expect(payoutFeePercent("KES", 5)).toBe(5);
   });
-  it("requires 512 RWF at 2% with the separate 500 RWF partner fee floor", () => {
+  it("requires 507 RWF at 1% with the separate 500 RWF partner fee floor", () => {
     const rate = payoutFeePercent("RWF", 5);
-    expect(minimumFeeInclusivePayout(500, "RWF", rate, { type: "percent", floor: 500 })).toBe(512);
-    expect(512 - payoutPlatformFee(512, "RWF", rate) - 500).toBe(1);
-    expect(511 - payoutPlatformFee(511, "RWF", rate) - 500).toBe(0);
+    expect(minimumFeeInclusivePayout(500, "RWF", rate, { type: "percent", floor: 500 })).toBe(507);
+    expect(507 - payoutPlatformFee(507, "RWF", rate) - 500).toBe(1);
+    expect(506 - payoutPlatformFee(506, "RWF", rate) - 500).toBe(0);
   });
   it("charges the admin's 5% on a received payment", () => {
     expect(collectionFee(10000, "UGX", 5, 150)).toBe(500);
