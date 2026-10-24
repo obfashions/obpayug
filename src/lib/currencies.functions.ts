@@ -9,7 +9,8 @@ export const getEnabledCurrencies = createServerFn({ method: "GET" }).handler(as
     const { getGatewayCreds, gatewayPayoutMethods } = await import("./gateway.server");
     const creds = await getGatewayCreds();
     if (!creds) return { currencies: ["UGX"] };
-    const all = ["UGX", "KES", "RWF", "USD"];
+    const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
+    const all = SUPPORTED_MONEY_CURRENCIES;
     const results = await Promise.all(all.map((c) => gatewayPayoutMethods(creds, c).catch(() => null)));
     const list = all.filter((_, i) => results[i]?.available);
     if (!list.includes("UGX")) list.unshift("UGX");

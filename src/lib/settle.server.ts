@@ -30,11 +30,11 @@ export interface SettleResult {
 }
 
 export async function collectionFeeFor(record: Record<string, any>, verifiedPartnerFee?: number) {
-  const { collectionFee, PARTNER_COLLECTION_PERCENT } = await import("./platform-fees");
+  const { collectionFee, collectFeePercent, PARTNER_COLLECTION_PERCENT } = await import("./platform-fees");
   const amount = Number(record.amount) || 0;
   const currency = String(record.currency || "UGX");
   if (amount <= 0) return 0;
-  const { data: ps, error } = await db().from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle();
+  const { data: ps, error } = await db().from("platform_settings").select("platform_fee_percent,currency_fees").limit(1).maybeSingle();
   if (error || ps?.platform_fee_percent == null || !Number.isFinite(Number(ps.platform_fee_percent))) {
     throw new Error("Deposit fees are temporarily unavailable. Please try again shortly.");
   }
@@ -42,7 +42,7 @@ export async function collectionFeeFor(record: Record<string, any>, verifiedPart
   const reported = verifiedPartnerFee ?? (stored == null ? undefined : Number(stored));
   const partner = reported != null && Number.isFinite(reported) && reported >= 0
     ? reported : amount * PARTNER_COLLECTION_PERCENT / 100;
-  return collectionFee(amount, currency, Number(ps.platform_fee_percent), partner);
+  return collectionFee(amount, currency, collectFeePercent(currency, Number(ps.platform_fee_percent), ps.currency_fees), partner);
 }
 
 /**
