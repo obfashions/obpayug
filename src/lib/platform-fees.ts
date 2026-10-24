@@ -1,5 +1,9 @@
 /** Currencies whose mobile-money rails only accept whole amounts. */
-const WHOLE = new Set(["UGX", "RWF", "KES"]);
+const WHOLE = new Set(["UGX", "RWF", "KES", "XOF", "XAF", "CDF", "ZMW", "SLL"]);
+
+export function isWholeCurrency(currency: string) {
+  return WHOLE.has(String(currency || "").toUpperCase());
+}
 
 function roundUp(value: number, currency: string) {
   if (!Number.isFinite(value) || value <= 0) return 0;
