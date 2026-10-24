@@ -7,4 +7,4 @@
 - [x] Replace decorative member tags with protected multi-role permissions; two selections survived UI reload and test changes were restored.
 - [ ] Confirm real signup code delivery and verification using a new recipient (no test recipient supplied).
 - [x] Identify Mukoya's failed payout and verify its refund and live RWF fee rules.
-- [ ] Correct and test fee-inclusive payout minimum guidance without sending real money.
+- [x] Correct and test fee-inclusive payout minimum guidance without sending real money (17 relevant checks passed).
