@@ -14,4 +14,4 @@
 - [x] Reduce ObPay RWF payout fees to 1%; 20 fee/minimum/ledger tests pass, preserving live partner fees and historical records. No live payout sent.
 - [x] Verify documented partner deposit charge fields and apply trusted reported charges to recharges, including USD and dashboard callbacks; 28 checks pass. No live recharge sent, so current partner rates remain unverified.- [x] Make payouts fee-on-top: recipient gets the full entered amount; balance drops by amount + partner fee + ObPay fee (Mukoya's 927 RWF payout now deducts 1,437). Corrected his RWF balance by the 1,574 in missed fees; 29 checks pass.
 - [x] Add NGN, XOF, ZMW, SLE, CDF, XAF wallets alongside UGX, KES, RWF, USD; live partner fees verified for all ten; per-currency fee editor added to admin settings; 34 checks pass.
-- [ ] Add merchant payout fee deduction choice; apply it to dashboard and API payouts, test both modes and verify saved settings.
+- [x] Add merchant payout fee deduction choice for dashboard and API payouts; 36 checks passed, saved choices verified after reload, original account mode restored; no live payout sent.

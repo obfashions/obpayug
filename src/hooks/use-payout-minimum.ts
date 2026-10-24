@@ -6,10 +6,9 @@ import { minimumFeeInclusivePayout, payoutFeePercent } from "@/lib/platform-fees
 import type { PayoutFeeMode } from "@/lib/payout-fee-mode";
 
 /**
- * Live minimum for a payout in the given currency. Fees are charged on top of
- * the entered amount, so the minimum is simply the partner's minimum (with the
- * configured UGX floor). The balance must cover amount + fees, which the
- * server checks atomically when reserving the payout.
+ * Live minimum for the currency and merchant's persisted fee deduction mode.
+ * Submitted-amount mode must leave enough after both fees; account mode adds
+ * fees to the debit. The server reserves the full debit atomically.
  */
 export function usePayoutMinimum(currency: string, enabled = true) {
   const { user } = useAuth();

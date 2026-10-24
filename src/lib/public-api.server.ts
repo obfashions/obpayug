@@ -317,9 +317,8 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     });
   }
 
-  // Work out every charge before reserving: the recipient receives the entered
-  // amount in full, and ObPay's fee plus the partner's fee are deducted from
-  // the merchant's balance on top of it.
+  // Resolve the stored merchant choice and quote both charges before reserving.
+  // Body fields cannot override the preference; saved payouts retain their mode.
   const { payoutFeePercent } = await import("./platform-fees");
   const [{ data: feeSettings, error: settingsError }, { data: preference, error: preferenceError }] = await Promise.all([
     db().from("platform_settings").select("withdraw_fee_percent,currency_fees").limit(1).maybeSingle(),
