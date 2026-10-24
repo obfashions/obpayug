@@ -3,7 +3,11 @@ import { getAccessToken } from "@/lib/session-token";
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase } from "@/lib/supabase";
+import { WALLET_CURRENCIES } from "@/lib/countries";
+import { getCurrencyInfo } from "@/lib/currency";
 import WhatsappLinkCard from "./WhatsappLinkCard";
+
+type CurrencyFees = Record<string, { collect?: number | string; withdraw?: number | string }>;
 
 interface PlatformSettings {
   id: string;
@@ -27,6 +31,7 @@ interface PlatformSettings {
   livepay_account_number?: string;
   support_email: string;
   support_phone: string;
+  currency_fees: CurrencyFees;
 }
 
 export default function AdminSettings() {
@@ -71,6 +76,16 @@ export default function AdminSettings() {
         withdraw_from_livepay: settings.withdraw_from_livepay,
         support_email: settings.support_email,
         support_phone: settings.support_phone,
+        currency_fees: Object.fromEntries(
+          Object.entries(settings.currency_fees || {}).map(([cur, fees]) => [
+            cur,
+            Object.fromEntries(
+              Object.entries(fees || {})
+                .filter(([, v]) => v !== "" && v != null && Number.isFinite(Number(v)))
+                .map(([k, v]) => [k, Math.min(Math.max(Number(v), 0), 100)]),
+            ),
+          ]).filter(([, fees]) => Object.keys(fees as object).length > 0),
+        ),
         updated_at: new Date().toISOString(),
       }).eq("id", settings.id);
 
