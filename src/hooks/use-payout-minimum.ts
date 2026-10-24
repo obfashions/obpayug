@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { platform } from "@/lib/platform";
-import { minimumFeeInclusivePayout } from "@/lib/platform-fees";
+import { minimumFeeInclusivePayout, payoutFeePercent } from "@/lib/platform-fees";
 
 export function usePayoutMinimum(currency: string, enabled = true) {
   const [result, setResult] = useState<{ currency: string; minimum: number | null; loading: boolean }>({ currency: "", minimum: null, loading: true });
@@ -16,7 +16,7 @@ export function usePayoutMinimum(currency: string, enabled = true) {
       if (cancelled) return;
       const partnerMinimum = Number(rules.data?.minimum);
       const calculated = rules.success && rules.data?.available && !settings.error && settings.data && partnerMinimum > 0
-        ? minimumFeeInclusivePayout(partnerMinimum, currency, Number(settings.data.withdraw_fee_percent) || 0, rules.data?.fee)
+        ? minimumFeeInclusivePayout(partnerMinimum, currency, payoutFeePercent(currency, Number(settings.data.withdraw_fee_percent) || 0), rules.data?.fee)
         : null;
       const minimum = calculated == null ? null : Math.max(calculated, currency === "UGX" ? Number(settings.data?.min_payout_amount) || 0 : 0);
       setResult({ currency, minimum, loading: false });
