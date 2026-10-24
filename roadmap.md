@@ -6,3 +6,5 @@
 - [x] Fix registration verification without requiring an existing signed-in session; code rules tested locally.
 - [x] Replace decorative member tags with protected multi-role permissions; two selections survived UI reload and test changes were restored.
 - [ ] Confirm real signup code delivery and verification using a new recipient (no test recipient supplied).
+- [x] Identify Mukoya's failed payout and verify its refund and live RWF fee rules.
+- [ ] Correct and test fee-inclusive payout minimum guidance without sending real money.

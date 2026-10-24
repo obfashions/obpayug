@@ -504,6 +504,8 @@ export interface PayoutRequest {
   feeInclusive?: boolean;
   /** ObPay's own fee, kept back from `amount` before the rest is sent to the partner. */
   platformFee?: number;
+  /** Used to explain the minimum entered amount after ObPay's rounded fee. */
+  platformFeePercent?: number;
   /** UGX (default), KES or RWF. */
   currency?: string;
   /** KES: mpesa / airtel_money. */
@@ -566,9 +568,16 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
     const f = rules.flat ? rules.flat : rules.percent ? Math.max(gross * rules.percent / 100, rules.floor) : 0;
     net = gross - f;
     if (gross < rules.min || net <= 0) {
+      const { minimumFeeInclusivePayout } = await import("./platform-fees");
+      const enteredMinimum = req.platformFeePercent == null
+        ? rules.min + platformFee
+        : minimumFeeInclusivePayout(rules.min, currency, req.platformFeePercent);
+      const minimumMessage = enteredMinimum == null
+        ? "The configured withdrawal fee leaves no money to send. Contact ObPay support."
+        : `Enter at least ${currency} ${enteredMinimum.toLocaleString("en")}. The payment network requires ${currency} ${rules.min.toLocaleString("en")} after ObPay's withdrawal fee; its own fee is then deducted. No money was sent.`;
       return {
         ok: false as const,
-        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is ${currency} ${rules.min.toLocaleString("en")}.` } as GatewayResult,
+        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: minimumMessage } as GatewayResult,
       };
     }
   } else {
