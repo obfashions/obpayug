@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { collectionFee, payoutPlatformFee, minimumFeeInclusivePayout, payoutFeePercent } from "./platform-fees";
+import { collectionFee, reportedCollectionFee, payoutPlatformFee, minimumFeeInclusivePayout, payoutFeePercent } from "./platform-fees";
 
 describe("platform fees", () => {
+  it("reads the documented KES 36.75 charge on a 2450 deposit", () => {
+    expect(reportedCollectionFee({ amount: 2450, fee: 36.75, net_amount: 2413.25 })).toBe(36.75);
+    expect(reportedCollectionFee({ amount: 2450, net_amount: 2413.25 })).toBe(36.75);
+  });
+  it("preserves explicit zero fees and rejects invalid reported fees", () => {
+    expect(reportedCollectionFee({ fee: 0 })).toBe(0);
+    expect(reportedCollectionFee({ fee: -1 })).toBeUndefined();
+    expect(reportedCollectionFee({ fee: "bad" })).toBeUndefined();
+  });
+  it("covers a higher live partner recharge fee without adding the charge twice", () => {
+    expect(collectionFee(10000, "RWF", 4.8, 600)).toBe(600);
+    expect(collectionFee(10000, "RWF", 4.8, 150)).toBe(480);
+  });
   it("charges 1% ObPay on Rwanda payouts, rounded to whole RWF", () => {
     const rate = payoutFeePercent("RWF", 5);
     expect(rate).toBe(1);
