@@ -315,12 +315,28 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     });
   }
 
+  // Work out every charge before reserving: the recipient receives the entered
+  // amount in full, and ObPay's fee plus the partner's fee are deducted from
+  // the merchant's balance on top of it.
+  const { payoutPlatformFee, payoutFeePercent } = await import("./platform-fees");
+  const { data: feeSettings } = await db().from("platform_settings").select("withdraw_fee_percent").limit(1).maybeSingle();
+  const platformFeePercent = waivePlatformFee ? 0 : payoutFeePercent(currency, Number(feeSettings?.withdraw_fee_percent) || 0);
+  const platformFee = payoutPlatformFee(amount, currency, platformFeePercent);
+  const { payoutQuote } = await import("./gateway.server");
+  const quote = await payoutQuote(creds, currency, amount);
+  if (quote.error) return err(quote.error);
+  if ((currency === "UGX" || currency === "RWF" || currency === "KES") && !Number.isInteger(quote.gross)) {
+    return err(`This mobile-money withdrawal would result in a fractional ${currency} amount after the fee. Enter a whole ${currency} amount. No money was sent.`);
+  }
+  const totalDebit = quote.gross + platformFee;
+
   // Reserve funds and the reference together before contacting the network.
   // Different simultaneous references must not spend the same money.
   const { data: reservation, error: reservationError } = await db().rpc("reserve_payout_and_balance", {
     p_merchant_id: merchantId, p_reference: reference, p_amount: amount, p_currency: currency,
     p_phone: accountNumber, p_source: source, p_description: body.description || null,
-    p_metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName, fee_inclusive: true },
+    p_debit: totalDebit,
+    p_metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName, fee_inclusive: false, obpay_fee: platformFee, partner_fee: quote.partnerFee },
   });
   if (reservationError || !reservation) return err(reservationError?.message || "Could not reserve this payout. No payout was sent.");
 
