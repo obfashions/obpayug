@@ -77,12 +77,9 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
           <input required value={form.phone} onChange={set("phone")} placeholder={`Mobile number, e.g. ${country.example}`} inputMode="tel" className={input} />
           <div>
             <input aria-label={`Amount (${cur})`} type="number" step={1} min={mode === "payout" ? payoutMinimum.minimum ?? 1 : 1} required value={form.amount} onChange={set("amount")} placeholder={`Amount (${cur}, whole number)`} inputMode="numeric" className={input} />
-            {mode === "payout" && <p aria-live="polite" className="mt-1 text-xs text-foreground-600">{payoutMinimum.loading ? "Checking minimum…" : payoutMinimum.minimum == null ? "Minimum unavailable. Try again shortly." : `Minimum payout: ${cur} ${payoutMinimum.minimum.toLocaleString("en")} (includes ObPay’s fee).`}</p>}
-          </div>
-          <input required value={form.name} onChange={set("name")} placeholder={mode === "collect" ? "Customer full name" : "Recipient full name"} className={input} />
-          <input required={mode === "collect"} type="email" value={form.email} onChange={set("email")} placeholder={mode === "collect" ? "Customer email" : "Recipient email (optional)"} className={input} />
-          <input value={form.description} onChange={set("description")} placeholder="Description (optional)" className={input} />
-          {mode === "payout" && <p className="sm:col-span-2 text-xs text-foreground-600">Paid from your {cur} balance. The fee comes out of the amount sent.</p>}
+            {mode === "payout" && <p aria-live="polite" className="mt-1 text-xs text-foreground-600">{payoutMinimum.loading ? "Checking minimum…" : payoutMinimum.minimum == null ? "Minimum unavailable. Try again shortly." : `Minimum payout: ${cur} ${payoutMinimum.minimum.toLocaleString("en")}. Fees are added on top.`}</p>}
+...
+          {mode === "payout" && <p className="sm:col-span-2 text-xs text-foreground-600">Paid from your {cur} balance. The recipient gets the full amount you enter; the withdrawal fee is charged on top of it.</p>}
           <Button disabled={busy || mode === "payout" && payoutMinimum.minimum == null} className="sm:col-span-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-background-50 rounded-lg py-2.5 text-sm font-medium cursor-pointer">
             {busy ? "Please wait…" : mode === "collect" ? `Request ${cur} payment` : `Send ${cur}`}
           </Button>
