@@ -322,12 +322,13 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   if (reservationError || !reservation) return err(reservationError?.message || "Could not reserve this payout. No payout was sent.");
 
   const { merchantTag } = await import("./merchant-identity.server");
-  const { payoutPlatformFee } = await import("./platform-fees");
+  const { payoutPlatformFee, payoutFeePercent } = await import("./platform-fees");
   const { data: feeSettings } = await db().from("platform_settings").select("withdraw_fee_percent").limit(1).maybeSingle();
-  const platformFee = waivePlatformFee ? 0 : payoutPlatformFee(amount, currency, Number(feeSettings?.withdraw_fee_percent) || 0);
+  const platformFeePercent = waivePlatformFee ? 0 : payoutFeePercent(currency, Number(feeSettings?.withdraw_fee_percent) || 0);
+  const platformFee = payoutPlatformFee(amount, currency, platformFeePercent);
   const out = await gatewayPayout(creds, {
     platformFee,
-    platformFeePercent: waivePlatformFee ? 0 : Number(feeSettings?.withdraw_fee_percent) || 0,
+    platformFeePercent,
     merchant: await merchantTag(merchantId),
     channel: `${source}_payout`,
     currency,

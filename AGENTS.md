@@ -16,6 +16,7 @@
 - Payouts use the live partner fee on the entered gross amount and reject fractional net amounts for zero-decimal currencies before submission — why: mobile-money rails reject fractional payouts and the entered amount must not change silently.
 - Fee-inclusive payout minimum errors include the rounded ObPay fee using platform-fees.ts — why: a partner minimum alone can mislead merchants into submitting an amount that is rejected after the platform charge.
 - Payout forms read currency-specific live minimums and current platform fees through use-payout-minimum — why: displayed minimums must use the same rounded fee calculation as the gateway and never reuse Uganda limits for Rwanda or Kenya.
+- Resolve currency-specific ObPay payout rates through payoutFeePercent in platform-fees.ts for submissions and minimum guidance, preserving fee-exempt refunds — why: currency overrides must not diverge between forms and money movement.
 - Payout submission reads uncached partner minimums and fees — why: newly lowered limits must match the live minimum shown on the form immediately.
 - Admin balance changes create privileged, explicit transaction-history records naming the action and actor — why: merchants and admins need a reliable audit trail.
 - Reserve each payout reference before contacting the partner, never treat a failed or unconfirmed duplicate as a new success, and alert only on confirmed partner acceptance — why: retries must neither send money twice nor announce an unsent payout.
