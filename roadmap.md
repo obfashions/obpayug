@@ -12,4 +12,4 @@
 - [x] Confirm live Rwanda minimum is 500 RWF; account for its 500 RWF fee floor (528 RWF entered at 5%) and remove stale submission limits.
 - [x] Apply the 2% ObPay RWF payout fee to submissions and displayed minimum calculations; 20 fee/minimum/ledger checks pass without sending money.
 - [x] Reduce ObPay RWF payout fees to 1%; 20 fee/minimum/ledger tests pass, preserving live partner fees and historical records. No live payout sent.
-- [ ] Verify partner deposit charges and apply collection fees consistently to wallet recharges without double charging.
+- [x] Verify documented partner deposit charge fields and apply trusted reported charges to recharges, including USD and dashboard callbacks; 28 checks pass. No live recharge sent, so current partner rates remain unverified.
