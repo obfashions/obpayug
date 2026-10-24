@@ -567,7 +567,7 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       const { minimumFeeInclusivePayout } = await import("./platform-fees");
       const enteredMinimum = req.platformFeePercent == null
         ? rules.min + platformFee
-        : minimumFeeInclusivePayout(rules.min, currency, req.platformFeePercent);
+        : minimumFeeInclusivePayout(rules.min, currency, req.platformFeePercent, { type: rules.flat ? "flat" : "percent", amount: rules.flat, floor: rules.floor });
       const minimumMessage = enteredMinimum == null
         ? "The configured withdrawal fee leaves no money to send. Contact ObPay support."
         : `Enter at least ${currency} ${enteredMinimum.toLocaleString("en")}. The payment network requires ${currency} ${rules.min.toLocaleString("en")} after ObPay's withdrawal fee; its own fee is then deducted. No money was sent.`;

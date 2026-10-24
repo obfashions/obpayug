@@ -26,4 +26,9 @@ describe("platform fees", () => {
     expect(527 - payoutPlatformFee(527, "RWF", 5)).toBe(500);
     expect(526 - payoutPlatformFee(526, "RWF", 5)).toBe(499);
   });
+  it("requires 528 RWF when the live partner fee floor is also 500 RWF", () => {
+    expect(minimumFeeInclusivePayout(500, "RWF", 5, { type: "percent", floor: 500 })).toBe(528);
+    expect(528 - payoutPlatformFee(528, "RWF", 5) - 500).toBe(1);
+    expect(527 - payoutPlatformFee(527, "RWF", 5) - 500).toBe(0);
+  });
 });
