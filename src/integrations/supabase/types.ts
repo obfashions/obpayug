@@ -846,6 +846,7 @@ export type Database = {
         Row: {
           auto_approve_threshold: number | null
           created_at: string | null
+          currency_fees: Json
           id: string
           kyc_required: boolean | null
           maintenance_mode: boolean | null
@@ -871,6 +872,7 @@ export type Database = {
         Insert: {
           auto_approve_threshold?: number | null
           created_at?: string | null
+          currency_fees?: Json
           id?: string
           kyc_required?: boolean | null
           maintenance_mode?: boolean | null
@@ -896,6 +898,7 @@ export type Database = {
         Update: {
           auto_approve_threshold?: number | null
           created_at?: string | null
+          currency_fees?: Json
           id?: string
           kyc_required?: boolean | null
           maintenance_mode?: boolean | null

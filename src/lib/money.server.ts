@@ -21,10 +21,11 @@ export async function intlPayout(id: Identity, body: Record<string, any>) {
 
 export async function payoutMethods(currency: string) {
   const { getGatewayCreds, gatewayPayoutMethods } = await import("./gateway.server");
+  const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
   const creds = await getGatewayCreds();
   if (!creds) return fail("Payouts are temporarily unavailable.");
   const cur = String(currency || "UGX").toUpperCase();
-  if (!["UGX", "KES", "RWF", "USD"].includes(cur)) return fail("Unsupported currency.");
+  if (!SUPPORTED_MONEY_CURRENCIES.includes(cur)) return fail("Unsupported currency.");
   return ok(await gatewayPayoutMethods(creds, cur));
 }
 
@@ -131,7 +132,13 @@ export async function getRates() {
       const resp = await fetch("https://open.er-api.com/v6/latest/USD");
       const j: any = await resp.json();
       if (j?.result === "success" && j.rates) {
-        rateCache = { at: Date.now(), rates: { USD: 1, UGX: j.rates.UGX, KES: j.rates.KES, RWF: j.rates.RWF } };
+        const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
+        const rates: Record<string, number> = { USD: 1 };
+        for (const c of SUPPORTED_MONEY_CURRENCIES) {
+          const v = Number(j.rates[c]);
+          if (Number.isFinite(v) && v > 0) rates[c] = v;
+        }
+        rateCache = { at: Date.now(), rates };
       }
     } catch { /* keep old cache */ }
   }
@@ -150,7 +157,8 @@ export async function convertBalance(id: Identity, body: Record<string, any>) {
   const from = String(body.from || "").toUpperCase();
   const to = String(body.to || "").toUpperCase();
   const amount = Number(body.amount);
-  const all = ["UGX", "KES", "RWF", "USD"];
+  const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
+  const all = SUPPORTED_MONEY_CURRENCIES;
   if (!all.includes(from) || !all.includes(to) || from === to) return fail("Choose two different currencies.");
   if (!Number.isFinite(amount) || amount <= 0) return fail("Enter an amount greater than zero.");
   const r: any = await getRates();

@@ -1,5 +1,9 @@
 /** Currencies whose mobile-money rails only accept whole amounts. */
-const WHOLE = new Set(["UGX", "RWF", "KES"]);
+const WHOLE = new Set(["UGX", "RWF", "KES", "XOF", "XAF", "CDF", "ZMW", "SLL"]);
+
+export function isWholeCurrency(currency: string) {
+  return WHOLE.has(String(currency || "").toUpperCase());
+}
 
 function roundUp(value: number, currency: string) {
   if (!Number.isFinite(value) || value <= 0) return 0;
@@ -32,9 +36,25 @@ export function reportedCollectionFee(data: { fee?: unknown; net_amount?: unknow
   return undefined;
 }
 
+function clampPercent(value: number) {
+  return Math.min(Math.max(Number(value) || 0, 0), 100);
+}
+
+/** Admin-set per-currency fee override from platform_settings.currency_fees, e.g. {"RWF":{"withdraw":1}}. */
+export function currencyFeeOverride(currencyFees: unknown, currency: string, kind: "collect" | "withdraw"): number | undefined {
+  const row = (currencyFees as Record<string, Record<string, unknown>> | null)?.[String(currency || "").toUpperCase()];
+  const v = Number(row?.[kind]);
+  return Number.isFinite(v) && v >= 0 && v <= 100 ? v : undefined;
+}
+
 /** Resolve the currency's current ObPay payout rate; refunds bypass this rate. */
-export function payoutFeePercent(currency: string, configuredPercent: number) {
-  return currency.toUpperCase() === "RWF" ? 1 : Math.min(Math.max(Number(configuredPercent) || 0, 0), 100);
+export function payoutFeePercent(currency: string, configuredPercent: number, currencyFees?: unknown) {
+  return currencyFeeOverride(currencyFees, currency, "withdraw") ?? clampPercent(configuredPercent);
+}
+
+/** Resolve the currency's current ObPay collection rate. */
+export function collectFeePercent(currency: string, configuredPercent: number, currencyFees?: unknown) {
+  return currencyFeeOverride(currencyFees, currency, "collect") ?? clampPercent(configuredPercent);
 }
 
 /** ObPay's own withdrawal charge; the partner deducts its fee separately from what remains. */

@@ -139,7 +139,8 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
-  if (!["UGX", "KES", "RWF", "USD"].includes(currency)) return err("`currency` must be one of UGX, KES, RWF or USD.");
+  const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
+  if (!SUPPORTED_MONEY_CURRENCIES.includes(currency)) return err(`\`currency\` must be one of ${SUPPORTED_MONEY_CURRENCIES.join(", ")}.`);
   const crypto = body.crypto === true || body.payment_method === "crypto" || currency === "USD";
   const customerName = pick(body, "customer_name", "customerName", "customer_name");
   const customerEmail = pick(body, "customer_email", "customerEmail");
@@ -264,7 +265,8 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
 
   const amount = Number(body.amount);
   const currency = String(body.currency || "UGX").toUpperCase();
-  if (!["UGX", "KES", "RWF"].includes(currency)) return err("`currency` must be one of UGX, KES or RWF.");
+  const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
+  if (!SUPPORTED_MONEY_CURRENCIES.includes(currency) || currency === "USD") return err(`\`currency\` must be one of ${SUPPORTED_MONEY_CURRENCIES.filter((c) => c !== "USD").join(", ")}.`);
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
   if (!Number.isInteger(amount)) return err("`amount` must be a whole number.");
 
@@ -318,14 +320,14 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   // Work out every charge before reserving: the recipient receives the entered
   // amount in full, and ObPay's fee plus the partner's fee are deducted from
   // the merchant's balance on top of it.
-  const { payoutPlatformFee, payoutFeePercent } = await import("./platform-fees");
-  const { data: feeSettings } = await db().from("platform_settings").select("withdraw_fee_percent").limit(1).maybeSingle();
-  const platformFeePercent = waivePlatformFee ? 0 : payoutFeePercent(currency, Number(feeSettings?.withdraw_fee_percent) || 0);
+  const { payoutPlatformFee, payoutFeePercent, isWholeCurrency } = await import("./platform-fees");
+  const { data: feeSettings } = await db().from("platform_settings").select("withdraw_fee_percent,currency_fees").limit(1).maybeSingle();
+  const platformFeePercent = waivePlatformFee ? 0 : payoutFeePercent(currency, Number(feeSettings?.withdraw_fee_percent) || 0, feeSettings?.currency_fees);
   const platformFee = payoutPlatformFee(amount, currency, platformFeePercent);
   const { payoutQuote } = await import("./gateway.server");
   const quote = await payoutQuote(creds, currency, amount);
   if (quote.error) return err(quote.error);
-  if ((currency === "UGX" || currency === "RWF" || currency === "KES") && !Number.isInteger(quote.gross)) {
+  if (isWholeCurrency(currency) && !Number.isInteger(quote.gross)) {
     return err(`This mobile-money withdrawal would result in a fractional ${currency} amount after the fee. Enter a whole ${currency} amount. No money was sent.`);
   }
   const totalDebit = quote.gross + platformFee;

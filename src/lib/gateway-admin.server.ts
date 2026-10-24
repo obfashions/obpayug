@@ -171,8 +171,9 @@ export async function runGatewayAdminAction(
     if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
       return { success: false, error: "Enter a whole-number amount greater than zero." };
     }
-    if (!["UGX", "KES", "RWF"].includes(currency)) {
-      return { success: false, error: "Currency must be UGX, KES or RWF." };
+    const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
+    if (!SUPPORTED_MONEY_CURRENCIES.includes(currency) || currency === "USD") {
+      return { success: false, error: `Currency must be one of ${SUPPORTED_MONEY_CURRENCIES.filter((c) => c !== "USD").join(", ")}.` };
     }
     const { walletNumber } = await import("./gateway.server");
     const { intlPhone } = await import("./countries");

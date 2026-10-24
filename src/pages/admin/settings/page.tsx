@@ -3,7 +3,11 @@ import { getAccessToken } from "@/lib/session-token";
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase } from "@/lib/supabase";
+import { WALLET_CURRENCIES } from "@/lib/countries";
+import { getCurrencyInfo } from "@/lib/currency";
 import WhatsappLinkCard from "./WhatsappLinkCard";
+
+type CurrencyFees = Record<string, { collect?: number | string; withdraw?: number | string }>;
 
 interface PlatformSettings {
   id: string;
@@ -27,6 +31,7 @@ interface PlatformSettings {
   livepay_account_number?: string;
   support_email: string;
   support_phone: string;
+  currency_fees: CurrencyFees;
 }
 
 export default function AdminSettings() {
@@ -71,6 +76,16 @@ export default function AdminSettings() {
         withdraw_from_livepay: settings.withdraw_from_livepay,
         support_email: settings.support_email,
         support_phone: settings.support_phone,
+        currency_fees: Object.fromEntries(
+          Object.entries(settings.currency_fees || {}).map(([cur, fees]) => [
+            cur,
+            Object.fromEntries(
+              Object.entries(fees || {})
+                .filter(([, v]) => v !== "" && v != null && Number.isFinite(Number(v)))
+                .map(([k, v]) => [k, Math.min(Math.max(Number(v), 0), 100)]),
+            ),
+          ]).filter(([, fees]) => Object.keys(fees as object).length > 0),
+        ),
         updated_at: new Date().toISOString(),
       }).eq("id", settings.id);
 
@@ -208,6 +223,31 @@ export default function AdminSettings() {
                 {(settings.supported_currencies || []).map((c: string) => (
                   <span key={c} className="text-xs font-medium bg-secondary-100 text-secondary-700 px-3 py-1.5 rounded-full">{c}</span>
                 ))}
+              </div>
+            </div>
+
+            <div className="bg-background-50 rounded-xl border border-background-200/70 p-6">
+              <h3 className="font-heading font-semibold text-foreground-900 mb-1">Per-Currency Fees</h3>
+              <p className="text-[11px] text-foreground-500 mb-4">Override the default fees for a currency. Leave blank to use the Platform Fee / Withdraw Fee above. The payment partner's own charge is always deducted separately.</p>
+              <div className="space-y-2">
+                <div className="grid grid-cols-[1fr_90px_90px] gap-2 text-[11px] font-medium text-foreground-500 uppercase">
+                  <span>Currency</span><span>Collect %</span><span>Withdraw %</span>
+                </div>
+                {WALLET_CURRENCIES.map((cur) => {
+                  const info = getCurrencyInfo(cur);
+                  const fees = settings.currency_fees?.[cur] || {};
+                  const setFee = (kind: "collect" | "withdraw", value: string) => setSettings({
+                    ...settings,
+                    currency_fees: { ...settings.currency_fees, [cur]: { ...fees, [kind]: value } },
+                  });
+                  return (
+                    <div key={cur} className="grid grid-cols-[1fr_90px_90px] gap-2 items-center">
+                      <span className="text-xs font-medium text-foreground-900">{info.flag} {cur === "SLL" ? "SLE" : cur} <span className="text-foreground-500 font-normal">{info.country}</span></span>
+                      <input type="number" step="0.1" min="0" max="100" placeholder={`${settings.platform_fee_percent}`} value={fees.collect ?? ""} onChange={(e) => setFee("collect", e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-background-300/60 bg-background-50 text-xs text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                      <input type="number" step="0.1" min="0" max="100" placeholder={`${settings.withdraw_fee_percent}`} value={fees.withdraw ?? ""} onChange={(e) => setFee("withdraw", e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-background-300/60 bg-background-50 text-xs text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

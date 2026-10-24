@@ -429,7 +429,8 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
   } else if (phone && !req.crypto) {
     // Same request the partner's own checkout page makes (number in
     // international format plus the two-letter country code).
-    const country = currency === "UGX" ? "UG" : currency === "RWF" ? "RW" : undefined;
+    const COUNTRY_CODES: Record<string, string> = { UGX: "UG", RWF: "RW", XOF: "SN", ZMW: "ZM", SLL: "SL", CDF: "CD", XAF: "CM" };
+    const country = COUNTRY_CODES[currency];
     const push = await gatewayFetch(creds, "/payment/pawapay-process", {
       method: "POST",
       auth: false,
@@ -610,7 +611,8 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
   // The partner deducts its own percentage fee from the gross. Rounding the
   // fee locally does not change what its zero-decimal mobile-money rail sees.
   // Refuse incompatible amounts *before* making a money-moving request.
-  if (!Number.isFinite(gross) || !Number.isFinite(net) || (currency === "UGX" || currency === "RWF") &&
+  const { isWholeCurrency } = await import("./platform-fees");
+  if (!Number.isFinite(gross) || !Number.isFinite(net) || isWholeCurrency(currency) &&
       (!Number.isInteger(gross) || !Number.isInteger(net))) {
     const step = rules.percent ? (() => {
       const scaled = Math.round(rules.percent * 100);
@@ -627,7 +629,7 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
         error: `This mobile-money withdrawal would result in a fractional ${currency} amount after the fee. ${advice} No money was sent.` } as GatewayResult,
     };
   }
-  const method = currency === "KES" ? (req.network === "airtel_money" ? "airtel_money" : "mpesa") : "mobile_money";
+  const method = currency === "KES" ? (req.network === "airtel_money" ? "airtel_money" : "mpesa") : (req.network || "mobile_money");
   const { tagDescription, tagMetadata } = await import("./merchant-identity.server");
   const body = {
     amount: gross,
@@ -674,7 +676,7 @@ export async function gatewayPayoutStatus(
  */
 export async function gatewayLiveBalances(creds: GatewayCreds) {
   const out: Array<{ currency: string; available: number | null; note?: string }> = [];
-  for (const currency of ["UGX", "KES", "RWF", "USD"]) {
+  for (const currency of ["UGX", "KES", "RWF", "NGN", "XOF", "USD", "ZMW", "SLL", "CDF", "XAF"]) {
     const res = await gatewayFetch(creds, "/api/v1/payout", {
       method: "POST",
       body: { amount: 999999999999, currency, method: "mobile_money", account_number: "0000", account_name: "Balance check" },
