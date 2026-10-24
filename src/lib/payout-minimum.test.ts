@@ -56,3 +56,16 @@ it("sends the gross amount to the partner while the recipient receives the enter
   const sentBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
   expect(sentBody.amount).toBe(1427);
 });
+
+it("sends the reserved submitted-amount quote unchanged even if partner fee lookups would change", async () => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify(rwfRules), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout: { reference: "WDR_MODE_TEST" } }), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+  const quote = await payoutQuote(creds, "RWF", 927, "amount", 1);
+  const result = await gatewayPayout(creds, { reference: "amount-mode-test", amount: 927, currency: "RWF", feeInclusive: true, preparedQuote: quote, typeTrans: 2, bankCode: "", accountNumber: "250788123456", customerName: "Test recipient" });
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(result).toMatchObject({ gross: 917, net: 417, partnerFee: 500, platformFee: 10 });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).amount).toBe(917);
+});

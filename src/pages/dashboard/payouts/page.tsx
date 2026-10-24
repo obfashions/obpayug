@@ -10,6 +10,7 @@ import { listPaymentRecords } from "@/lib/history.functions";
 import { getAccessToken } from "@/lib/session-token";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { usePayoutMinimum } from "@/hooks/use-payout-minimum";
+import { payoutFeeSummary } from "@/lib/payout-fee-mode";
 
 const PAYOUT_BANKS = [
   ["UG0001", "Absa Bank Uganda"], ["UG0002", "Bank of Africa Uganda"], ["UG0003", "BRAC Uganda Bank"], ["UG0004", "Centenary Bank"], ["UG0005", "Cairo Bank Uganda"], ["UG0006", "DFCU Bank"], ["UG0007", "Diamond Trust Bank"], ["UG0008", "Equity Bank Uganda"], ["UG0009", "Ecobank Uganda"], ["UG0010", "Exim Bank Uganda"], ["UG0011", "EFC Uganda"], ["UG0012", "Finance Trust Bank"], ["UG0013", "FINCA Uganda"], ["UG0014", "Guaranty Trust Bank Uganda"], ["UG0015", "Housing Finance Bank"], ["UG0016", "I&M Bank Uganda"], ["UG0017", "KCB Bank Uganda"], ["UG0018", "Mercantile Credit Bank"], ["UG0019", "NCBA Bank Uganda"], ["UG0020", "Opportunity Bank Uganda"], ["UG0021", "Pride Microfinance"], ["UG0022", "PostBank Uganda"], ["UG0023", "Stanbic Bank Uganda"], ["UG0024", "Standard Chartered Uganda"], ["UG0025", "Tropical Bank"], ["UG0026", "Salaam Bank Uganda"], ["UG0027", "UGAFODE Microfinance"], ["UG0028", "United Bank for Africa"], ["UG0029", "Wazalendo SACCO"],
@@ -488,7 +489,7 @@ export default function PayoutsPage() {
         </div>
 
 
-        <p aria-live="polite" className="text-sm font-medium text-foreground-700">{selectedMinimum.loading ? "Checking minimum payout…" : selectedMinimum.minimum == null ? `Payouts in ${activeCurrency} are currently unavailable.` : `Minimum payout: ${activeCurrency} ${selectedMinimum.minimum.toLocaleString("en")}. Fees are added on top.`}</p>
+        <p aria-live="polite" className="text-sm font-medium text-foreground-700">{selectedMinimum.loading ? "Checking minimum payout…" : selectedMinimum.minimum == null ? `Payouts in ${activeCurrency} are currently unavailable.` : `Minimum payout: ${activeCurrency} ${selectedMinimum.minimum.toLocaleString("en")}. ${payoutFeeSummary(selectedMinimum.feeMode)}`}</p>
 
         {/* Wallet summary - enhanced */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -663,7 +664,7 @@ export default function PayoutsPage() {
                         <span className="text-foreground-500">Withdrawal Amount</span>
                         <span className="font-semibold text-foreground-900 whitespace-nowrap">{formatCurrency(wAmt, activeCurrency)}</span>
                       </div>
-                      <p className="text-foreground-500">The recipient gets this full amount. The withdrawal fee is charged on top of it, so your balance drops by the amount plus the fee.</p>
+                      <p className="text-foreground-500">{payoutFeeSummary(selectedMinimum.feeMode)}</p>
                     </div>
                     );
                   })()}
@@ -909,7 +910,7 @@ export default function PayoutsPage() {
                   return (
                   <div className="bg-background-100 rounded-lg p-3 space-y-1.5 text-xs">
                     <div className="flex justify-between"><span className="text-foreground-500">Payout Amount</span><span className="font-semibold text-foreground-900 whitespace-nowrap">{formatCurrency(pAmt, form.currency)}</span></div>
-                    <p className="text-foreground-500 mt-1">The recipient gets this full amount. The payout fee is charged on top of it, so your balance drops by the amount plus the fee.</p>
+                    <p className="text-foreground-500 mt-1">{payoutFeeSummary(ugandaMinimum.feeMode)}</p>
                   </div>
                   );
                 })()}
