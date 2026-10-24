@@ -19,7 +19,7 @@ export function collectionFee(amount: number, currency: string, platformPercent:
 
 /** Resolve the currency's current ObPay payout rate; refunds bypass this rate. */
 export function payoutFeePercent(currency: string, configuredPercent: number) {
-  return currency.toUpperCase() === "RWF" ? 2 : Math.min(Math.max(Number(configuredPercent) || 0, 0), 100);
+  return currency.toUpperCase() === "RWF" ? 1 : Math.min(Math.max(Number(configuredPercent) || 0, 0), 100);
 }
 
 /** ObPay's own withdrawal charge; the partner deducts its fee separately from what remains. */
