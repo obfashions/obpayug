@@ -36,12 +36,18 @@ async function handle(request: Request): Promise<Response> {
 
   let status = gateway.mapStatus(String(payload?.status || event.replace("payment.", "")));
   const creds = await gateway.getGatewayCreds();
+  let partnerFee: number | undefined;
+  let verifiedAmount = 0;
 
   // Confirm with the partner before crediting anyone.
-  if (status === "success" && creds) {
+  if (status === "success") {
+    if (!creds) return new Response("OK", { status: 200 });
     const check = await gateway.gatewayCollectionStatus(creds, reference);
-    if (check.ok) status = check.status;
-    else status = null; // could not confirm now — the dashboard sync retries later
+    if (check.ok) {
+      status = check.status;
+      partnerFee = check.partnerFee;
+      verifiedAmount = check.amount;
+    } else status = null; // could not confirm now — the dashboard sync retries later
   }
   if (!status || status === "pending") return new Response("OK", { status: 200 });
 
@@ -55,11 +61,11 @@ async function handle(request: Request): Promise<Response> {
 
     if (record && record.status === "pending") {
       // A short payment is never a full success.
-      const paid = Number(payload?.amount ?? 0);
+      const paid = verifiedAmount;
       const settled: "success" | "failed" =
         status === "success" && paid > 0 && Number(record.amount) > 0 && paid < Number(record.amount) ? "failed" : status;
       const { settlePaymentRecord } = await import("@/lib/settle.server");
-      await settlePaymentRecord(record, settled, { providerReference: reference });
+      await settlePaymentRecord(record, settled, { providerReference: reference, partnerFee });
     }
   } catch {
     /* never fail the notification — the dashboard reconciles on its next sync */

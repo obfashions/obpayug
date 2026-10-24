@@ -477,12 +477,14 @@ export async function gatewayPayoutMethods(creds: GatewayCreds, currency: string
 export async function gatewayCollectionStatus(creds: GatewayCreds, reference: string) {
   const res = await gatewayFetch(creds, `/api/v1/verify/${encodeURIComponent(reference)}`);
   if (!res.ok) return { ok: false as const, res, status: null as null };
+  const { reportedCollectionFee } = await import("./platform-fees");
   return {
     ok: true as const,
     res,
     status: mapStatus(String(res.data?.status || "")),
     amount: Number(res.data?.amount) || 0,
     currency: String(res.data?.currency || ""),
+    partnerFee: reportedCollectionFee(res.data),
   };
 }
 

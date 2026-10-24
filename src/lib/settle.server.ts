@@ -29,14 +29,20 @@ export interface SettleResult {
   record: Record<string, any> | null;
 }
 
-export async function collectionFeeFor(record: Record<string, any>) {
+export async function collectionFeeFor(record: Record<string, any>, verifiedPartnerFee?: number) {
   const { collectionFee, PARTNER_COLLECTION_PERCENT } = await import("./platform-fees");
   const amount = Number(record.amount) || 0;
   const currency = String(record.currency || "UGX");
-  if (currency === "USD" || amount <= 0) return Number(record.fee_amount) || 0;
-  const { data: ps } = await db().from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle();
-  const partner = Number(record.metadata?.partner_fee) || amount * PARTNER_COLLECTION_PERCENT / 100;
-  return collectionFee(amount, currency, Number(ps?.platform_fee_percent) || 0, partner);
+  if (amount <= 0) return 0;
+  const { data: ps, error } = await db().from("platform_settings").select("platform_fee_percent").limit(1).maybeSingle();
+  if (error || ps?.platform_fee_percent == null || !Number.isFinite(Number(ps.platform_fee_percent))) {
+    throw new Error("Deposit fees are temporarily unavailable. Please try again shortly.");
+  }
+  const stored = record.metadata?.partner_fee;
+  const reported = verifiedPartnerFee ?? (stored == null ? undefined : Number(stored));
+  const partner = reported != null && Number.isFinite(reported) && reported >= 0
+    ? reported : amount * PARTNER_COLLECTION_PERCENT / 100;
+  return collectionFee(amount, currency, Number(ps.platform_fee_percent), partner);
 }
 
 /**
@@ -46,13 +52,13 @@ export async function collectionFeeFor(record: Record<string, any>) {
 export async function settlePaymentRecord(
   record: Record<string, any>,
   next: Terminal,
-  opts: { fee?: number; providerReference?: string | null } = {},
+  opts: { fee?: number; partnerFee?: number; providerReference?: string | null } = {},
 ): Promise<SettleResult> {
   const now = new Date().toISOString();
   const amount = Number(record.amount) || 0;
   let fee = Number.isFinite(opts.fee) ? Number(opts.fee) : Number(record.fee_amount) || 0;
   // Received payments carry ObPay's admin-set fee, which also covers the partner's charge.
-  if (record.type !== "payout" && next === "success" && !opts.fee) fee = await collectionFeeFor(record);
+  if (record.type !== "payout" && next === "success") fee = await collectionFeeFor(record, opts.partnerFee);
 
   const { data: settlement, error } = await db().rpc("settle_payment_record_and_balance", {
     p_record_id: record.id,
@@ -140,7 +146,7 @@ export async function refreshPaymentRecord(record: Record<string, any>): Promise
     const chk = await gatewayCollectionStatus(creds, record.reference);
     if (!chk.ok || !chk.status || chk.status === "pending") return record;
     const status = chk.status === "success" && chk.amount > 0 && chk.amount < Number(record.amount || 0) ? "failed" : chk.status;
-    const done = await settlePaymentRecord(record, status, { providerReference: record.reference });
+    const done = await settlePaymentRecord(record, status, { providerReference: record.reference, partnerFee: chk.partnerFee });
     return done.record || { ...record, status };
   }
 

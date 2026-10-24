@@ -216,6 +216,8 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
     return err(friendlyError(out.res, "collection"));
   }
 
+  const { reportedCollectionFee } = await import("./platform-fees");
+  const partnerFee = reportedCollectionFee(out.res.data);
   await recordPayment(merchantId, {
     reference,
     provider_reference: out.platformReference,
@@ -227,6 +229,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
     phone_number: phone,
     description: body.description || null,
     metadata: {
+      ...(partnerFee == null ? {} : { partner_fee: partnerFee }),
       merchant_metadata: merchantMeta(body),
       callback_url: cb.url,
       checkout_url: out.checkoutUrl,
