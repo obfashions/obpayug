@@ -596,14 +596,14 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       };
     }
   } else {
+    // Fee-on-top: the recipient receives the entered amount in full and the
+    // partner fee is added on top — same math as payoutQuote.
     net = req.amount;
-    gross = net;
-    if (rules.flat) gross = net + rules.flat;
-    else if (rules.percent) gross = Math.max(net / (1 - rules.percent / 100), net + rules.floor);
-    if (gross < rules.min) {
+    gross = rules.flat ? net + rules.flat : rules.percent ? Math.max(net / (1 - rules.percent / 100), net + rules.floor) : net;
+    if (net < rules.min) {
       return {
         ok: false as const,
-        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is ${currency} ${Math.max(rules.min - (gross - net), 1).toLocaleString("en")}.` } as GatewayResult,
+        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is ${currency} ${rules.min.toLocaleString("en")}. No money was sent.` } as GatewayResult,
       };
     }
   }
