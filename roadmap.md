@@ -9,3 +9,4 @@
 - [x] Identify Mukoya's failed payout and verify its refund and live RWF fee rules.
 - [x] Correct and test fee-inclusive payout minimum guidance without sending real money (17 relevant checks passed).
 - [ ] Show fee-inclusive payout minimums when selecting each currency and verify the displayed RWF amount.
+- [ ] Check Rwanda's new 500 RWF partner minimum, test the fee-inclusive amount and remove stale submission limits.
