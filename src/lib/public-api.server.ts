@@ -320,17 +320,20 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   // Work out every charge before reserving: the recipient receives the entered
   // amount in full, and ObPay's fee plus the partner's fee are deducted from
   // the merchant's balance on top of it.
-  const { payoutPlatformFee, payoutFeePercent, isWholeCurrency } = await import("./platform-fees");
-  const { data: feeSettings } = await db().from("platform_settings").select("withdraw_fee_percent,currency_fees").limit(1).maybeSingle();
+  const { payoutFeePercent } = await import("./platform-fees");
+  const [{ data: feeSettings, error: settingsError }, { data: preference, error: preferenceError }] = await Promise.all([
+    db().from("platform_settings").select("withdraw_fee_percent,currency_fees").limit(1).maybeSingle(),
+    db().from("merchant_payout_preferences").select("fee_mode").eq("merchant_id", merchantId).maybeSingle(),
+  ]);
+  if (settingsError || !feeSettings || preferenceError) return err("Could not load payout fee settings. No money was sent.");
+  // Refunds pay the customer in full regardless of the merchant's preference.
+  const feeMode = source === "refund" ? "account" : preference?.fee_mode === "amount" ? "amount" : "account";
   const platformFeePercent = waivePlatformFee ? 0 : payoutFeePercent(currency, Number(feeSettings?.withdraw_fee_percent) || 0, feeSettings?.currency_fees);
-  const platformFee = payoutPlatformFee(amount, currency, platformFeePercent);
   const { payoutQuote } = await import("./gateway.server");
-  const quote = await payoutQuote(creds, currency, amount);
+  const quote = await payoutQuote(creds, currency, amount, feeMode, platformFeePercent);
   if (quote.error) return err(quote.error);
-  if (isWholeCurrency(currency) && !Number.isInteger(quote.gross)) {
-    return err(`This mobile-money withdrawal would result in a fractional ${currency} amount after the fee. Enter a whole ${currency} amount. No money was sent.`);
-  }
-  const totalDebit = quote.gross + platformFee;
+  const platformFee = quote.platformFee;
+  const totalDebit = quote.totalDebit;
 
   // Reserve funds and the reference together before contacting the network.
   // Different simultaneous references must not spend the same money.
@@ -338,7 +341,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     p_merchant_id: merchantId, p_reference: reference, p_amount: amount, p_currency: currency,
     p_phone: accountNumber, p_source: source, p_description: body.description || null,
     p_debit: totalDebit,
-    p_metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName, fee_inclusive: false, obpay_fee: platformFee, partner_fee: quote.partnerFee },
+    p_metadata: { merchant_metadata: merchantMeta(body), callback_url: cb.url, recipient_name: recipientName, fee_inclusive: feeMode === "amount", fee_mode: feeMode, obpay_fee: platformFee, partner_fee: quote.partnerFee },
   });
   if (reservationError || !reservation) return err(reservationError?.message || "Could not reserve this payout. No payout was sent.");
 
@@ -346,11 +349,12 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   const out = await gatewayPayout(creds, {
     platformFee,
     platformFeePercent,
+    preparedQuote: quote,
     merchant: await merchantTag(merchantId),
     channel: `${source}_payout`,
     currency,
     network: String(body.network || ""),
-    feeInclusive: false,
+    feeInclusive: feeMode === "amount",
     reference,
     amount,
     typeTrans: isBank ? 3 : 2,
@@ -402,6 +406,8 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
     fee: out.partnerFee + out.platformFee,
     fee_amount: out.partnerFee + out.platformFee,
     recipient_gets: out.net,
+    total_debit: totalDebit,
+    fee_mode: feeMode,
     currency,
     status: saved.status,
     type: "payout",
