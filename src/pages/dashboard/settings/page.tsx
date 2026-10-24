@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import CurrencyWalletsCard from "./CurrencyWalletsCard";
+import PayoutFees from "./PayoutFees";
 import { supabase } from "@/lib/supabase";
 import { getProviderConnectionStatus, testProviderConnection } from "@/services/obpay";
 
@@ -186,6 +187,7 @@ export default function SettingsPage() {
         </div>
 
         <CurrencyWalletsCard />
+        <PayoutFees />
 
         {/* Payment engine status — Admin Only */}
         {profile?.role === "admin" && (

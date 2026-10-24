@@ -513,6 +513,8 @@ export interface PayoutRequest {
   currency?: string;
   /** KES: mpesa / airtel_money. */
   network?: string;
+  /** Server-only quote used to reserve exactly what is submitted. */
+  preparedQuote?: Awaited<ReturnType<typeof payoutQuote>>;
 }
 
 async function payoutRules(creds: GatewayCreds, currency = "UGX") {
@@ -540,16 +542,12 @@ async function payoutRules(creds: GatewayCreds, currency = "UGX") {
  * the partner's fee is added on top. Returns null when the live rules are
  * unavailable, or an error message when the amount cannot be sent.
  */
-export async function payoutQuote(creds: GatewayCreds, currency: string, amount: number) {
+export async function payoutQuote(creds: GatewayCreds, currency: string, amount: number, mode: import("./payout-fee-mode").PayoutFeeMode = "account", platformPercent = 0) {
   const cur = String(currency || "UGX").toUpperCase();
   const rules = await payoutRules(creds, cur);
-  if (!rules) return { rules: null, gross: 0, net: 0, partnerFee: 0, error: "Withdrawal fees are temporarily unavailable. Please try again shortly." };
-  if (!Number.isFinite(amount) || amount <= 0) return { rules, gross: 0, net: 0, partnerFee: 0, error: "`amount` must be greater than zero." };
-  if (amount < rules.min) {
-    return { rules, gross: 0, net: 0, partnerFee: 0, error: `The minimum payout is ${cur} ${rules.min.toLocaleString("en")}. No money was sent.` };
-  }
-  const gross = rules.flat ? amount + rules.flat : rules.percent ? Math.max(amount / (1 - rules.percent / 100), amount + rules.floor) : amount;
-  return { rules, gross, net: amount, partnerFee: gross - amount, error: null };
+  if (!rules) return { rules: null, gross: 0, net: 0, partnerFee: 0, platformFee: 0, totalDebit: 0, error: "Withdrawal fees are temporarily unavailable. Please try again shortly." };
+  const { payoutAmounts } = await import("./payout-fee-mode");
+  return { rules, ...payoutAmounts(amount, cur, rules, mode, platformPercent) };
 }
 
 /** Sends money to a mobile money wallet. */
@@ -569,7 +567,7 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       res: { ok: false, httpStatus: 400, code: "bad_number", data: null, raw: null, error: `That mobile money number is not valid. Use the ${countryFor(currency)?.example || "07XXXXXXXX"} format.` } as GatewayResult,
     };
   }
-  const rules = await payoutRules(creds, currency);
+  const rules = req.preparedQuote?.rules || await payoutRules(creds, currency);
   if (!rules) {
     return {
       ok: false as const,
@@ -578,8 +576,12 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
   }
   let gross: number;
   let net: number;
-  const platformFee = Math.max(Number(req.platformFee) || 0, 0);
-  if (req.feeInclusive) {
+  const platformFee = req.preparedQuote?.platformFee ?? Math.max(Number(req.platformFee) || 0, 0);
+  if (req.preparedQuote) {
+    if (req.preparedQuote.error) return { ok: false as const, res: { ok: false, httpStatus: 400, code: "invalid_quote", data: null, raw: null, error: req.preparedQuote.error } as GatewayResult };
+    gross = req.preparedQuote.gross;
+    net = req.preparedQuote.net;
+  } else if (req.feeInclusive) {
     gross = req.amount - platformFee;
     const f = rules.flat ? rules.flat : rules.percent ? Math.max(gross * rules.percent / 100, rules.floor) : 0;
     net = gross - f;
