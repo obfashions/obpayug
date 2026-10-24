@@ -4,7 +4,7 @@ import { platform } from "@/lib/platform";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { exchangeReceive } from "@/lib/exchange-math";
 
-const CURS = ["UGX", "KES", "RWF", "USD"];
+const CURS = ["UGX", "KES", "RWF", "NGN", "XOF", "USD", "ZMW", "SLL", "CDF", "XAF"];
 
 export default function ExchangePage() {
   const { balances, refreshBalances } = useCurrency();
