@@ -11,6 +11,7 @@ import { getAccessToken } from "@/lib/session-token";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { usePayoutMinimum } from "@/hooks/use-payout-minimum";
 import { payoutFeeSummary } from "@/lib/payout-fee-mode";
+import { Button } from "@/components/ui/button";
 
 const PAYOUT_BANKS = [
   ["UG0001", "Absa Bank Uganda"], ["UG0002", "Bank of Africa Uganda"], ["UG0003", "BRAC Uganda Bank"], ["UG0004", "Centenary Bank"], ["UG0005", "Cairo Bank Uganda"], ["UG0006", "DFCU Bank"], ["UG0007", "Diamond Trust Bank"], ["UG0008", "Equity Bank Uganda"], ["UG0009", "Ecobank Uganda"], ["UG0010", "Exim Bank Uganda"], ["UG0011", "EFC Uganda"], ["UG0012", "Finance Trust Bank"], ["UG0013", "FINCA Uganda"], ["UG0014", "Guaranty Trust Bank Uganda"], ["UG0015", "Housing Finance Bank"], ["UG0016", "I&M Bank Uganda"], ["UG0017", "KCB Bank Uganda"], ["UG0018", "Mercantile Credit Bank"], ["UG0019", "NCBA Bank Uganda"], ["UG0020", "Opportunity Bank Uganda"], ["UG0021", "Pride Microfinance"], ["UG0022", "PostBank Uganda"], ["UG0023", "Stanbic Bank Uganda"], ["UG0024", "Standard Chartered Uganda"], ["UG0025", "Tropical Bank"], ["UG0026", "Salaam Bank Uganda"], ["UG0027", "UGAFODE Microfinance"], ["UG0028", "United Bank for Africa"], ["UG0029", "Wazalendo SACCO"],
@@ -108,6 +109,8 @@ export default function PayoutsPage() {
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
+  const [payoutSuggestion, setPayoutSuggestion] = useState<number | null>(null);
+  const [withdrawSuggestion, setWithdrawSuggestion] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -224,7 +227,7 @@ export default function PayoutsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || submitting) return;
-    setSubmitting(true); setSubmitStatus(null);
+    setSubmitting(true); setSubmitStatus(null); setPayoutSuggestion(null);
     try {
       const amount = parseFloat(form.amount);
       if (ugandaMinimum.minimum == null) { setSubmitStatus({ ok: false, message: "Withdrawal minimum is unavailable. Please try again shortly." }); return; }
@@ -296,6 +299,7 @@ export default function PayoutsPage() {
         fetchData();
       } else {
         const errMsg = apiData?.error || "Payout could not be processed.";
+        setPayoutSuggestion(apiData.data?.compatible_amount ?? null);
         setSubmitStatus({ ok: false, message: simplifyError(errMsg) });
       }
     } catch (err: any) {
@@ -322,7 +326,7 @@ export default function PayoutsPage() {
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || withdrawSubmitting || !profile?.phone_number) return;
-    setWithdrawSubmitting(true); setWithdrawStatus(null);
+    setWithdrawSubmitting(true); setWithdrawStatus(null); setWithdrawSuggestion(null);
     try {
       const amount = parseFloat(withdrawAmount);
       if (ugandaMinimum.minimum == null) { setWithdrawStatus({ ok: false, message: "Withdrawal minimum is unavailable. Please try again shortly." }); return; }
@@ -394,6 +398,7 @@ export default function PayoutsPage() {
         fetchData();
       } else {
         const errMsg = apiData?.error || apiData?.message || "Withdrawal could not be processed.";
+        setWithdrawSuggestion(apiData.data?.compatible_amount ?? null);
         setWithdrawStatus({ ok: false, message: simplifyError(errMsg) });
       }
     } catch (err: any) {
@@ -612,6 +617,7 @@ export default function PayoutsPage() {
                       <i className={`${withdrawStatus.ok ? "ri-checkbox-circle-line text-emerald-500" : "ri-error-warning-line text-accent-500"} mt-0.5`} />
                       <p>{withdrawStatus.message}</p>
                     </div>
+                    {withdrawSuggestion != null && <Button type="button" variant="outline" className="mt-2" onClick={() => { setWithdrawAmount(String(withdrawSuggestion)); setWithdrawSuggestion(null); setWithdrawStatus(null); }}>Use {formatCurrency(withdrawSuggestion, "UGX")}</Button>}
                   </div>
                 )}
                 <form onSubmit={handleWithdraw} className="space-y-4">
@@ -851,6 +857,7 @@ export default function PayoutsPage() {
                     <i className={`${submitStatus.ok ? "ri-checkbox-circle-line text-emerald-500" : "ri-error-warning-line text-accent-500"} mt-0.5`} />
                     <div className="flex-1">
                       <p>{submitStatus.message}</p>
+                      {payoutSuggestion != null && <Button type="button" variant="outline" className="mt-2" onClick={() => { setForm((previous) => ({ ...previous, amount: String(payoutSuggestion) })); setPayoutSuggestion(null); setSubmitStatus(null); }}>Use {formatCurrency(payoutSuggestion, "UGX")}</Button>}
                       {!submitStatus.ok && submitStatus.message.toLowerCase().includes("session") && (
                         <button
                           type="button"

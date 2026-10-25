@@ -330,7 +330,7 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   const platformFeePercent = waivePlatformFee ? 0 : payoutFeePercent(currency, Number(feeSettings?.withdraw_fee_percent) || 0, feeSettings?.currency_fees);
   const { payoutQuote } = await import("./gateway.server");
   const quote = await payoutQuote(creds, currency, amount, feeMode, platformFeePercent);
-  if (quote.error) return err(quote.error);
+  if (quote.error) return { ...err(quote.error), data: { compatible_amount: quote.compatibleAmount ?? null, currency, fee_mode: feeMode } };
   const platformFee = quote.platformFee;
   const totalDebit = quote.totalDebit;
 

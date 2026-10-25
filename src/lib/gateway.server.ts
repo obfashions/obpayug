@@ -545,7 +545,7 @@ async function payoutRules(creds: GatewayCreds, currency = "UGX") {
 export async function payoutQuote(creds: GatewayCreds, currency: string, amount: number, mode: import("./payout-fee-mode").PayoutFeeMode = "account", platformPercent = 0) {
   const cur = String(currency || "UGX").toUpperCase();
   const rules = await payoutRules(creds, cur);
-  if (!rules) return { rules: null, gross: 0, net: 0, partnerFee: 0, platformFee: 0, totalDebit: 0, error: "Withdrawal fees are temporarily unavailable. Please try again shortly." };
+  if (!rules) return { rules: null, gross: 0, net: 0, partnerFee: 0, platformFee: 0, totalDebit: 0, compatibleAmount: null, error: "Withdrawal fees are temporarily unavailable. Please try again shortly." };
   const { payoutAmounts } = await import("./payout-fee-mode");
   return { rules, ...payoutAmounts(amount, cur, rules, mode, platformPercent) };
 }
@@ -574,61 +574,19 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
       res: { ok: false, httpStatus: 503, code: "fee_unavailable", data: null, raw: null, error: "Withdrawal fees are temporarily unavailable. Please try again shortly." } as GatewayResult,
     };
   }
-  let gross: number;
-  let net: number;
-  const platformFee = req.preparedQuote?.platformFee ?? Math.max(Number(req.platformFee) || 0, 0);
-  if (req.preparedQuote) {
-    if (req.preparedQuote.error) return { ok: false as const, res: { ok: false, httpStatus: 400, code: "invalid_quote", data: null, raw: null, error: req.preparedQuote.error } as GatewayResult };
-    gross = req.preparedQuote.gross;
-    net = req.preparedQuote.net;
-  } else if (req.feeInclusive) {
-    gross = req.amount - platformFee;
-    const f = rules.flat ? rules.flat : rules.percent ? Math.max(gross * rules.percent / 100, rules.floor) : 0;
-    net = gross - f;
-    if (gross < rules.min || net <= 0) {
-      const { minimumFeeInclusivePayout } = await import("./platform-fees");
-      const enteredMinimum = req.platformFeePercent == null
-        ? rules.min + platformFee
-        : minimumFeeInclusivePayout(rules.min, currency, req.platformFeePercent, { type: rules.flat ? "flat" : "percent", amount: rules.flat, floor: rules.floor });
-      const minimumMessage = enteredMinimum == null
-        ? "The configured withdrawal fee leaves no money to send. Contact ObPay support."
-        : `Enter at least ${currency} ${enteredMinimum.toLocaleString("en")}. The payment network requires ${currency} ${rules.min.toLocaleString("en")} after ObPay's withdrawal fee; its own fee is then deducted. No money was sent.`;
-      return {
-        ok: false as const,
-        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: minimumMessage } as GatewayResult,
-      };
-    }
-  } else {
-    // Fee-on-top: the recipient receives the entered amount in full and the
-    // partner fee is added on top — same math as payoutQuote.
-    net = req.amount;
-    gross = rules.flat ? net + rules.flat : rules.percent ? Math.max(net / (1 - rules.percent / 100), net + rules.floor) : net;
-    if (net < rules.min) {
-      return {
-        ok: false as const,
-        res: { ok: false, httpStatus: 400, code: "below_minimum", data: null, raw: null, error: `The minimum payout is ${currency} ${rules.min.toLocaleString("en")}. No money was sent.` } as GatewayResult,
-      };
-    }
-  }
-  // The partner deducts its own percentage fee from the gross. Rounding the
-  // fee locally does not change what its zero-decimal mobile-money rail sees.
-  // Refuse incompatible amounts *before* making a money-moving request.
+  const { payoutAmounts } = await import("./payout-fee-mode");
+  const quote = req.preparedQuote ?? payoutAmounts(req.amount, currency, rules, req.feeInclusive ? "amount" : "account",
+    req.platformFeePercent ?? (req.amount > 0 ? Math.max(Number(req.platformFee) || 0, 0) / req.amount * 100 : 0));
+  if (quote.error) return { ok: false as const, res: { ok: false, httpStatus: 400, code: "invalid_quote", data: null, raw: null, error: quote.error } as GatewayResult };
+  const { gross, net, platformFee } = quote;
+  // Defense in depth for prepared quotes; never send fractional rail amounts.
   const { isWholeCurrency } = await import("./platform-fees");
   if (!Number.isFinite(gross) || !Number.isFinite(net) || isWholeCurrency(currency) &&
       (!Number.isInteger(gross) || !Number.isInteger(net))) {
-    const step = rules.percent ? (() => {
-      const scaled = Math.round(rules.percent * 100);
-      const denominator = 10000;
-      let a = scaled, b = denominator;
-      while (b) [a, b] = [b, a % b];
-      return denominator / a;
-    })() : 1;
-    const next = Math.ceil((Math.floor(gross) + 1) / step) * step;
-    const advice = `Enter a whole ${currency} amount. Once the percentage fee applies, use increments of ${step.toLocaleString("en")} (for example ${currency} ${next.toLocaleString("en")}).`;
     return {
       ok: false as const,
       res: { ok: false, httpStatus: 400, code: "whole_amount_required", data: null, raw: null,
-        error: `This mobile-money withdrawal would result in a fractional ${currency} amount after the fee. ${advice} No money was sent.` } as GatewayResult,
+        error: `The payment network requires a whole ${currency} amount after fees. No money was sent.` } as GatewayResult,
     };
   }
   const method = currency === "KES" ? (req.network === "airtel_money" ? "airtel_money" : "mpesa") : (req.network || "mobile_money");

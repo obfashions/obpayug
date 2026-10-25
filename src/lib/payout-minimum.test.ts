@@ -6,6 +6,25 @@ const rwfRules = { success: true, payout_methods: { available: true, minimum_wit
 
 afterEach(() => vi.unstubAllGlobals());
 
+it("submits the explicitly chosen compatible UGX quote with whole gross and net amounts", async () => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout_methods: { available: true, minimum_withdrawal: 1500, fee: { type: "percent", percent: 4.5, floor: 1000 } } }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout: { reference: "WDR_UGX_TEST" } }), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+  const quote = await payoutQuote(creds, "UGX", 29987, "account", 5);
+  const result = await gatewayPayout(creds, { reference: "approved-ugx-test", amount: 29987, currency: "UGX", preparedQuote: quote, typeTrans: 2, bankCode: "", accountNumber: "256772123456", customerName: "Test recipient" });
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(result).toMatchObject({ gross: 31400, net: 29987, partnerFee: 1413, platformFee: 1500 });
+  expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).amount).toBe(31400);
+});
+
+it("never submits the original incompatible UGX amount", async () => {
+  const fetchMock = stubRules({ success: true, payout_methods: { available: true, minimum_withdrawal: 1500, fee: { type: "percent", percent: 4.5, floor: 1000 } } });
+  const result = await gatewayPayout(creds, { reference: "blocked-ugx-test", amount: 30000, currency: "UGX", typeTrans: 2, bankCode: "", accountNumber: "256772123456", customerName: "Test recipient" });
+  expect(result.ok).toBe(false);
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
 function stubRules(body: unknown) {
   const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify(body), { status: 200 })));
   vi.stubGlobal("fetch", fetchMock);
