@@ -211,6 +211,13 @@
       "when": 1792895277310,
       "tag": "0029_audited_payout_confirmation",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792895922316,
+      "tag": "0030_atomic_merchant_transfers",
+      "breakpoints": true
     }
   ]
 }
