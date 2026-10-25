@@ -320,14 +320,15 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   // Resolve the stored merchant choice and quote both charges before reserving.
   // Body fields cannot override the preference; saved payouts retain their mode.
   const { payoutFeePercent } = await import("./platform-fees");
-  const [{ data: feeSettings, error: settingsError }, { data: preference, error: preferenceError }] = await Promise.all([
+  const [{ data: feeSettings, error: settingsError }, { data: preference, error: preferenceError }, { data: exemption, error: exemptionError }] = await Promise.all([
     db().from("platform_settings").select("withdraw_fee_percent,currency_fees").limit(1).maybeSingle(),
     db().from("merchant_payout_preferences").select("fee_mode").eq("merchant_id", merchantId).maybeSingle(),
+    db().from("merchant_fee_exemptions").select("merchant_id").eq("merchant_id", merchantId).maybeSingle(),
   ]);
-  if (settingsError || !feeSettings || preferenceError) return err("Could not load payout fee settings. No money was sent.");
+  if (settingsError || !feeSettings || preferenceError || exemptionError) return err("Could not load payout fee settings. No money was sent.");
   // Refunds pay the customer in full regardless of the merchant's preference.
   const feeMode = source === "refund" ? "account" : preference?.fee_mode === "amount" ? "amount" : "account";
-  const platformFeePercent = waivePlatformFee ? 0 : payoutFeePercent(currency, Number(feeSettings?.withdraw_fee_percent) || 0, feeSettings?.currency_fees);
+  const platformFeePercent = waivePlatformFee || exemption ? 0 : payoutFeePercent(currency, Number(feeSettings?.withdraw_fee_percent) || 0, feeSettings?.currency_fees);
   const { payoutQuote } = await import("./gateway.server");
   const quote = await payoutQuote(creds, currency, amount, feeMode, platformFeePercent);
   if (quote.error) return { ...err(quote.error), data: { compatible_amount: quote.compatibleAmount ?? null, currency, fee_mode: feeMode } };

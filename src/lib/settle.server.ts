@@ -42,7 +42,14 @@ export async function collectionFeeFor(record: Record<string, any>, verifiedPart
   const reported = verifiedPartnerFee ?? (stored == null ? undefined : Number(stored));
   const partner = reported != null && Number.isFinite(reported) && reported >= 0
     ? reported : amount * PARTNER_COLLECTION_PERCENT / 100;
-  return collectionFee(amount, currency, collectFeePercent(currency, Number(ps.platform_fee_percent), ps.currency_fees), partner);
+  // Fee-exempt merchants pay only the partner's own charge.
+  const merchantId = record.merchant_id ?? record.user_id;
+  const { data: exempt, error: exemptError } = merchantId
+    ? await db().from("merchant_fee_exemptions").select("merchant_id").eq("merchant_id", merchantId).maybeSingle()
+    : { data: null, error: null };
+  if (exemptError) throw new Error("Deposit fees are temporarily unavailable. Please try again shortly.");
+  const pct = exempt ? 0 : collectFeePercent(currency, Number(ps.platform_fee_percent), ps.currency_fees);
+  return collectionFee(amount, currency, pct, partner);
 }
 
 /**

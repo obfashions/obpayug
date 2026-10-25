@@ -232,6 +232,13 @@
       "when": 1792926335600,
       "tag": "0032_payout_all_supported_wallet_currencies",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792931133737,
+      "tag": "0033_merchant_fee_exemptions",
+      "breakpoints": true
     }
   ]
 }
