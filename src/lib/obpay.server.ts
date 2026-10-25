@@ -273,6 +273,41 @@ export const LOCAL_ACTIONS = [
   ...SERVICE_ACTIONS,
 ];
 
+/** Admin credit/debit of a non-main currency wallet (managed store), with an audit history row. */
+async function adminAdjustManaged(me: any, target: string, type: "add" | "deduct", amount: number, currency: string, note: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as any;
+  const { data: row } = await db.from("merchant_balances").select("*").eq("merchant_id", target).eq("currency", currency).maybeSingle();
+  const cur = Number(row?.available_balance || 0);
+  if (type === "deduct" && amount > cur) {
+    return { success: false, error: `Not enough balance. Current ${currency} balance is ${cur.toLocaleString()} ${currency}.` };
+  }
+  const newBal = type === "add" ? cur + amount : cur - amount;
+  const now = new Date().toISOString();
+  const fields = {
+    available_balance: newBal,
+    total_collections: Number(row?.total_collections || 0) + (type === "add" ? amount : 0),
+    total_payouts: Number(row?.total_payouts || 0) + (type === "deduct" ? amount : 0),
+    updated_at: now,
+  };
+  // Optimistic lock on the previous value so concurrent payouts can't be overwritten.
+  const res = row
+    ? await db.from("merchant_balances").update(fields).eq("id", row.id).eq("available_balance", row.available_balance).select("available_balance")
+    : await db.from("merchant_balances").insert({ merchant_id: target, currency, pending_balance: 0, ...fields }).select("available_balance");
+  if (res.error || !res.data?.length || Number(res.data[0].available_balance) !== newBal) {
+    return { success: false, error: "The balance changed while saving. Please refresh and try again." };
+  }
+  const label = type === "add" ? "Balance credit" : "Withdraw fee";
+  const { error } = await db.from("transactions").insert({
+    user_id: target, reference: `ADMIN_${type.toUpperCase()}_${Date.now()}`, amount, currency, status: "success",
+    type: type === "add" ? "collection" : "payout", payment_method: "admin_adjustment", customer_name: label,
+    description: `${label}${note ? ` — ${note}` : ""}`.slice(0, 200), fee_amount: 0, net_amount: amount, completed_at: now,
+    metadata: { adjustment_type: type, adjusted_by: me.email || me.userId, previous_balance: cur, new_balance: newBal, wallet: "managed" },
+  });
+  if (error) return { success: false, error: "The balance changed, but its history could not be recorded. Please contact support before making another adjustment." };
+  return { success: true, data: { target_user_id: target, adjustment_type: type, amount, previous_balance: cur, new_balance: newBal, currency } };
+}
+
 /** Admin credit/debit of a merchant's available balance, verified by re-reading the wallet. */
 async function adminAdjustBalance(accessToken: string, body: any) {
   const { requireAdmin } = await import("./identity.server");
@@ -285,11 +320,19 @@ async function adminAdjustBalance(accessToken: string, body: any) {
   if (type !== "add" && type !== "deduct") return { success: false, error: "Choose add or deduct." };
   if (!Number.isFinite(amount) || amount <= 0) return { success: false, error: "Enter a valid amount." };
 
+  const { supabaseAdmin: sa } = await import("@/integrations/supabase/client.server");
+  const { data: prof } = await sa.from("profiles").select("default_currency").eq("id", target).maybeSingle();
+  const mainCurrency = String(prof?.default_currency || "UGX").toUpperCase();
+  const requested = String(body?.currency || mainCurrency).toUpperCase();
+  const { WALLET_CURRENCIES } = await import("./countries");
+  if (!(WALLET_CURRENCIES as readonly string[]).includes(requested)) return { success: false, error: "Choose a supported wallet currency." };
+  if (requested !== mainCurrency) return adminAdjustManaged(me, target, type, amount, requested, String(body?.note || "").trim());
+
   const wallet = first(await restWrite(accessToken, `/merchant_wallets?user_id=eq.${target}&select=*`));
   const cur = Number(wallet?.available_balance || 0);
   const col = Number(wallet?.total_collections || 0);
   const pay = Number(wallet?.total_payouts || 0);
-  const currency = wallet?.currency || "UGX";
+  const currency = mainCurrency;
   if (type === "deduct" && amount > cur) {
     return { success: false, error: `Not enough balance. Current balance is ${cur.toLocaleString()} ${currency}.` };
   }
