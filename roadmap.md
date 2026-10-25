@@ -1,3 +1,5 @@
+- [x] Fix missing recipient inputs and non-UGX New Payout navigation; expose existing sender/recipient fee settings on Payouts and refresh minimums after saving. Live Zambia rules (minimum 30 ZMW, 4.67% floor 5) and below-minimum validation verified; 51 regression tests passed, no merchant funds moved.
+- [ ] Verify Zambia payout form and saved fee choices end to end; blocked by the requesting account's login-code verification. Real payout delivery remains untested; no authorized funded payout was submitted.
 - [x] Fix exchange validation for all ten supported wallets, including UGX → ZMW; 21 checks passed, live function verified and signed-in UGX-to-ZMW quote shows 1.5% fee. No real conversion submitted because requesting account has zero UGX.
 - [x] Make merchant-transfer currency selectable before recipient lookup, preserve compatible choices, and show unavailable recipient wallets without mixing balances.
 - [ ] Deduct PMVN740RA only after matching partner evidence is supplied: live lookup found no matching payout, existing failed reservation was refunded; balance left unchanged.

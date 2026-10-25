@@ -2,6 +2,19 @@ import { expect, it } from "vitest";
 import { payoutAmounts } from "./payout-fee-mode";
 
 const rwf = { min: 500, percent: 4.1, floor: 500, flat: 0 };
+const zmw = { min: 30, percent: 4.67, floor: 5, flat: 0 };
+it("Zambia sender-paid fees debit 37 ZMW and pay the full 30 ZMW", () => {
+  expect(payoutAmounts(30, "ZMW", zmw, "account", 5)).toMatchObject({ gross: 35, net: 30, partnerFee: 5, platformFee: 2, totalDebit: 37, error: null });
+});
+it("Zambia recipient-paid fees debit only 32 ZMW and pay 25 ZMW", () => {
+  expect(payoutAmounts(32, "ZMW", zmw, "amount", 5)).toMatchObject({ gross: 30, net: 25, partnerFee: 5, platformFee: 2, totalDebit: 32, error: null });
+});
+it("Zambia percentage fees require explicit approval of compatible whole amounts", () => {
+  const original = payoutAmounts(200, "ZMW", zmw, "account", 5);
+  expect(original.error).not.toBeNull();
+  expect(original.compatibleAmount).toBe(102);
+  expect(payoutAmounts(102, "ZMW", zmw, "account", 5)).toMatchObject({ gross: 107, net: 102, partnerFee: 5, platformFee: 6, totalDebit: 113, error: null });
+});
 it("account mode pays the entered 927 RWF and debits 1437 including both fees", () => {
   expect(payoutAmounts(927, "RWF", rwf, "account", 1)).toMatchObject({ gross: 1427, net: 927, platformFee: 10, partnerFee: 500, totalDebit: 1437, error: null });
 });

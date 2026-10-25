@@ -6,6 +6,27 @@ const rwfRules = { success: true, payout_methods: { available: true, minimum_wit
 
 afterEach(() => vi.unstubAllGlobals());
 
+it.each(["0971234567", "+260971234567", "00260971234567"])("sends Zambia %s through the live mobile_money rail with both fees", async (phone) => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout_methods: { available: true, minimum_withdrawal: 30, fee: { type: "percent", percent: 4.67, floor: 5 } } }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout: { reference: "WDR_ZMW_TEST" } }), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+  const quote = await payoutQuote(creds, "ZMW", 30, "account", 5);
+  expect(quote).toMatchObject({ gross: 35, net: 30, partnerFee: 5, platformFee: 2, totalDebit: 37, error: null });
+  const result = await gatewayPayout(creds, { reference: "zambia-test", amount: 30, currency: "ZMW", network: "airtel", preparedQuote: quote, typeTrans: 2, bankCode: "", accountNumber: phone, customerName: "Test recipient" });
+  expect(result.ok).toBe(true);
+  expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toMatchObject({ currency: "ZMW", method: "mobile_money", account_number: "260971234567", account_name: "Test recipient", amount: 35 });
+});
+
+it("rejects malformed Zambia numbers before contacting the partner", async () => {
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  const result = await gatewayPayout(creds, { reference: "bad-zambia-test", amount: 30, currency: "ZMW", typeTrans: 2, bankCode: "", accountNumber: "097123", customerName: "Test recipient" });
+  expect(result.ok).toBe(false);
+  expect(result.res.code).toBe("bad_number");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
 it("submits the explicitly chosen compatible UGX quote with whole gross and net amounts", async () => {
   const fetchMock = vi.fn()
     .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout_methods: { available: true, minimum_withdrawal: 1500, fee: { type: "percent", percent: 4.5, floor: 1000 } } }), { status: 200 }))
