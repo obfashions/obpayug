@@ -77,9 +77,9 @@ export default function ExchangePage() {
           <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`Amount in ${from}`} className={`${sel} w-full`} />
            {rateReady && from !== to && <p className="text-sm text-foreground-700">1 {from} = {rate.toFixed(to === "USD" ? 6 : 4)} {to} · You get <b>{receive.toLocaleString()} {to}</b> after the {fee}% fee</p>}
           {over && <p className="text-sm text-red-700">Your {from} wallet holds {fromBalance.toLocaleString()} {from}.</p>}
-           <Button disabled onClick={convert} className="w-full">Exchange unavailable</Button>
+           <Button disabled={busy || over || !rateReady || from === to || !(Number(amount) > 0)} onClick={convert} className="w-full">{busy ? "Checking wallets…" : "Exchange"}</Button>
           {msg && <div className={`text-sm rounded-lg p-3 ${msg.ok ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700"}`}>{msg.text}</div>}
-          <p className="text-xs text-foreground-500" role="status">Currency exchange is temporarily unavailable. Your existing balances remain unchanged. No exchange fee will be charged.</p>
+          <p className="text-xs text-foreground-500" role="status">We confirm both wallets before every exchange. If the receiving wallet can’t cover the amount, nothing is moved or charged.</p>
         </div>
 
         {history.length > 0 && (

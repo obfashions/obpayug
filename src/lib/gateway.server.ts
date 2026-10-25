@@ -638,9 +638,10 @@ export async function gatewayPayoutStatus(
  * but an impossible payout amount is refused with "Amount exceeds your
  * available X balance of N" — no payout is created, so this is read-only.
  */
-export async function gatewayLiveBalances(creds: GatewayCreds) {
+export async function gatewayLiveBalances(creds: GatewayCreds, only?: string[]) {
   const out: Array<{ currency: string; available: number | null; note?: string }> = [];
-  for (const currency of ["UGX", "KES", "RWF", "NGN", "XOF", "USD", "ZMW", "SLL", "CDF", "XAF"]) {
+  const all = ["UGX", "KES", "RWF", "NGN", "XOF", "USD", "ZMW", "SLL", "CDF", "XAF"];
+  for (const currency of only?.length ? all.filter((c) => only.includes(c)) : all) {
     const res = await gatewayFetch(creds, "/api/v1/payout", {
       method: "POST",
       body: { amount: 999999999999, currency, method: "mobile_money", account_number: "0000", account_name: "Balance check" },
