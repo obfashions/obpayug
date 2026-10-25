@@ -17,5 +17,6 @@
 - [x] Add merchant payout fee deduction choice for dashboard and API payouts; 36 checks passed, saved choices verified after reload, original account mode restored; no live payout sent.
 - [x] Offer compatible UGX amounts for explicit merchant approval across withdrawals and payouts; live authenticated validation returned 29,987 for 30,000, 35 tests passed, no real payout sent.
 - [x] Fix payment-network messages incorrectly displayed as internet connection errors; three error tests pass.
-- [ ] Audit Mukoya's partner-confirmed transactions and prior fee corrections; apply only documented missing charges without duplicate deductions.
+- [x] Verify Mukoya's 55 partner records; deduct only omitted confirmed collection fees (575 UGX, 1,568 RWF), retaining prior payout corrections; admin displays UGX 275,680 and RWF -568.
+- [ ] Reconcile Mukoya's historical cross-currency discrepancy; confirmed movements show an unexplained 90,480 RWF gap matching UGX collection numbers. Requires historical balance/profile change evidence before any further monetary correction; 130k UGX is not substantiated.
 - [x] Prevent changing the account currency from relabeling existing money; displayed wallet selection remains available.
