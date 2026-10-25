@@ -335,11 +335,11 @@ export default function DocsPage() {
               <Table
                 rows={[
                   { name: "amount", type: "integer", required: "Yes", desc: "Whole amount in the chosen currency, e.g. 5000. No decimals." },
-                  { name: "currency", type: "string", required: "No", desc: "Supported currency (e.g. UGX, KES, RWF, ZMW). Defaults to your main wallet." },
+                  { name: "currency", type: "string", required: "No", desc: "Supported currency (e.g. UGX, KES, RWF, ZMW). Defaults to UGX; always send ZMW for Zambia." },
                   { name: "phone_number", type: "string", required: "Yes", desc: "Customer's mobile money number: 0772123456 (UG), 0971234567 (ZM) or 256772123456." },
                   { name: "customer_name", type: "string", required: "Yes", desc: "Customer's full name." },
                   { name: "customer_email", type: "string", required: "Yes", desc: "Customer's email (for the receipt)." },
-                  { name: "reference", type: "string", required: "No", desc: "Your unique order id (max 40 chars). Reusing one is refused." },
+                  { name: "reference", type: "string", required: "No", desc: "Unique order id (max 40 chars). A retry returns the existing payment; never reuse it for another order." },
                   { name: "callback_url", type: "string", required: "Recommended", desc: "Public https:// URL that receives the signed result." },
                   { name: "description", type: "string", required: "No", desc: "Shown to the customer." },
                   { name: "redirect_url", type: "string", required: "No", desc: "Where to send the customer if a payment page is needed." },
@@ -443,9 +443,10 @@ print(r.json())`}
               <Header icon="ri-upload-cloud-line" label="Send money" subtitle={`POST ${BASE}/payouts`} />
               <p className={P}>
                 Sends money from your ObPay balance to a mobile money number in Uganda, Kenya, Rwanda or Zambia. The response
-                shows <code>fee</code> and <code>recipient_gets</code>. Fees are deducted from the amount by default; if your
-                account is set to pay fees, they are added on top. Minimum payout varies by currency (e.g. UGX 5,000, KES 100,
-                ZMW 30). Bank payouts are not available yet.
+                shows <code>fee</code>, <code>recipient_gets</code>, <code>total_debit</code> and <code>fee_mode</code>.
+                By default your wallet pays both fees on top; the recipient gets the entered amount. If you choose recipient-paid
+                fees in account Settings or Payouts, both fees come out of the entered amount instead. API payouts use that saved choice.
+                Minimums and network fees are live: check <code>GET /payout-methods?currency=ZMW</code>. Bank payouts are not available yet.
               </p>
               <Table
                 rows={[
@@ -479,9 +480,22 @@ print(r.json())`}
               />
               <p className={P}>
                 Zambia numbers are <code className={C}>09XXXXXXXX</code> local or <code className={C}>2609XXXXXXXX</code> international,
-                on Airtel, MTN or Zamtel. Amounts are whole ZMW and the payout minimum is <b>ZMW 30</b>. Confirm the live fee with{" "}
+                on Airtel, MTN or Zamtel. Amounts are whole ZMW; the last checked network minimum was <b>ZMW 30</b>, before ObPay's charge in recipient-paid mode. Confirm current availability, minimum and network fee with{" "}
                 <code className={C}>GET /payout-methods?currency=ZMW</code> before going live.
               </p>
+              <Note>
+                With a 5 ZMW network fee and 5% ObPay fee, sending 50 ZMW in wallet-paid mode deducts 58 ZMW and pays 50 ZMW;
+                recipient-paid mode deducts 50 ZMW and pays 42 ZMW. Actual fees follow live network rules and your currency's admin-set rate.
+                Only your ZMW wallet funds this payout; UGX and other balances are not interchangeable. Check the ZMW entry in
+                <code className={C}>GET /balance</code>'s <code className={C}>balances</code> array, not the top-level UGX balance.
+              </Note>
+              <CodeBlock title="Zambia deposit" code={`curl -X POST ${BASE}/collect \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"currency":"ZMW","amount":50,"phone_number":"0971234567","network":"airtel","customer_name":"Chanda Mwansa","customer_email":"chanda@example.com","reference":"ZMW-DEPOSIT-1001"}'`} />
+              <Note tone="warn">
+                HTTP 200 alone does not mean a payment succeeded: check <code className={C}>success</code> and
+                <code className={C}>data.status</code>. A successful submission starts pending. Confirm the returned reference at
+                <code className={C}>GET /transactions/REFERENCE</code> until success or failed. If submission is uncertain, do not
+                retry with a new reference; contact support. Never send your secret key from browser code.
+              </Note>
               <Note tone="warn">A payout larger than your available balance is refused with "Insufficient balance".</Note>
             </section>
           )}
@@ -545,7 +559,7 @@ print(r.json())`}
           {active === "countries" && (
             <section className="space-y-4">
               <h2 className="font-heading font-bold text-xl">Countries, crypto & rates</h2>
-              <p className="text-sm">Pass <code>currency</code> on <code>/collect</code> and <code>/payout</code>. Amounts are whole numbers (USD allows cents).</p>
+              <p className="text-sm">Pass <code>currency</code> on <code>/collect</code> and <code>/payouts</code>. Amounts are whole numbers (USD collections allow cents). Always check live payout rules and your saved fee choice.</p>
               <ul className="text-sm list-disc pl-5 space-y-1">
                 <li><b>UGX</b> Uganda – MTN, Airtel (<code>network: "mtn" | "airtel"</code>), phone <code>2567XXXXXXXX</code>. Payout min 10,000.</li>
                 <li><b>KES</b> Kenya – M-Pesa PIN prompt (<code>network: "mpesa"</code>), phone <code>2547XXXXXXXX</code>. Payout min 500.</li>

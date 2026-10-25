@@ -1,10 +1,34 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { gatewayPayout, payoutQuote, friendlyError } from "./gateway.server";
+import { gatewayCollect, gatewayPayout, payoutQuote, friendlyError } from "./gateway.server";
 
 const creds = { key: "test-key", secret: "test-only", basic: "" };
 const rwfRules = { success: true, payout_methods: { available: true, minimum_withdrawal: 500, fee: { type: "percent", percent: 4.1, floor: 500 } } };
 
 afterEach(() => vi.unstubAllGlobals());
+
+it("sends a 50 ZMW deposit and Zambia PIN prompt to the customer's international number", async () => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: { reference: "zmw-deposit", payment_url: "https://example.com/pay" } })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, pending: true })));
+  vi.stubGlobal("fetch", fetchMock);
+  const result = await gatewayCollect(creds, { reference: "zmw-deposit", amount: 50, currency: "ZMW", phone: "0971234567", customerName: "Zambia customer", customerEmail: "test@example.com" });
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(result.promptSent).toBe(true);
+  expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({ amount: 50, currency: "ZMW", customer: { phone: "260971234567" } });
+  expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({ reference: "zmw-deposit", currency: "ZMW", country: "ZM", phone: "260971234567" });
+});
+
+it.each(["account", "amount"] as const)("quotes and submits the reported 50 ZMW payout in %s fee mode", async (mode) => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout_methods: { available: true, minimum_withdrawal: 30, fee: { type: "percent", percent: 4.67, floor: 5 } } })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout: { reference: "verified-zmw" } })));
+  vi.stubGlobal("fetch", fetchMock);
+  const quote = await payoutQuote(creds, "ZMW", 50, mode, 5);
+  expect(quote).toMatchObject(mode === "account" ? { gross: 55, net: 50, platformFee: 3, totalDebit: 58, error: null } : { gross: 47, net: 42, platformFee: 3, totalDebit: 50, error: null });
+  const result = await gatewayPayout(creds, { reference: "zmw-50", amount: 50, currency: "ZMW", preparedQuote: quote, typeTrans: 2, bankCode: "", accountNumber: "0971234567", customerName: "Zambia recipient" });
+  expect(result.ok).toBe(true);
+  expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toMatchObject({ currency: "ZMW", method: "mobile_money", amount: mode === "account" ? 55 : 47 });
+});
 
 it.each(["0971234567", "+260971234567", "00260971234567"])("sends Zambia %s through the live mobile_money rail with both fees", async (phone) => {
   const fetchMock = vi.fn()
