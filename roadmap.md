@@ -1,5 +1,6 @@
 - [x] Trace current Mukoya RWF mismatch: ObPay 9,951 includes 9,911 from an internal UGX exchange; live shared Payza RWF float is 276.03. Fixed punctuation causing NaN in live balance parsing; two tests and authenticated live read passed. No balances changed.
-- [ ] Back Mukoya's RWF wallet with actual partner funds; internal exchanges do not convert partner float and another merchant holds 6,000 RWF. Requires confirmed allocation/funding or a separately scoped partner wallet before substituting a live balance; never assign shared float to one merchant.
+- [ ] Verify the reported deletion of the merchant with 6,000 RWF and show Mukoya only genuinely backed RWF; do not assign pooled funds or erase existing obligations without verified allocation.
+- [ ] Connect ObPay exchanges to actual partner currency conversion; verify a documented conversion API first and prevent unsupported ledger-only conversions from creating new unbacked wallets.
 - [x] Fix Zambia wallet/API payout rejection: both live reservation overloads now accept supported non-USD currencies; live ZMW rail verified (minimum 30, 4.67% floor 5), docs corrected, 71 deposit/payout/fee/ledger tests pass. No merchant balances rewritten.
 - [ ] Verify real Zambia deposit and payout delivery; requires an authorized funded test and recipient approval. Mocked adapter and isolated database flows verified; no real money moved.
 - [x] Update the API documentation page for Zambia: ZMW added to overview, collect and payout fields, phone/network formats, minimum 30 ZMW and Zambia payout examples.
