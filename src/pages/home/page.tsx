@@ -18,6 +18,7 @@ import PartnersSection from "./components/PartnersSection";
 import InstallPWA from "./components/InstallPWA";
 import ComplianceSection from "./components/ComplianceSection";
 import WhatsappFloatingButton from "@/components/feature/WhatsappFloatingButton";
+import CountriesSection from "./components/CountriesSection";
 
 export default function Home() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -48,7 +49,7 @@ export default function Home() {
           "@type": "Organization",
           name: "ObPay",
           url: import.meta.env.VITE_SITE_URL,
-          description: "A modern payment gateway platform powering business payments across East Africa. Accept MTN Mobile Money, Airtel Money, and bank transfers.",
+          description: "ObPay operates internationally with separate currency wallets and country-specific payment methods.",
           logo: "https://storage.readdy-site.link/project_files/f591f50b-9b67-4c2e-91b2-e9cd02864c7f/c3af3d6a-4922-444f-b121-d8c41e1841fc_compressed_file_000000001c7471f4988719b77b5ed56d.webp",
           telephone: ["+256-762-201-984", "+256-745-482-977"],
           email: "support@obpay.com",
@@ -160,7 +161,7 @@ export default function Home() {
               name: "What currencies does ObPay support?",
               acceptedAnswer: {
                 "@type": "Answer",
-                text: "ObPay currently supports Ugandan Shilling (UGX), Kenyan Shilling (KES), Ghanaian Cedi (GHS), and Central African CFA Franc (XAF). We are actively working to add more currencies as we expand across the African continent.",
+                text: "ObPay supports UGX, KES, RWF, NGN, XOF, USD, ZMW, SLE and CDF and XAF wallets. Payment methods and availability vary by country.",
               },
             },
           ],
@@ -169,6 +170,7 @@ export default function Home() {
       <Navbar onToggleTheme={toggleTheme} theme={theme} />
       <main>
         <HeroSection />
+        <CountriesSection />
         <QuickActionsSection />
         <PaymentMethodsSection />
         <FeaturesSection />

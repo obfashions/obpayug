@@ -44,7 +44,7 @@ const faqs = [
   {
     question: "What currencies does ObPay support?",
     answer:
-      "ObPay currently supports Ugandan Shilling (UGX), Kenyan Shilling (KES), Ghanaian Cedi (GHS), and Central African CFA Franc (XAF). We are actively working to add more currencies as we expand across the African continent.",
+      "ObPay supports UGX, KES, RWF, NGN, XOF, USD, ZMW, SLE, CDF and XAF wallets. Supported countries include Uganda, Kenya, Rwanda, Nigeria, Senegal, Zambia, Sierra Leone, DR Congo and Cameroon. USD is available for card and crypto services; payment methods and availability vary by country.",
   },
 ];
 
