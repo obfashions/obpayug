@@ -45,3 +45,13 @@ describe("exchanges check both wallets", () => {
     expect(mocks.rpc).toHaveBeenCalledOnce();
   });
 });
+
+describe("manual exchange accounts", () => {
+  it("refuses exchanges for Mukoya and asks him to contact support", async () => {
+    mocks.live.mockResolvedValue([{ currency: "RWF", available: 50000 }]);
+    const r: any = await convertBalance({ userId: "2e213e51-8069-4795-9873-c95192306c8b", isAdmin: false } as Identity, { from: "UGX", to: "RWF", amount: 1000 });
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/customer service/);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+});
