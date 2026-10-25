@@ -11,7 +11,7 @@ export default function CountriesSection() {
         </div>
         <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           {MONEY_COUNTRIES.map((country) => (
-            <li key={country.currency} className="flex items-center gap-3 min-w-0 rounded-lg border border-background-200 bg-background-50 px-3 py-4 md:px-4">
+            <li key={country.currency} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 min-w-0 rounded-lg border border-background-200 bg-background-50 px-3 py-4 md:px-4">
               <span aria-hidden="true" className="text-3xl shrink-0">{country.currency === "XOF" ? "🇸🇳" : country.currency === "XAF" ? "🇨🇲" : country.flag}</span>
               <div className="min-w-0">
                 <p className="font-semibold text-sm text-foreground-900 break-words">{country.country.split(" / ")[0]}</p>
@@ -19,7 +19,7 @@ export default function CountriesSection() {
               </div>
             </li>
           ))}
-          <li className="flex items-center gap-3 min-w-0 rounded-lg border border-background-200 bg-background-50 px-3 py-4 md:px-4">
+          <li className="flex flex-col sm:flex-row items-start sm:items-center gap-3 min-w-0 rounded-lg border border-background-200 bg-background-50 px-3 py-4 md:px-4">
             <span aria-hidden="true" className="text-3xl shrink-0">🇺🇸</span>
             <div className="min-w-0">
               <p className="font-semibold text-sm text-foreground-900">US dollar wallet</p>
