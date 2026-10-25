@@ -17,6 +17,7 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ phone: "", network: "", amount: "", name: "", email: "", description: "" });
   const [busy, setBusy] = useState(false);
+  const [suggestion, setSuggestion] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; link?: string } | null>(null);
   const set = (k: keyof typeof form) => (e: any) => setForm({ ...form, [k]: e.target.value });
 
@@ -29,6 +30,7 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
       return;
     }
     setBusy(true);
+    setSuggestion(null);
     setMsg(null);
     const body: Record<string, unknown> = {
       currency: cur,
@@ -41,7 +43,10 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
     };
     const res = await platform(mode === "collect" ? "intl.collect" : "intl.payout", body);
     setBusy(false);
-    if (!res.success) return setMsg({ ok: false, text: res.error || "Something went wrong." });
+    if (!res.success) {
+      setSuggestion(res.data?.compatible_amount ?? null);
+      return setMsg({ ok: false, text: res.error || "Something went wrong." });
+    }
     const d: any = res.data || {};
     if (mode === "collect") {
       setMsg({ ok: true, text: d.prompt_sent ? "PIN prompt sent. Ask the customer to approve it on their phone." : "Payment started. Share the secure payment page with the customer.", link: d.checkout_url || undefined });
@@ -87,6 +92,7 @@ export default function IntlMoneyPanel({ mode }: { mode: "collect" | "payout" })
           {msg && (
             <div className={`sm:col-span-2 text-sm rounded-lg p-3 ${msg.ok ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700"}`}>
               {msg.text}
+              {suggestion != null && <Button variant="outline" type="button" className="mt-2" onClick={() => { setForm((previous) => ({ ...previous, amount: String(suggestion) })); setSuggestion(null); setMsg(null); }}>Use {cur} {suggestion.toLocaleString("en")}</Button>}
               {msg.link && <a href={msg.link} target="_blank" rel="noreferrer" className="block mt-1 underline break-all">Open payment page</a>}
             </div>
           )}
