@@ -1,3 +1,4 @@
+- [ ] Reconcile Mukoya's Rwanda balance against verified partner funds; latest 9,911 RWF credit is an internal UGX exchange, not a partner conversion. Live partner read blocked by requesting account's finance access; do not relabel pooled float as his money or overwrite balances without evidence.
 - [x] Fix Zambia wallet/API payout rejection: both live reservation overloads now accept supported non-USD currencies; live ZMW rail verified (minimum 30, 4.67% floor 5), docs corrected, 71 deposit/payout/fee/ledger tests pass. No merchant balances rewritten.
 - [ ] Verify real Zambia deposit and payout delivery; requires an authorized funded test and recipient approval. Mocked adapter and isolated database flows verified; no real money moved.
 - [x] Update the API documentation page for Zambia: ZMW added to overview, collect and payout fields, phone/network formats, minimum 30 ZMW and Zambia payout examples.
