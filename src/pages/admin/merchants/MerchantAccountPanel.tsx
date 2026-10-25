@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { getAccessToken } from "@/lib/session-token";
 import { merchantMonthRecords } from "@/lib/merchant-report.functions";
 import { adminMerchantActivity } from "@/lib/admin-insights.functions";
+import { platform } from "@/lib/platform";
+import { WALLET_CURRENCIES } from "@/lib/countries";
 
 interface Props {
   userId: string;
@@ -256,6 +258,7 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
         <p className="text-[11px] text-foreground-500 mt-2">Last activity: {fmtDate(txs[0]?.created_at)}</p>
       </div>
       <MonthlyReport userId={userId} mp={mp} txs={txs} />
+      <AdminExchange userId={userId} />
       {/* Verification documents */}
       <div className="bg-background-100 rounded-lg p-4">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -427,6 +430,38 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AdminExchange({ userId }: { userId: string }) {
+  const [from, setFrom] = useState("UGX");
+  const [to, setTo] = useState("RWF");
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  async function run() {
+    if (busy) return;
+    if (!window.confirm(`Exchange ${amount} ${from} to ${to} for this merchant?`)) return;
+    setBusy(true); setMsg(null);
+    const r = await platform<any>("admin-exchange.convert", { merchant_id: userId, from, to, amount: Number(amount) });
+    setBusy(false);
+    if (!r.success) return setMsg({ ok: false, text: r.error || "Exchange failed." });
+    setMsg({ ok: true, text: `Exchanged ${Number(r.data.from_amount).toLocaleString()} ${from} to ${Number(r.data.to_amount).toLocaleString()} ${to}.` });
+    setAmount("");
+  }
+  const sel = "px-2 py-2 rounded-lg border border-background-200 bg-background-50 text-sm";
+  return (
+    <div className="bg-background-100 rounded-lg p-4 space-y-2">
+      <h4 className="text-sm font-semibold text-foreground-900"><i className="ri-exchange-line mr-1.5 text-foreground-500" />Exchange for merchant</h4>
+      <p className="text-[11px] text-foreground-500">Uses the merchant's wallets with the same balance and backing checks and fee.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <select value={from} onChange={(e) => setFrom(e.target.value)} className={sel} aria-label="From currency">{WALLET_CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
+        <select value={to} onChange={(e) => setTo(e.target.value)} className={sel} aria-label="To currency">{WALLET_CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
+        <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`Amount in ${from}`} className={sel} />
+        <button type="button" disabled={busy || from === to || !(Number(amount) > 0)} onClick={run} className="px-3 py-2 rounded-lg bg-primary-600 text-primary-foreground text-sm font-medium disabled:opacity-50">{busy ? "Checking…" : "Exchange"}</button>
+      </div>
+      {msg && <p className={`text-xs ${msg.ok ? "text-primary-700" : "text-accent-700"}`}>{msg.text}</p>}
     </div>
   );
 }

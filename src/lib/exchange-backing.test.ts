@@ -55,3 +55,18 @@ describe("manual exchange accounts", () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });
+
+describe("admin exchange for manual accounts", () => {
+  it("lets an admin exchange for Mukoya", async () => {
+    const { adminConvertBalance } = await import("./money.server");
+    mocks.live.mockResolvedValue([{ currency: "RWF", available: 50000 }]);
+    const r: any = await adminConvertBalance({ userId: "admin", isAdmin: true } as Identity, { merchant_id: "2e213e51-8069-4795-9873-c95192306c8b", from: "UGX", to: "RWF", amount: 1000 });
+    expect(r.success).toBe(true);
+    expect(mocks.rpc.mock.calls[0][1].p_merchant_id).toBe("2e213e51-8069-4795-9873-c95192306c8b");
+  });
+  it("refuses non-admins", async () => {
+    const { adminConvertBalance } = await import("./money.server");
+    const r: any = await adminConvertBalance({ userId: "m1", isAdmin: false } as Identity, { merchant_id: "x", from: "UGX", to: "RWF", amount: 1000 });
+    expect(r.success).toBe(false);
+  });
+});
