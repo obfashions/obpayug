@@ -8,6 +8,8 @@
 // Credentials come from the admin-managed store first (Admin → Gateway API) and
 // fall back to this project's environment (PAYZA_PUBLIC_KEY / PAYZA_SECRET_KEY).
 
+import { partnerBalanceFromMessage } from "./partner-balance";
+
 export const GATEWAY_CRED_ID = "payza";
 
 export const GATEWAY_BASE = () =>
@@ -644,8 +646,8 @@ export async function gatewayLiveBalances(creds: GatewayCreds) {
       body: { amount: 999999999999, currency, method: "mobile_money", account_number: "0000", account_name: "Balance check" },
     });
     const msg = String(res.raw?.message || res.raw?.error || "");
-    const m = msg.match(/balance of\s*([\d.,]+)/i);
-    if (m) out.push({ currency, available: Number(m[1]!.replace(/,/g, "")) });
+    const available = partnerBalanceFromMessage(msg, currency);
+    if (available != null) out.push({ currency, available });
     else if (!res.ok) out.push({ currency, available: null, note: msg.slice(0, 120) || "Unavailable" });
   }
   return out;
