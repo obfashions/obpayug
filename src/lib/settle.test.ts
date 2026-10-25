@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   settings: vi.fn(),
+  exemption: vi.fn(),
   rpc: vi.fn(),
 }));
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
-    from: () => ({ select: () => ({ limit: () => ({ maybeSingle: mocks.settings }) }) }),
+    from: (table: string) => table === "merchant_fee_exemptions"
+      ? { select: () => ({ eq: () => ({ maybeSingle: mocks.exemption }) }) }
+      : { select: () => ({ limit: () => ({ maybeSingle: mocks.settings }) }) },
     rpc: mocks.rpc,
   },
 }));
@@ -16,6 +19,7 @@ describe("deposit settlement fees", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.settings.mockResolvedValue({ data: { platform_fee_percent: 4.8 }, error: null });
+    mocks.exemption.mockResolvedValue({ data: null, error: null });
     mocks.rpc.mockResolvedValue({ data: { claimed: false, record: { status: "success" } }, error: null });
   });
   it("deducts the configured fee on wallet recharges before sending the atomic credit", async () => {
@@ -24,6 +28,12 @@ describe("deposit settlement fees", () => {
   });
   it("covers verified partner charges exceeding the configured deposit fee", async () => {
     expect(await collectionFeeFor({ amount: 10000, currency: "RWF" }, 600)).toBe(600);
+  });
+  it("credits Mukoya Rwanda collections less only the verified partner fee", async () => {
+    mocks.exemption.mockResolvedValue({ data: { merchant_id: "2e213e51-8069-4795-9873-c95192306c8b" }, error: null });
+    await settlePaymentRecord({ id: "mukoya-deposit", merchant_id: "2e213e51-8069-4795-9873-c95192306c8b", amount: 3600, currency: "RWF", type: "collection" }, "success", { partnerFee: 209 });
+    expect(mocks.rpc).toHaveBeenCalledWith("settle_payment_record_and_balance", expect.objectContaining({ p_fee: 209 }));
+    expect(mocks.exemption).toHaveBeenCalledOnce();
   });
   it("applies deposit charges to USD wallets too", async () => {
     expect(await collectionFeeFor({ amount: 100, currency: "USD" }, 1.5)).toBe(4.8);

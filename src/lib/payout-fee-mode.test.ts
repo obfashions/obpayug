@@ -3,6 +3,9 @@ import { payoutAmounts } from "./payout-fee-mode";
 
 const rwf = { min: 500, percent: 4.1, floor: 500, flat: 0 };
 const zmw = { min: 30, percent: 4.67, floor: 5, flat: 0 };
+it("fee-exempt Rwanda payouts deduct the partner fee but no ObPay fee", () => {
+  expect(payoutAmounts(927, "RWF", rwf, "account", 0)).toMatchObject({ net: 927, platformFee: 0, partnerFee: 500, totalDebit: 1427, error: null });
+});
 it("Zambia sender-paid fees debit 37 ZMW and pay the full 30 ZMW", () => {
   expect(payoutAmounts(30, "ZMW", zmw, "account", 5)).toMatchObject({ gross: 35, net: 30, partnerFee: 5, platformFee: 2, totalDebit: 37, error: null });
 });

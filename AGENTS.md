@@ -33,7 +33,7 @@
 - All deposit credits use collectionFeeFor with trusted gateway-reported fees when available; the configured collection charge covers at least the partner charge, including USD — why: recharges must credit net funds without stacking duplicate charges or bypassing collection fees.
 - Member permissions live in protected member_roles and user_roles; role assignment uses an authenticated audited RPC, while profile tags are display-only — why: merchants cannot grant themselves staff privileges.
 - Registration codes can be requested before a session exists; the server resolves recipients from Auth and atomically rate-limits and consumes hashed codes — why: confirmed-email signup intentionally returns no session.
-- Supported wallet currencies live in countries.ts (MONEY_COUNTRIES, WALLET_CURRENCIES, SUPPORTED_MONEY_CURRENCIES): UGX, KES, RWF, NGN, XOF, USD, ZMW, SLL, CDF, XAF — why: one allowlist feeds collections, payouts, exchange, and registration so a new currency is added once.
+- Supported currencies live in countries.ts — why: collections, payouts, exchange and registration share one allowlist.
 - Homepage country coverage derives from MONEY_COUNTRIES, with USD shown separately as a card/crypto wallet rather than a local US payout country — why: marketing coverage must track supported rails without inventing country availability.
 - Exchange SQL validation must match WALLET_CURRENCIES; regression tests exercise every currency against the applied function — why: a stale database allowlist must not reject currencies offered by the exchange page.
 - Sierra Leone is stored and sent to the partner as SLL but displayed as SLE — why: the partner rejects SLE in API requests after the 2022 redenomination.
@@ -42,4 +42,5 @@
 - Merchant transfers use authenticated transfer_between_merchants (account locks, durable request key, paired transfer_in/out histories), crediting the recipient's same-currency managed store without the partner — why: no double spend, money conserved, never shown as payouts.
 - Per-merchant ObPay fee waivers live in admin-only merchant_fee_exemptions; collection and payout fee resolution must check it so exempt merchants pay partner fees only — why: some accounts are billed by the partner charge alone.
 - Partner balance evidence is currency-matched, finite and account-wide; never use it to overwrite a merchant ledger — why: pooled float includes other merchants and internal exchanges do not convert partner funds.
+- API balance accepts currency, reconciles first, fails on incomplete reads and is uncached — why: never relabel UGX or pooled float as merchant RWF.
 - Exchanges check the from-wallet, then require live partner to-currency funds minus all merchant balances in it to cover the credit, else refuse kindly — why: no partner conversion API, so credits must be backed.

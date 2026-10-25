@@ -18,7 +18,7 @@ const CORS = {
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", ...CORS },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...CORS },
   });
 }
 
@@ -53,8 +53,9 @@ async function handle(request: Request, params: Record<string, string>) {
   const api = await import("@/lib/public-api.server");
   const { logApiRequest } = await import("@/lib/platform.server");
 
-  const merchantId = await api.merchantForSecret(secretFrom(request));
-  if (!merchantId) return json({ success: false, error: "Invalid or missing API secret key." }, 401);
+  const authenticatedMerchantId = await api.merchantForSecret(secretFrom(request));
+  if (!authenticatedMerchantId) return json({ success: false, error: "Invalid or missing API secret key." }, 401);
+  const merchantId: string = authenticatedMerchantId;
   if (rateLimited(merchantId)) {
     return json({ success: false, error: "Too many requests. Try again in a minute." }, 429);
   }
@@ -93,7 +94,7 @@ async function handle(request: Request, params: Record<string, string>) {
     // health / account
     if ((path === "" || path === "ping") && method === "GET") return { payload: await api.apiPing(merchantId!) };
     if (path === "account" && method === "GET") return { payload: await api.apiAccount(merchantId!) };
-    if (path === "balance" && method === "GET") return { payload: await api.apiBalance(merchantId!) };
+    if (path === "balance" && method === "GET") return { payload: await api.apiBalance(merchantId, url.searchParams.get("currency")) };
 
     // money movement
     if ((path === "collect" || path === "collections") && method === "POST") {
