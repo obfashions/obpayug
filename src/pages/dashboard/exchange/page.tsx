@@ -3,8 +3,9 @@ import DashboardLayout from "@/components/feature/DashboardLayout";
 import { platform } from "@/lib/platform";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { exchangeReceive } from "@/lib/exchange-math";
+import { WALLET_CURRENCIES } from "@/lib/countries";
 
-const CURS = ["UGX", "KES", "RWF", "NGN", "XOF", "USD", "ZMW", "SLL", "CDF", "XAF"];
+const CURS = WALLET_CURRENCIES;
 
 export default function ExchangePage() {
   const { balances, refreshBalances } = useCurrency();
@@ -27,7 +28,10 @@ export default function ExchangePage() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const rate = rates ? rates[to]! / rates[from]! : 0;
+  const sourceRate = rates?.[from] ?? 0;
+  const destinationRate = rates?.[to] ?? 0;
+  const rateReady = Number.isFinite(sourceRate) && sourceRate > 0 && Number.isFinite(destinationRate) && destinationRate > 0;
+  const rate = rateReady ? destinationRate / sourceRate : 0;
   const receive = useMemo(() => exchangeReceive(Number(amount) || 0, rate, fee, to), [amount, rate, fee, to]);
   const fromBalance = balances[from] || 0;
   const over = (Number(amount) || 0) > fromBalance;
@@ -58,7 +62,7 @@ export default function ExchangePage() {
             <div key={c} className="bg-background-50 rounded-xl border border-background-200/70 p-3">
               <p className="text-xs text-foreground-600">{c} balance</p>
               <p className="font-semibold text-foreground-900">{(balances[c] || 0).toLocaleString()}</p>
-              {rates && c !== "USD" && <p className="text-[11px] text-foreground-500">1 USD = {rates[c]!.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>}
+               {rates?.[c] && c !== "USD" && <p className="text-[11px] text-foreground-500">1 USD = {rates[c]?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>}
             </div>
           ))}
         </div>
@@ -70,9 +74,9 @@ export default function ExchangePage() {
             <select value={to} onChange={(e) => setTo(e.target.value)} className={sel}>{CURS.map((c) => <option key={c}>{c}</option>)}</select>
           </div>
           <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`Amount in ${from}`} className={`${sel} w-full`} />
-          {rates && from !== to && <p className="text-sm text-foreground-700">1 {from} = {rate.toFixed(to === "USD" ? 6 : 4)} {to} · You get <b>{receive.toLocaleString()} {to}</b> after the {fee}% fee</p>}
+           {rateReady && from !== to && <p className="text-sm text-foreground-700">1 {from} = {rate.toFixed(to === "USD" ? 6 : 4)} {to} · You get <b>{receive.toLocaleString()} {to}</b> after the {fee}% fee</p>}
           {over && <p className="text-sm text-red-700">Your {from} wallet holds {fromBalance.toLocaleString()} {from}.</p>}
-          <button disabled={busy || !amount || from === to || over} onClick={convert} className="w-full py-2.5 rounded-lg bg-primary-500 text-background-50 text-sm font-medium cursor-pointer disabled:opacity-50">{busy ? "Converting…" : "Convert"}</button>
+           <button disabled={busy || !rateReady || receive <= 0 || !amount || from === to || over} onClick={convert} className="w-full py-2.5 rounded-lg bg-primary-500 text-background-50 text-sm font-medium cursor-pointer disabled:opacity-50">{busy ? "Converting…" : "Convert"}</button>
           {msg && <div className={`text-sm rounded-lg p-3 ${msg.ok ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700"}`}>{msg.text}</div>}
           <p className="text-xs text-foreground-500">Conversion moves money between your own wallets instantly. Each wallet keeps its own currency and balance.</p>
         </div>

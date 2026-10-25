@@ -154,8 +154,8 @@ async function exchangeFeePercent() {
 }
 
 export async function convertBalance(id: Identity, body: Record<string, any>) {
-  const from = String(body.from || "").toUpperCase();
-  const to = String(body.to || "").toUpperCase();
+  const from = String(body.from || "").trim().toUpperCase();
+  const to = String(body.to || "").trim().toUpperCase();
   const amount = Number(body.amount);
   const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
   const all = SUPPORTED_MONEY_CURRENCIES;
@@ -164,6 +164,9 @@ export async function convertBalance(id: Identity, body: Record<string, any>) {
   const r: any = await getRates();
   if (!r.success) return r;
   const { rates, fee_percent } = r.data;
+  if (!Number.isFinite(rates[from]) || rates[from] <= 0 || !Number.isFinite(rates[to]) || rates[to] <= 0) {
+    return fail("Exchange rates for these currencies are unavailable right now. Try again shortly.");
+  }
   const rate = rates[to] / rates[from];
   const toAmount = exchangeReceive(amount, rate, fee_percent, to);
   if (toAmount <= 0) return fail("That amount is too small to convert.");
