@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { findTransferRecipient, listMerchantTransfers, sendMerchantTransfer, type TransferRecipient, type MerchantTransfer } from "@/lib/merchant-transfers.functions";
 import { formatCurrency, formatDate } from "@/lib/currency";
@@ -48,7 +49,7 @@ export default function MerchantTransferPanel() {
       if (version !== lookupVersion.current) return;
       setRecipient(result);
       const common = walletCurrencies.filter(c => result.currencies.includes(c));
-      setCurrency(common.includes(activeCurrency) ? activeCurrency : common[0] || activeCurrency);
+      setCurrency(selected => common.includes(selected) ? selected : common[0] || selected);
     } catch (e) { if (version === lookupVersion.current) setError(e instanceof Error ? e.message : "Recipient could not be checked."); }
     finally { setBusy(false); }
   };
@@ -75,7 +76,7 @@ export default function MerchantTransferPanel() {
     <section className="border-y border-background-200 py-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-heading font-semibold text-lg text-foreground-900 flex items-center gap-2"><ArrowRightLeft className="size-5 text-primary-600" />ObPay account transfers</h2>
-        <Button variant="outline" onClick={() => { setOpen(true); setReceipt(null); setError(""); setReview(false); if (!pending) { setIdentifier(""); setRecipient(null); setAmount(""); setReason(""); } }}><ArrowRightLeft />Send to ObPay merchant</Button>
+        <Button variant="outline" onClick={() => { setOpen(true); setReceipt(null); setError(""); setReview(false); if (!pending) { setIdentifier(""); setRecipient(null); setCurrency(activeCurrency); setAmount(""); setReason(""); } }}><ArrowRightLeft />Send to ObPay merchant</Button>
       </div>
       {historyError && <p role="alert" className="text-sm text-destructive">{historyError}</p>}
       {history.length>0 && <div className="divide-y divide-background-200">
@@ -105,7 +106,7 @@ export default function MerchantTransferPanel() {
             <div className="space-y-2"><label htmlFor="obpay-recipient" className="text-sm font-medium">Merchant username, email or account ID</label><div className="flex gap-2"><Input id="obpay-recipient" value={identifier} maxLength={160} onChange={e => { lookupVersion.current++; setIdentifier(e.target.value); setRecipient(null); setError(""); }} /><Button type="button" variant="outline" size="icon" aria-label="Check recipient" title="Check recipient" disabled={busy || identifier.trim().length<3} onClick={lookup}>{busy ? <Loader2 className="animate-spin" /> : <Search />}</Button></div></div>
             {recipient && <div className="border-l-2 border-primary-500 pl-3"><p className="text-sm font-semibold break-words">{recipient.name}</p><p className="text-xs text-foreground-600 break-all">{recipient.username}</p></div>}
             {recipient && common.length===0 && <p role="alert" className="text-sm text-destructive">No shared currency wallet. The recipient must enable one of your wallet currencies first.</p>}
-            <div className="space-y-2"><label htmlFor="transfer-currency" className="text-sm font-medium">Wallet currency</label><select id="transfer-currency" className="w-full h-9 rounded-md border border-input bg-background-50 px-3 text-sm" value={currency} disabled={!recipient || common.length===0} onChange={e => setCurrency(e.target.value)}>{(recipient ? common : walletCurrencies).map(c => <option key={c} value={c}>{c==="SLL" ? "SLE" : c}</option>)}</select><p className="text-xs text-foreground-500">Available: {formatCurrency(balances[currency] || 0,currency)}</p></div>
+            <div className="space-y-2"><label htmlFor="transfer-currency" className="text-sm font-medium">Currency to send</label><Select value={currency} onValueChange={setCurrency} disabled={busy || walletCurrencies.length===0}><SelectTrigger id="transfer-currency" className="bg-background-50" aria-label="Currency to send"><SelectValue placeholder="Choose currency" /></SelectTrigger><SelectContent>{walletCurrencies.map(c => <SelectItem key={c} value={c} disabled={Boolean(recipient) && !common.includes(c)}>{c==="SLL" ? "SLE" : c}{recipient && !common.includes(c) ? " · Recipient wallet unavailable" : ""}</SelectItem>)}</SelectContent></Select><p className="text-xs text-foreground-500">Available: {formatCurrency(balances[currency] || 0,currency)}</p></div>
             <div className="space-y-2"><label htmlFor="transfer-amount" className="text-sm font-medium">Amount</label><Input id="transfer-amount" type="number" inputMode="decimal" min={decimals ? 0.01 : 1} step={decimals ? 0.01 : 1} max={balances[currency] || 0} value={amount} onChange={e => setAmount(e.target.value)} required /></div>
             <div className="space-y-2"><label htmlFor="transfer-reason" className="text-sm font-medium">Reason</label><Input id="transfer-reason" maxLength={200} value={reason} onChange={e => setReason(e.target.value)} required /></div>
             <Button type="submit" className="w-full" disabled={busy || !recipient || common.length===0 || !validAmount || !reason.trim()}><ArrowRightLeft />Review transfer</Button>

@@ -1,3 +1,4 @@
+- [x] Make merchant-transfer currency selectable before recipient lookup, preserve compatible choices, and show unavailable recipient wallets without mixing balances.
 - [ ] Deduct PMVN740RA only after matching partner evidence is supplied: live lookup found no matching payout, existing failed reservation was refunded; balance left unchanged.
 - [x] Add authenticated merchant-to-merchant transfers with recipient confirmation, separate currencies, atomic balances, duplicate protection and paired truthful histories; 30 tests pass, signed-in recipient lookup and desktop/mobile forms verified.
 - [ ] Verify a real merchant transfer through confirmation and both account histories; blocked by no authorized funded test accounts (requesting admin wallet has zero funds); no real merchant money moved.
