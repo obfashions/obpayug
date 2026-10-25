@@ -121,7 +121,7 @@ export async function runGatewayAdminAction(
     const { getGatewayCreds, gatewayCollectionStatus, gatewayPayoutStatus } = await import("./gateway.server");
     const creds = await getGatewayCreds();
     if (!creds) return { success: false, error: "Payment verification is unavailable." };
-    const result = [];
+    const result: Array<{ record: Record<string, any>; verified: boolean; partner: Record<string, unknown> | null }> = [];
     for (const record of records || []) {
       const checked = record.type === "payout"
         ? await gatewayPayoutStatus(creds, { platformReference: record.provider_reference })
