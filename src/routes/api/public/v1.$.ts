@@ -53,8 +53,9 @@ async function handle(request: Request, params: Record<string, string>) {
   const api = await import("@/lib/public-api.server");
   const { logApiRequest } = await import("@/lib/platform.server");
 
-  const merchantId = await api.merchantForSecret(secretFrom(request));
-  if (!merchantId) return json({ success: false, error: "Invalid or missing API secret key." }, 401);
+  const authenticatedMerchantId = await api.merchantForSecret(secretFrom(request));
+  if (!authenticatedMerchantId) return json({ success: false, error: "Invalid or missing API secret key." }, 401);
+  const merchantId: string = authenticatedMerchantId;
   if (rateLimited(merchantId)) {
     return json({ success: false, error: "Too many requests. Try again in a minute." }, 429);
   }
