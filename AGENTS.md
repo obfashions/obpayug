@@ -19,6 +19,7 @@
 - Payout forms read currency-specific live minimums and current platform fees through use-payout-minimum — why: displayed minimums must use the same rounded fee calculation as the gateway and never reuse Uganda limits for Rwanda or Kenya.
 - Resolve currency-specific ObPay payout rates through payoutFeePercent in platform-fees.ts for submissions and minimum guidance, preserving fee-exempt refunds — why: currency overrides must not diverge between forms and money movement.
 - Payout submission reads uncached partner minimums and fees — why: newly lowered limits must match the live minimum shown on the form immediately.
+- Map mobile-money SIM networks to the partner's payout method inside gateway.server.ts; UGX uses mobile_money, while Kenya retains its method-specific selection — why: MTN and Airtel labels are not valid UGX payout methods.
 - Admin balance changes create privileged, explicit transaction-history records naming the action and actor — why: merchants and admins need a reliable audit trail.
 - Reserve each payout reference before contacting the partner, never treat a failed or unconfirmed duplicate as a new success, and alert only on confirmed partner acceptance — why: retries must neither send money twice nor announce an unsent payout.
 - A merchant's operating country sets the initial main-currency wallet; keep wallet balances separate and filter displayed totals by the selected wallet — why: amounts from different currencies must never be combined or relabeled.

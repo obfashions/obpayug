@@ -12,10 +12,23 @@ it("submits the explicitly chosen compatible UGX quote with whole gross and net 
     .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout: { reference: "WDR_UGX_TEST" } }), { status: 200 }));
   vi.stubGlobal("fetch", fetchMock);
   const quote = await payoutQuote(creds, "UGX", 29987, "account", 5);
-  const result = await gatewayPayout(creds, { reference: "approved-ugx-test", amount: 29987, currency: "UGX", preparedQuote: quote, typeTrans: 2, bankCode: "", accountNumber: "256772123456", customerName: "Test recipient" });
+  const result = await gatewayPayout(creds, { reference: "approved-ugx-test", amount: 29987, currency: "UGX", network: "mtn", preparedQuote: quote, typeTrans: 2, bankCode: "", accountNumber: "256772123456", customerName: "Test recipient" });
   expect(result.ok).toBe(true);
   if (result.ok) expect(result).toMatchObject({ gross: 31400, net: 29987, partnerFee: 1413, platformFee: 1500 });
   expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).amount).toBe(31400);
+  expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).method).toBe("mobile_money");
+});
+
+it("uses mobile_money for UGX Airtel and never reports a rejected payout as accepted", async () => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, payout_methods: { available: true, minimum_withdrawal: 1500, fee: { type: "percent", percent: 4.5, floor: 1000 } } }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: false, message: "Insufficient balance" }), { status: 400 }));
+  vi.stubGlobal("fetch", fetchMock);
+  const quote = await payoutQuote(creds, "UGX", 29987, "account", 5);
+  const result = await gatewayPayout(creds, { reference: "rejected-ugx-test", amount: 29987, currency: "UGX", network: "airtel", preparedQuote: quote, typeTrans: 2, bankCode: "", accountNumber: "256752123456", customerName: "Test recipient" });
+  expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).method).toBe("mobile_money");
+  expect(result.ok).toBe(false);
+  expect(result.res.httpStatus).toBe(400);
 });
 
 it("never submits the original incompatible UGX amount", async () => {
