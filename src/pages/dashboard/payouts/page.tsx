@@ -12,6 +12,7 @@ import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency
 import { usePayoutMinimum } from "@/hooks/use-payout-minimum";
 import { payoutFeeSummary } from "@/lib/payout-fee-mode";
 import { Button } from "@/components/ui/button";
+import { payoutError } from "@/lib/payout-error";
 
 const PAYOUT_BANKS = [
   ["UG0001", "Absa Bank Uganda"], ["UG0002", "Bank of Africa Uganda"], ["UG0003", "BRAC Uganda Bank"], ["UG0004", "Centenary Bank"], ["UG0005", "Cairo Bank Uganda"], ["UG0006", "DFCU Bank"], ["UG0007", "Diamond Trust Bank"], ["UG0008", "Equity Bank Uganda"], ["UG0009", "Ecobank Uganda"], ["UG0010", "Exim Bank Uganda"], ["UG0011", "EFC Uganda"], ["UG0012", "Finance Trust Bank"], ["UG0013", "FINCA Uganda"], ["UG0014", "Guaranty Trust Bank Uganda"], ["UG0015", "Housing Finance Bank"], ["UG0016", "I&M Bank Uganda"], ["UG0017", "KCB Bank Uganda"], ["UG0018", "Mercantile Credit Bank"], ["UG0019", "NCBA Bank Uganda"], ["UG0020", "Opportunity Bank Uganda"], ["UG0021", "Pride Microfinance"], ["UG0022", "PostBank Uganda"], ["UG0023", "Stanbic Bank Uganda"], ["UG0024", "Standard Chartered Uganda"], ["UG0025", "Tropical Bank"], ["UG0026", "Salaam Bank Uganda"], ["UG0027", "UGAFODE Microfinance"], ["UG0028", "United Bank for Africa"], ["UG0029", "Wazalendo SACCO"],
@@ -33,26 +34,7 @@ interface Payout {
   completed_at: string;
 }
 
-function simplifyError(msg: string): string {
-  const m = msg.toLowerCase();
-  // Provider-specific balance errors  
-  if (m.includes("float") && (m.includes("insufficient") || m.includes("low"))) {
-    return "Your payment wallet doesn't have enough funds. Collect more payments first, then try the payout again.";
-  }
-  // ObPay wallet balance errors
-  if (m.includes("obpay") && (m.includes("insufficient") || m.includes("balance"))) {
-    return "Not enough balance in your ObPay wallet for this payout. Top up your wallet and try again.";
-  }
-  // Generic insufficient wallet
-  if (m.includes("insufficient") && m.includes("wallet")) return "Not enough balance for this payout. Top up your wallet and try again.";
-  if (m.includes("insufficient") || m.includes("liquidity") || m.includes("funds")) return "Provider temporarily unavailable. Please try again in a few minutes.";
-  if (m.includes("session") || m.includes("expired") || m.includes("authentication")) return "Session expired. Please log in again.";
-  if (m.includes("credentials") || m.includes("api key")) return "Payment setup incomplete. Check your provider settings.";
-  if (m.includes("rate") || m.includes("429") || m.includes("busy")) return "Server busy. Please wait a moment and retry.";
-  if (m.includes("network") || m.includes("connection")) return "Connection issue. Check your internet and retry.";
-  if (msg.length > 150) return msg.slice(0, 145) + "...";
-  return msg;
-}
+const simplifyError = payoutError;
 
 async function callObPayAPI(body: Record<string, any>): Promise<{ success: boolean; data?: any; error?: string; [key: string]: any }> {
   try {
