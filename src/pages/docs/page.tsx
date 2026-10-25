@@ -553,6 +553,8 @@ print(r.json())`}
               <CodeBlock title="cURL" code={`curl ${BASE}/balance -H "Authorization: Bearer $OBPAY_SECRET_KEY"`} />
               <CodeBlock title="Response 200" code={`{\n  "success": true,\n  "data": { "currency": "UGX", "collected": 150000, "paid_out": 40000, "net": 110000 }\n}`} />
               <p className={P}><code className={C}>net</code> is what you can pay out. <code className={C}>GET /account</code> returns your merchant id and counts.</p>
+              <CodeBlock title="Rwanda wallet" code={`curl "${BASE}/balance?currency=RWF" -H "Authorization: Bearer $OBPAY_SECRET_KEY"`} />
+              <p className={P}>Use <code className={C}>currency=RWF</code> for Rwanda (not RWD). The top-level balance then refers only to that currency; an empty wallet returns zero. The <code className={C}>balances</code> list still includes your other wallets. Pending payments are checked with the payment network before the balance is returned. This is your merchant balance, not the network’s shared account funds. Without a currency parameter, the existing default response is unchanged.</p>
             </section>
           )}
 
