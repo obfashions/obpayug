@@ -18,6 +18,7 @@ export default function ExchangePage() {
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [manual, setManual] = useState(false);
 
   const load = useCallback(async () => {
     const [r, h] = await Promise.all([
@@ -26,6 +27,7 @@ export default function ExchangePage() {
     ]);
     if (r.success) { setRates(r.data.rates); setFee(r.data.fee_percent); } else setMsg({ ok: false, text: r.error || "Rates unavailable." });
     setHistory(h.data || []);
+    setManual(Boolean((h as any).manual));
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -68,6 +70,13 @@ export default function ExchangePage() {
           ))}
         </div>
 
+        {manual ? (
+          <div className="bg-background-50 rounded-xl border border-background-200/70 p-4 space-y-3 max-w-xl">
+            <p className="font-semibold text-foreground-900">Manual exchange</p>
+            <p className="text-sm text-foreground-700">Currency exchange for your account is handled by our team. Please contact ObPay customer service to exchange funds.</p>
+            <Button asChild className="w-full"><a href="/support">Contact customer service</a></Button>
+          </div>
+        ) : (
         <div className="bg-background-50 rounded-xl border border-background-200/70 p-4 space-y-3 max-w-xl">
           <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
             <select value={from} onChange={(e) => setFrom(e.target.value)} className={sel}>{CURS.map((c) => <option key={c}>{c}</option>)}</select>
@@ -81,6 +90,7 @@ export default function ExchangePage() {
           {msg && <div className={`text-sm rounded-lg p-3 ${msg.ok ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700"}`}>{msg.text}</div>}
           <p className="text-xs text-foreground-500" role="status">We confirm both wallets before every exchange. If the receiving wallet can’t cover the amount, nothing is moved or charged.</p>
         </div>
+        )}
 
         {history.length > 0 && (
           <div className="bg-background-50 rounded-xl border border-background-200/70 divide-y divide-background-200/70">
