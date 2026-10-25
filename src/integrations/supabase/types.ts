@@ -1387,6 +1387,17 @@ export type Database = {
         Args: { p_email: string; p_hash: string; p_user_id: string }
         Returns: string
       }
+      confirm_payout_status: {
+        Args: {
+          p_actor: string
+          p_evidence: Json
+          p_provider_reference: string
+          p_reason: string
+          p_record_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
       consume_registration_code: {
         Args: { p_hash: string; p_user_id: string }
         Returns: boolean

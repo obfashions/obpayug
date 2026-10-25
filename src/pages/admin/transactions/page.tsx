@@ -3,9 +3,11 @@ import AdminLayout from "@/components/feature/AdminLayout";
 import { supabase } from "@/lib/supabase";
 import { listPaymentRecords } from "@/lib/history.functions";
 import { getAccessToken } from "@/lib/session-token";
+import PayoutConfirmation from "./PayoutConfirmation";
 
 interface TxnRow {
   id: string;
+  payment_record_id?: string;
   reference: string;
   amount: number;
   currency: string;
@@ -87,7 +89,7 @@ export default function AdminTransactions() {
           const records = new Map<string, any>((res?.rows || []).map((r: any) => [r.reference, r]));
           rows = rows.map((t) => {
             const record = records.get(t.reference);
-            return record ? { ...t, fee_amount: record.fee_amount, balance_before: record.balance_before ?? t.metadata?.balance_before, balance_after: record.balance_after ?? t.metadata?.balance_after } : t;
+            return record ? { ...t, status: record.status, payment_record_id: record.payment_record_id, fee_amount: record.fee_amount, balance_before: record.balance_before ?? t.metadata?.balance_before, balance_after: record.balance_after ?? t.metadata?.balance_after } : t;
           });
           const seen = new Set(rows.map((r) => r.reference));
           const extra = (res?.rows || []).filter((r: any) => !seen.has(r.reference));
@@ -206,6 +208,7 @@ export default function AdminTransactions() {
                       <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Method</th>
                       <th className="text-center px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Status</th>
                       <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Date</th>
+                      <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Confirmation</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -229,6 +232,7 @@ export default function AdminTransactions() {
                           }`}>{t.status}</span>
                         </td>
                         <td className="px-5 py-3 text-right"><span className="text-xs text-foreground-500">{timeAgo(t.created_at)}</span></td>
+                        <td className="px-5 py-3 text-right">{t.type === "payout" && t.payment_record_id && !adminAdjustment ? <PayoutConfirmation recordId={t.payment_record_id} reference={t.reference} onConfirmed={() => fetchTransactions(false)} /> : "—"}</td>
                       </tr>
                       );
                     })}

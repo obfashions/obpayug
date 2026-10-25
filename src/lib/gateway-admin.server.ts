@@ -103,10 +103,25 @@ export async function runGatewayAdminAction(
   accessToken: string,
   body: Record<string, unknown> = {},
 ) {
-  const admin = await requireAdmin(accessToken, ["account", "withdraw", "merchant-payment-audit"].includes(action) ? "finance" : "settings");
+  const admin = await requireAdmin(accessToken, ["account", "withdraw", "merchant-payment-audit", "payout-reference-audit"].includes(action) ? "finance" : "settings");
   const rowId = String(body?.["id"] || "").trim();
 
   if (action === "status") return statusPayload();
+
+  if (action === "payout-reference-audit") {
+    const reference = String(body.reference || "").trim();
+    const client = await db();
+    const { data: record } = await client.from("payment_records").select("reference,phone_number,metadata").eq("reference", reference).single();
+    if (!record) return { success: false, error: "Payout not found." };
+    const creds = await getGatewayCreds();
+    if (!creds) return { success: false, error: "Verification unavailable." };
+    const { gatewayFetch } = await import("./gateway.server");
+    const out = await gatewayFetch(creds, "/api/v1/payouts?limit=500");
+    if (!out.ok) return { success: false, error: "Could not read partner payouts." };
+    const rows = out.raw?.payouts || out.raw?.data?.payouts || [];
+    const digits = (s: unknown) => String(s || "").replace(/\D/g, "").slice(-9);
+    return { success: true, data: rows.filter((r: any) => r.reference === reference || r.metadata?.obpay_reference === reference || digits(r.account_number) === digits(record.phone_number)).map((r: any) => ({ reference: r.reference, status: r.status, amount: r.amount, net_amount: r.net_amount, currency: r.currency, fee: r.fee, metadata: r.metadata, created_at: r.created_at, note: r.note || r.admin_note })) };
+  }
 
   // Read-only reconciliation evidence: never settle records or change balances.
   if (action === "merchant-payment-audit") {

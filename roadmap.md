@@ -1,5 +1,5 @@
-- [ ] Verify PMVN740RA and reconcile its deduction only against confirmed payment evidence.
-- [ ] Add protected, audited admin success/failed payout confirmation with duplicate-debit safeguards and verify it.
+- [ ] Deduct PMVN740RA only after matching partner evidence is supplied: live lookup found no matching payout, existing failed reservation was refunded; balance left unchanged.
+- [x] Add protected, audited admin success/failed payout confirmation with duplicate-debit safeguards; 27 checks passed, unmatched payout blocked and existing verified success confirmed without another debit in signed-in UI.
 - [x] Make payout reservations and balance deductions atomic across wallet stores.
 - [x] Unify withdrawal paths and prevent duplicate settlement balance effects.
 - [x] Refresh merchant and admin balances using the same balance rules.

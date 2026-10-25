@@ -38,6 +38,7 @@ export const listPaymentRecords = createServerFn({ method: "POST" })
         success: true,
         rows: (rows || []).map((r: any) => ({
           id: r.id,
+          payment_record_id: r.id,
           reference: r.reference,
           amount: Number(r.amount),
           currency: r.currency,
