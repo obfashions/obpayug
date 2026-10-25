@@ -16,5 +16,6 @@
 - [x] Add NGN, XOF, ZMW, SLE, CDF, XAF wallets alongside UGX, KES, RWF, USD; live partner fees verified for all ten; per-currency fee editor added to admin settings; 34 checks pass.
 - [x] Add merchant payout fee deduction choice for dashboard and API payouts; 36 checks passed, saved choices verified after reload, original account mode restored; no live payout sent.
 - [x] Offer compatible UGX amounts for explicit merchant approval across withdrawals and payouts; live authenticated validation returned 29,987 for 30,000, 35 tests passed, no real payout sent.
-- [ ] Fix payment-network messages incorrectly displayed as internet connection errors.
+- [x] Fix payment-network messages incorrectly displayed as internet connection errors; three error tests pass.
 - [ ] Audit Mukoya's partner-confirmed transactions and prior fee corrections; apply only documented missing charges without duplicate deductions.
+- [x] Prevent changing the account currency from relabeling existing money; displayed wallet selection remains available.

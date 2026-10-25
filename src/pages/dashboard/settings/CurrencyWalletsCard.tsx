@@ -7,14 +7,14 @@ import { getCurrencyInfo, formatCurrency } from "@/lib/currency";
 /** Lets a merchant turn currency wallets on/off and pick the main (default) currency. */
 export default function CurrencyWalletsCard() {
   const { user, profile, refreshProfile } = useAuth();
-  const { platformCurrencies, walletCurrencies, balances, setActiveCurrency } = useCurrency();
+  const { platformCurrencies, walletCurrencies, balances, activeCurrency, setActiveCurrency } = useCurrency();
   const [on, setOn] = useState<string[]>(walletCurrencies);
-  const [main, setMain] = useState(profile?.default_currency || "UGX");
+  const [main, setMain] = useState(activeCurrency);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => setOn(walletCurrencies), [walletCurrencies.join(",")]);
-  useEffect(() => setMain(profile?.default_currency || "UGX"), [profile?.default_currency]);
+  useEffect(() => setMain(activeCurrency), [activeCurrency]);
 
   function toggle(c: string) {
     setMsg(null);
@@ -29,16 +29,16 @@ export default function CurrencyWalletsCard() {
     if (!user) return;
     setSaving(true);
     setMsg(null);
-    const list = Array.from(new Set([main, ...on]));
+    const list = Array.from(new Set([profile?.default_currency || "UGX", main, ...on]));
     const { error } = await supabase
       .from("profiles")
-      .update({ enabled_currencies: list, default_currency: main } as any)
+      .update({ enabled_currencies: list } as any)
       .eq("id", user.id);
     setSaving(false);
     if (error) return setMsg({ ok: false, text: "Could not save. Please try again." });
     await refreshProfile();
     setActiveCurrency(main);
-    setMsg({ ok: true, text: "Wallets updated. All figures now show in " + main + "." });
+    setMsg({ ok: true, text: "Wallets updated. Selected wallet: " + main + "." });
   }
 
   return (
