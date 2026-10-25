@@ -156,8 +156,8 @@ async function exchangeFeePercent() {
 export const MANUAL_EXCHANGE_MERCHANTS = new Set(["2e213e51-8069-4795-9873-c95192306c8b"]);
 export const MANUAL_EXCHANGE_NOTE = "Currency exchange for your account is handled manually. Please contact ObPay customer service to exchange funds. No money has been moved or charged.";
 
-export async function convertBalance(id: Identity, body: Record<string, any>) {
-  if (MANUAL_EXCHANGE_MERCHANTS.has(id.userId)) return fail(MANUAL_EXCHANGE_NOTE);
+export async function convertBalance(id: Identity, body: Record<string, any>, byAdmin = false) {
+  if (!byAdmin && MANUAL_EXCHANGE_MERCHANTS.has(id.userId)) return fail(MANUAL_EXCHANGE_NOTE);
   const from = String(body.from || "").trim().toUpperCase();
   const to = String(body.to || "").trim().toUpperCase();
   const amount = Number(body.amount);
@@ -209,6 +209,14 @@ export async function convertBalance(id: Identity, body: Record<string, any>) {
   });
   if (error) return fail(/insufficient/i.test(error.message) ? `Your ${from} wallet doesn't have enough funds. No money has been moved.` : "The exchange could not be completed. No money has been moved.");
   return ok({ from_amount: amount, to_amount: receive, rate, fee_percent: fee });
+}
+
+/** Admin performs an exchange on a merchant's behalf (same wallet and backing checks). */
+export async function adminConvertBalance(id: Identity, body: Record<string, any>) {
+  if (!id.isAdmin) return fail("Only ObPay admins can exchange for a merchant.");
+  const merchantId = String(body.merchant_id || "").trim();
+  if (!merchantId) return fail("Choose the merchant to exchange for.");
+  return convertBalance({ ...id, userId: merchantId, isAdmin: false } as Identity, body, true);
 }
 
 export async function listExchanges(id: Identity) {

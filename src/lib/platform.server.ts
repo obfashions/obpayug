@@ -828,6 +828,7 @@ const ALERT_ACTIONS: Record<string, string> = {
   "refunds.create": "Refund requested",
   "refunds.log": "Refund recorded",
   "exchange.convert": "Currency exchange made",
+  "admin-exchange.convert": "Admin currency exchange for merchant",
 };
 
 export async function runPlatformAction(
@@ -940,7 +941,8 @@ async function runPlatformActionInner(
       case "refunds.log":
       case "exchange.rates":
       case "exchange.convert":
-      case "exchange.list": {
+      case "exchange.list":
+      case "admin-exchange.convert": {
         const m = await import("./money.server");
         if (action === "intl.collect") return await m.intlCollect(id, body);
         if (action === "intl.payout") return await m.intlPayout(id, body);
@@ -950,6 +952,7 @@ async function runPlatformActionInner(
         if (action === "refunds.log") return await m.logRefund(id, body);
         if (action === "exchange.rates") return await m.getRates();
         if (action === "exchange.convert") return await m.convertBalance(id, body);
+        if (action === "admin-exchange.convert") return await m.adminConvertBalance(id, body);
         return await m.listExchanges(id);
       }
 
