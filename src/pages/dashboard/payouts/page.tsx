@@ -573,7 +573,7 @@ export default function PayoutsPage() {
         )}
 
         {/* ─── WITHDRAW TO MY MOBILE ────────────────────────── */}
-        {profile?.phone_number ? (
+        {activeCurrency === "UGX" && profile?.phone_number ? (
           <div className="bg-background-50 rounded-xl border border-accent-200/70 overflow-hidden">
             <button
               onClick={() => setShowWithdrawForm(!showWithdrawForm)}
