@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import IntlMoneyPanel from "@/components/feature/IntlMoneyPanel";
 import MerchantTransferPanel from "@/components/feature/MerchantTransferPanel";
+import PayoutFees from "@/pages/dashboard/settings/PayoutFees";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -63,6 +64,7 @@ export default function PayoutsPage() {
   const [wallet, setWallet] = useState({ available_balance: 0, pending_balance: 0 });
   const [withdrawalLimit, setWithdrawalLimit] = useState<{ daily_limit: number; used_24h: number; remaining: number; resets_in_hours: number } | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [internationalOpenRequest, setInternationalOpenRequest] = useState(0);
   const [form, setForm] = useState({ destinationType: "mobile", phoneNumber: "", accountNumber: "", bankCode: "", customerName: "", customerEmail: "", amount: "", currency: "UGX", network: "mtn", description: "", reference: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ ok: boolean; message: string } | null>(null);
@@ -447,7 +449,8 @@ export default function PayoutsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <MerchantTransferPanel />
-        <IntlMoneyPanel mode="payout" />
+        <IntlMoneyPanel mode="payout" openRequest={internationalOpenRequest} />
+        <PayoutFees />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="font-heading font-bold text-2xl text-foreground-900">Payouts</h1>
@@ -470,9 +473,9 @@ export default function PayoutsPage() {
                 <i className="ri-arrow-down-s-line" />
               </div>
             </div>
-            <button onClick={() => setShowModal(true)} className="shrink-0 inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-all bg-accent-500 hover:bg-accent-600 text-background-50 shadow-sm hover:shadow-md">
+            <Button onClick={() => { if (activeCurrency === "UGX") setShowModal(true); else { setInternationalOpenRequest((value) => value + 1); document.getElementById("international-money")?.scrollIntoView({ block: "start", behavior: "smooth" }); } }} className="shrink-0 inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer whitespace-nowrap transition-all bg-accent-500 hover:bg-accent-600 text-background-50 shadow-sm hover:shadow-md">
               <i className="ri-send-plane-line" />New Payout
-            </button>
+            </Button>
           </div>
 
         </div>

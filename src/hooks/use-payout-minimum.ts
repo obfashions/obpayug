@@ -12,6 +12,12 @@ import type { PayoutFeeMode } from "@/lib/payout-fee-mode";
  */
 export function usePayoutMinimum(currency: string, enabled = true) {
   const { user } = useAuth();
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const reload = () => setRevision((value) => value + 1);
+    window.addEventListener("obpay:payout-fees-changed", reload);
+    return () => window.removeEventListener("obpay:payout-fees-changed", reload);
+  }, []);
   const [result, setResult] = useState<{ currency: string; minimum: number | null; loading: boolean; feeMode: PayoutFeeMode }>({ currency: "", minimum: null, loading: true, feeMode: "account" });
   useEffect(() => {
     if (!enabled || !currency || !user) return;
@@ -32,6 +38,6 @@ export function usePayoutMinimum(currency: string, enabled = true) {
       setResult({ currency, minimum, loading: false, feeMode });
     }).catch(() => { if (!cancelled) setResult({ currency, minimum: null, loading: false, feeMode: "account" }); });
     return () => { cancelled = true; };
-  }, [currency, enabled, user?.id]);
+  }, [currency, enabled, user?.id, revision]);
   return result.currency === currency ? result : { currency, minimum: null, loading: true, feeMode: "account" as const };
 }
