@@ -9,6 +9,7 @@ import MerchantAccountPanel from "./MerchantAccountPanel";
 import { saveMemberRoles } from "@/lib/member-roles.functions";
 import { MEMBER_ROLES, ROLE_LABELS, type MemberRole } from "@/lib/member-permissions";
 import { adminAccountBalances } from "@/lib/admin-insights.functions";
+import { WALLET_CURRENCIES } from "@/lib/countries";
 
 
 interface Merchant {
@@ -56,7 +57,7 @@ export default function AdminMerchants() {
   const [actionMsg, setActionMsg] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Balance management
-  const [balanceModal, setBalanceModal] = useState<{ type: "add" | "deduct"; merchantId: string; merchantName: string; currentBalance: number } | null>(null);
+  const [balanceModal, setBalanceModal] = useState<{ type: "add" | "deduct"; merchantId: string; merchantName: string; currentBalance: number; currency: string; mainCurrency: string; wallets: Record<string, number> } | null>(null);
   const [balanceAmount, setBalanceAmount] = useState("");
   const [balanceNote, setBalanceNote] = useState("");
   const [balanceSubmitting, setBalanceSubmitting] = useState(false);
@@ -256,6 +257,7 @@ export default function AdminMerchants() {
         target_user_id: merchantId,
         adjustment_type: type,
         amount: adjAmount,
+        currency: balanceModal.currency,
         note: balanceNote || undefined,
       });
 
@@ -271,6 +273,7 @@ export default function AdminMerchants() {
         ? (balanceData[merchantId]?.total_payouts || 0) + adjAmount
         : (balanceData[merchantId]?.total_payouts || 0);
 
+      if (balanceModal.currency === balanceModal.mainCurrency) {
       setBalanceData(prev => ({
         ...prev,
         [merchantId]: {
@@ -287,11 +290,12 @@ export default function AdminMerchants() {
         total_collections: updatedCollections,
         total_payouts: updatedPayouts,
       });
+      }
       setAccountHistoryVersion((version) => version + 1);
 
       setActionMsg({
         ok: true,
-        message: `${type === "add" ? "Added" : "Deducted"} ${formatCurrency(adjAmount)} ${type === "add" ? "to" : "from"} ${merchantName}'s balance. New balance: ${formatCurrency(result.new_balance)}`,
+        message: `${type === "add" ? "Added" : "Deducted"} ${formatCurrency(adjAmount, result.currency)} ${type === "add" ? "to" : "from"} ${merchantName}'s ${result.currency} wallet. New balance: ${formatCurrency(result.new_balance, result.currency)}`,
       });
       setTimeout(() => setActionMsg(null), 4000);
       setBalanceModal(null);
@@ -701,8 +705,10 @@ export default function AdminMerchants() {
               {/* Balance Controls */}
               <button
                 onClick={async () => {
-                  const { data: wallet } = await supabase.from("merchant_wallets").select("available_balance").eq("user_id", selected.id).maybeSingle();
-                  setBalanceModal({ type: "add", merchantId: selected.id, merchantName: selected.full_name, currentBalance: wallet?.available_balance || 0 });
+                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+                  const b: any = (all as any)[selected.id] || {};
+                  const main = b.currency || "UGX";
+                  setBalanceModal({ type: "add", merchantId: selected.id, merchantName: selected.full_name, currentBalance: b.wallets?.[main] || 0, currency: main, mainCurrency: main, wallets: b.wallets || { [main]: 0 } });
                 }}
                 className="text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer whitespace-nowrap bg-primary-100 text-primary-700 hover:bg-primary-200 transition-colors"
               >
@@ -710,8 +716,10 @@ export default function AdminMerchants() {
               </button>
               <button
                 onClick={async () => {
-                  const { data: wallet } = await supabase.from("merchant_wallets").select("available_balance").eq("user_id", selected.id).maybeSingle();
-                  setBalanceModal({ type: "deduct", merchantId: selected.id, merchantName: selected.full_name, currentBalance: wallet?.available_balance || 0 });
+                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+                  const b: any = (all as any)[selected.id] || {};
+                  const main = b.currency || "UGX";
+                  setBalanceModal({ type: "deduct", merchantId: selected.id, merchantName: selected.full_name, currentBalance: b.wallets?.[main] || 0, currency: main, mainCurrency: main, wallets: b.wallets || { [main]: 0 } });
                 }}
                 className="text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer whitespace-nowrap bg-accent-100 text-accent-700 hover:bg-accent-200 transition-colors"
               >
@@ -966,11 +974,21 @@ export default function AdminMerchants() {
                 {balanceModal.type === "add" ? "Add Balance" : "Deduct Balance"}
               </h3>
               <p className="text-xs text-foreground-600 mb-4">
-                {balanceModal.type === "add" ? "Credit" : "Debit"} {balanceModal.merchantName}'s wallet. Current balance: <strong>{formatCurrency(balanceModal.currentBalance)}</strong>
+                {balanceModal.type === "add" ? "Credit" : "Debit"} {balanceModal.merchantName}'s wallet. Current {balanceModal.currency} balance: <strong>{formatCurrency(balanceModal.wallets[balanceModal.currency] || 0, balanceModal.currency)}</strong>
               </p>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-foreground-600 mb-1">Amount (UGX)</label>
+                  <label className="block text-xs font-medium text-foreground-600 mb-1">Wallet</label>
+                  <select
+                    value={balanceModal.currency}
+                    onChange={(e) => setBalanceModal({ ...balanceModal, currency: e.target.value })}
+                    className="w-full px-3 py-2 mb-3 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  >
+                    {Array.from(new Set([balanceModal.mainCurrency, ...Object.keys(balanceModal.wallets), ...(balanceModal.type === "add" ? WALLET_CURRENCIES : [])])).map((c) => (
+                      <option key={c} value={c}>{c === "SLL" ? "SLE" : c} — {(balanceModal.wallets[c] || 0).toLocaleString()}{c === balanceModal.mainCurrency ? " (main)" : ""}</option>
+                    ))}
+                  </select>
+                  <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({balanceModal.currency === "SLL" ? "SLE" : balanceModal.currency})</label>
                   <input
                     type="number"
                     value={balanceAmount}
