@@ -1,3 +1,4 @@
+- [ ] Verify Mukoya RWF API continuity and active fee exemption; expose an explicit currency balance query without substituting pooled provider funds or hiding transaction history.
 - [x] Trace current Mukoya RWF mismatch: ObPay 9,951 includes 9,911 from an internal UGX exchange; live shared Payza RWF float is 276.03. Fixed punctuation causing NaN in live balance parsing; two tests and authenticated live read passed. No balances changed.
 - [x] Confirm the 6,000 RWF merchant wallet was deleted; Mukoya is the only remaining RWF managed holder (9,951 RWF). No existing money or history changed.
 - [ ] Reconcile Mukoya's 9,951 RWF claim with actual partner backing; requires confirmed partner funding/conversion and historical allocation evidence, not deleting his exchanged funds or relabeling pooled float.
