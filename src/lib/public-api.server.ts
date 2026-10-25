@@ -56,7 +56,12 @@ export async function apiAccount(merchantId: string) {
   });
 }
 
-export async function apiBalance(merchantId: string) {
+export async function apiBalance(merchantId: string, requestedCurrency?: string | null) {
+  const selectedCurrency = requestedCurrency?.trim().toUpperCase() || null;
+  const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
+  if (selectedCurrency && !SUPPORTED_MONEY_CURRENCIES.includes(selectedCurrency)) {
+    return err(`\`currency\` must be one of ${SUPPORTED_MONEY_CURRENCIES.join(", ")}.`);
+  }
   const { refreshMerchantPendingPayments } = await import("./settle.server");
   await refreshMerchantPendingPayments(merchantId);
   const { data: rows, error } = await db()
@@ -74,11 +79,11 @@ export async function apiBalance(merchantId: string) {
   }));
   // The merchant's main wallet (dashboard balance) is part of the same spendable
   // money — add it exactly like the dashboard does so API and dashboard agree.
-  try {
-    const [{ data: wallet }, { data: profile }] = await Promise.all([
+    const [{ data: wallet, error: walletError }, { data: profile, error: profileError }] = await Promise.all([
       db().from("merchant_wallets").select("available_balance, balances_by_currency").eq("user_id", merchantId).maybeSingle(),
       db().from("profiles").select("default_currency").eq("id", merchantId).maybeSingle(),
     ]);
+    if (walletError || profileError) return err("Balance is temporarily unavailable.");
     if (wallet) {
       const walletBalances = combinedBalances(wallet, [], String(profile?.default_currency || "UGX"));
       for (const [cur, amt] of Object.entries(walletBalances)) {
@@ -90,12 +95,14 @@ export async function apiBalance(merchantId: string) {
         else balances.push({ currency: code, available_balance: value, pending_balance: 0, collected: 0, paid_out: 0 });
       }
     }
-  } catch {
-    /* fall back to managed balance only */
+  if (selectedCurrency && !balances.some((row) => row.currency === selectedCurrency)) {
+    balances.push({ currency: selectedCurrency, available_balance: 0, pending_balance: 0, collected: 0, paid_out: 0 });
   }
-  const primary = balances.find((row: any) => row.currency === "UGX") || balances[0];
+  const primary = selectedCurrency
+    ? balances.find((row: any) => row.currency === selectedCurrency)
+    : balances.find((row: any) => row.currency === "UGX") || balances[0];
   return ok({
-    currency: primary?.currency || "UGX",
+    currency: primary?.currency || selectedCurrency || "UGX",
     available_balance: primary?.available_balance || 0,
     pending_balance: primary?.pending_balance || 0,
     collected: primary?.collected || 0,

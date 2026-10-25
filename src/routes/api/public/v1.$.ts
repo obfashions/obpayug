@@ -18,7 +18,7 @@ const CORS = {
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", ...CORS },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...CORS },
   });
 }
 
@@ -93,7 +93,7 @@ async function handle(request: Request, params: Record<string, string>) {
     // health / account
     if ((path === "" || path === "ping") && method === "GET") return { payload: await api.apiPing(merchantId!) };
     if (path === "account" && method === "GET") return { payload: await api.apiAccount(merchantId!) };
-    if (path === "balance" && method === "GET") return { payload: await api.apiBalance(merchantId!) };
+    if (path === "balance" && method === "GET") return { payload: await api.apiBalance(merchantId, url.searchParams.get("currency")) };
 
     // money movement
     if ((path === "collect" || path === "collections") && method === "POST") {
