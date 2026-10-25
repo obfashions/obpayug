@@ -6,7 +6,7 @@ type In = { accessToken: string; type?: string; status?: string; search?: string
 export const listPaymentRecords = createServerFn({ method: "POST" })
   .inputValidator((d: In) => ({
     accessToken: String(d?.accessToken || ""),
-    type: ["collection", "payout"].includes(String(d?.type)) ? String(d.type) : "",
+    type: ["collection", "payout", "transfer"].includes(String(d?.type)) ? String(d.type) : "",
     status: ["success", "pending", "failed"].includes(String(d?.status)) ? String(d.status) : "",
     search: String(d?.search || "").replace(/[%,()]/g, "").slice(0, 60),
     all: !!d?.all,
@@ -22,6 +22,7 @@ export const listPaymentRecords = createServerFn({ method: "POST" })
         .order("created_at", { ascending: false })
         .limit(data.all ? 300 : 500);
       if (!data.all) q = q.eq("merchant_id", who.userId);
+      if (data.type === "transfer") return { success: true, rows: [] as any[] };
       if (data.type) q = q.eq("type", data.type);
       if (data.status) q = q.eq("status", data.status);
       if (data.search) q = q.or(`reference.ilike.%${data.search}%,phone_number.ilike.%${data.search}%`);

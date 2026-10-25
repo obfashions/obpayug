@@ -43,7 +43,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState<"all" | "collection" | "payout">("all");
+  const [filter, setFilter] = useState<"all" | "collection" | "payout" | "transfer">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "pending" | "failed">("all");
   const [search, setSearch] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -62,7 +62,8 @@ export default function TransactionsPage() {
     setLoading(true); setError("");
     try {
       let q = supabase.from("transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(100);
-      if (filter !== "all") q = q.eq("type", filter);
+      if (filter === "transfer") q = q.in("type", ["transfer_out", "transfer_in"]);
+      else if (filter !== "all") q = q.eq("type", filter);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (search) q = q.or(`reference.ilike.%${search}%,customer_phone.ilike.%${search}%,customer_name.ilike.%${search}%`);
       const { data, error: fErr } = await q;
@@ -77,7 +78,8 @@ export default function TransactionsPage() {
     if (!user) return;
     try {
       let q = supabase.from("transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(100);
-      if (filter !== "all") q = q.eq("type", filter);
+      if (filter === "transfer") q = q.in("type", ["transfer_out", "transfer_in"]);
+      else if (filter !== "all") q = q.eq("type", filter);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (search) q = q.or(`reference.ilike.%${search}%,customer_phone.ilike.%${search}%,customer_name.ilike.%${search}%`);
       const { data, error } = await q;
@@ -200,7 +202,7 @@ export default function TransactionsPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex items-center gap-1 bg-background-200/70 rounded-full p-1">
-            {(["all","collection","payout"] as const).map((f) => (
+            {(["all","collection","payout","transfer"] as const).map((f) => (
               <button key={f} onClick={() => setFilter(f)} className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap capitalize ${filter===f?"bg-background-50 text-foreground-900":"text-foreground-500 hover:text-foreground-700"}`}>{f}</button>
             ))}
           </div>
@@ -254,7 +256,7 @@ export default function TransactionsPage() {
                     return (
                     <tr key={t.id} className="border-b border-background-100 hover:bg-background-100/50 transition-colors">
                       <td className="px-4 py-3"><span className="text-xs font-mono font-medium text-foreground-900">{t.reference}</span><p className="text-[11px] text-foreground-500">{t.description}</p></td>
-                      <td className="px-4 py-3"><span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${t.type==="collection"?"bg-primary-100 text-primary-700":"bg-accent-100 text-accent-700"}`}>{adminAdjustment ? (adminDeduction ? "Withdraw fee" : "Balance credit") : t.type}</span></td>
+                      <td className="px-4 py-3"><span className={`inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${t.type==="collection"?"bg-primary-100 text-primary-700":"bg-accent-100 text-accent-700"}`}>{adminAdjustment ? (adminDeduction ? "Withdraw fee" : "Balance credit") : t.type === "transfer_out" ? "Transfer sent" : t.type === "transfer_in" ? "Transfer received" : t.type}</span></td>
                       <td className="px-4 py-3"><span className={`text-sm font-semibold ${adminDeduction ? "text-accent-600" : "text-foreground-900"}`}>{adminAdjustment ? (adminDeduction ? "−" : "+") : ""}{formatCurrency(t.amount, t.currency || activeCurrency)}</span></td>
                       <td className="px-4 py-3"><span className="text-xs text-foreground-600">{t.fee_amount != null ? formatCurrency(t.fee_amount, t.currency || activeCurrency) : "Not recorded"}</span></td>
                       <td className="px-4 py-3"><span className="text-sm font-medium text-primary-600">{t.net_amount ? formatCurrency(t.net_amount, t.currency || activeCurrency) : "—"}</span></td>

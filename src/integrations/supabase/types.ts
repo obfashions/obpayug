@@ -553,6 +553,75 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          reason: string
+          recipient_balance_after: number
+          recipient_balance_before: number
+          recipient_id: string
+          recipient_name: string
+          reference: string
+          request_id: string
+          sender_balance_after: number
+          sender_balance_before: number
+          sender_id: string
+          sender_name: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          id?: string
+          reason: string
+          recipient_balance_after: number
+          recipient_balance_before: number
+          recipient_id: string
+          recipient_name: string
+          reference: string
+          request_id: string
+          sender_balance_after: number
+          sender_balance_before: number
+          sender_id: string
+          sender_name: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          reason?: string
+          recipient_balance_after?: number
+          recipient_balance_before?: number
+          recipient_id?: string
+          recipient_name?: string
+          reference?: string
+          request_id?: string
+          sender_balance_after?: number
+          sender_balance_before?: number
+          sender_id?: string
+          sender_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_transfers_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_transfers_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_wallets: {
         Row: {
           available_balance: number | null
@@ -1414,6 +1483,7 @@ export type Database = {
         }
         Returns: Json
       }
+      find_transfer_recipient: { Args: { p_identifier: string }; Returns: Json }
       has_permission: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean
@@ -1463,6 +1533,16 @@ export type Database = {
           p_provider_reference?: string
           p_record_id: string
           p_status: string
+        }
+        Returns: Json
+      }
+      transfer_between_merchants: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_reason: string
+          p_recipient: string
+          p_request_id: string
         }
         Returns: Json
       }
