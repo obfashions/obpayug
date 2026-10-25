@@ -2,7 +2,6 @@
 // Uses ObPay's managed records (payment_records / merchant_balances).
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { exchangeReceive } from "./exchange-math";
 import type { Identity } from "./identity.server";
 
 const db = () => supabaseAdmin as any;
@@ -144,7 +143,7 @@ export async function getRates() {
   }
   if (!rateCache) return fail("Exchange rates are unavailable right now. Try again shortly.");
   const fee = await exchangeFeePercent();
-  return ok({ base: "USD", rates: rateCache.rates, fee_percent: fee, updated_at: new Date(rateCache.at).toISOString() });
+  return ok({ base: "USD", rates: rateCache.rates, fee_percent: fee, conversion_available: false, updated_at: new Date(rateCache.at).toISOString() });
 }
 
 async function exchangeFeePercent() {
@@ -161,28 +160,10 @@ export async function convertBalance(id: Identity, body: Record<string, any>) {
   const all = SUPPORTED_MONEY_CURRENCIES;
   if (!all.includes(from) || !all.includes(to) || from === to) return fail("Choose two different currencies.");
   if (!Number.isFinite(amount) || amount <= 0) return fail("Enter an amount greater than zero.");
-  const r: any = await getRates();
-  if (!r.success) return r;
-  const { rates, fee_percent } = r.data;
-  if (!Number.isFinite(rates[from]) || rates[from] <= 0 || !Number.isFinite(rates[to]) || rates[to] <= 0) {
-    return fail("Exchange rates for these currencies are unavailable right now. Try again shortly.");
-  }
-  const rate = rates[to] / rates[from];
-  const toAmount = exchangeReceive(amount, rate, fee_percent, to);
-  if (toAmount <= 0) return fail("That amount is too small to convert.");
-
-  // Atomic across the main wallet and the managed store: checks the combined balance,
-  // debits the source wallet and credits the destination wallet in one transaction.
-  const { data, error } = await db().rpc("exchange_wallet_balance", {
-    p_merchant_id: id.userId, p_from: from, p_to: to,
-    p_amount: amount, p_to_amount: toAmount, p_rate: rate, p_fee_percent: fee_percent,
-  });
-  if (error) {
-    const msg = String(error.message || "");
-    if (msg.startsWith("Insufficient") || msg.startsWith("Choose") || msg.startsWith("Invalid")) return fail(msg);
-    return fail("The conversion could not be completed.");
-  }
-  return ok(data);
+  // No documented partner conversion API exists. A ledger credit alone would
+  // create a destination balance without converting the actual payout funds.
+  // Keep existing balances/history intact, but fail closed before any mutation.
+  return fail("Currency exchange is temporarily unavailable. No money has been moved or charged.");
 }
 
 export async function listExchanges(id: Identity) {
