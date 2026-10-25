@@ -218,6 +218,13 @@
       "when": 1792895922316,
       "tag": "0030_atomic_merchant_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792913870542,
+      "tag": "0031_exchange_all_supported_wallet_currencies",
+      "breakpoints": true
     }
   ]
 }
