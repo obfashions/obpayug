@@ -1,3 +1,5 @@
+- [ ] Verify PMVN740RA and reconcile its deduction only against confirmed payment evidence.
+- [ ] Add protected, audited admin success/failed payout confirmation with duplicate-debit safeguards and verify it.
 - [x] Make payout reservations and balance deductions atomic across wallet stores.
 - [x] Unify withdrawal paths and prevent duplicate settlement balance effects.
 - [x] Refresh merchant and admin balances using the same balance rules.
