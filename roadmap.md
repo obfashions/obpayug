@@ -1,4 +1,5 @@
 - [ ] Deduct PMVN740RA only after matching partner evidence is supplied: live lookup found no matching payout, existing failed reservation was refunded; balance left unchanged.
+- [ ] Add authenticated merchant-to-merchant transfers with recipient confirmation, separate currencies, atomic balances, duplicate protection and accurate histories; verify safely without moving real merchant funds.
 - [x] Add protected, audited admin success/failed payout confirmation with duplicate-debit safeguards; 27 checks passed, unmatched payout blocked and existing verified success confirmed without another debit in signed-in UI.
 - [x] Make payout reservations and balance deductions atomic across wallet stores.
 - [x] Unify withdrawal paths and prevent duplicate settlement balance effects.
