@@ -103,10 +103,38 @@ export async function runGatewayAdminAction(
   accessToken: string,
   body: Record<string, unknown> = {},
 ) {
-  const admin = await requireAdmin(accessToken, ["account", "withdraw"].includes(action) ? "finance" : "settings");
+  const admin = await requireAdmin(accessToken, ["account", "withdraw", "merchant-payment-audit"].includes(action) ? "finance" : "settings");
   const rowId = String(body?.["id"] || "").trim();
 
   if (action === "status") return statusPayload();
+
+  // Read-only reconciliation evidence: never settle records or change balances.
+  if (action === "merchant-payment-audit") {
+    const merchantId = String(body.merchantId || "");
+    if (!/^[0-9a-f-]{36}$/i.test(merchantId)) return { success: false, error: "Choose a merchant." };
+    const offset = Math.max(0, Math.floor(Number(body.offset) || 0));
+    const client = await db();
+    const { data: records, error } = await client.from("payment_records")
+      .select("id,reference,provider_reference,type,currency,amount,status,fee_amount,net_amount,metadata")
+      .eq("merchant_id", merchantId).order("created_at").range(offset, offset + 14);
+    if (error) return { success: false, error: "Could not read merchant payments." };
+    const { getGatewayCreds, gatewayCollectionStatus, gatewayPayoutStatus } = await import("./gateway.server");
+    const creds = await getGatewayCreds();
+    if (!creds) return { success: false, error: "Payment verification is unavailable." };
+    const result = [];
+    for (const record of records || []) {
+      const checked = record.type === "payout"
+        ? await gatewayPayoutStatus(creds, { platformReference: record.provider_reference })
+        : await gatewayCollectionStatus(creds, record.provider_reference || record.reference);
+      const raw = checked.res?.raw;
+      const partner = raw?.payout || (Array.isArray(raw?.payouts) ? raw.payouts[0] : null) || checked.res?.data;
+      result.push({ record, verified: checked.ok, partner: partner ? {
+        status: partner.status, amount: partner.amount, fee: partner.fee, net_amount: partner.net_amount,
+        currency: partner.currency, reference: partner.reference, note: partner.note || partner.admin_note,
+      } : null });
+    }
+    return { success: true, data: { records: result, nextOffset: (records || []).length === 15 ? offset + 15 : null } };
+  }
 
   // Tracked account position: the partner exposes no live balance endpoint,
   // so we report what ObPay's own books say is sitting in the gateway float.
