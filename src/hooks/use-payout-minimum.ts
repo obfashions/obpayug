@@ -27,12 +27,14 @@ export function usePayoutMinimum(currency: string, enabled = true) {
       platform("payout-methods", { currency }),
       supabase.from("platform_settings").select("withdraw_fee_percent,min_payout_amount,currency_fees").limit(1).maybeSingle(),
       supabase.from("merchant_payout_preferences").select("fee_mode").eq("merchant_id", user.id).maybeSingle(),
-    ]).then(([rules, settings, preference]) => {
+      supabase.from("merchant_fee_exemptions").select("merchant_id").eq("merchant_id", user.id).maybeSingle(),
+    ]).then(([rules, settings, preference, exemption]) => {
       if (cancelled) return;
       const partnerMinimum = Number(rules.data?.minimum);
       const feeMode: PayoutFeeMode = preference.data?.fee_mode === "amount" ? "amount" : "account";
-      const calculated = rules.success && rules.data?.available && !settings.error && !preference.error && settings.data && partnerMinimum > 0
-        ? feeMode === "amount" ? minimumFeeInclusivePayout(partnerMinimum, currency, payoutFeePercent(currency, Number(settings.data.withdraw_fee_percent), settings.data.currency_fees), rules.data.fee) : partnerMinimum
+      const pct = exemption.data ? 0 : payoutFeePercent(currency, Number(settings.data?.withdraw_fee_percent), settings.data?.currency_fees);
+      const calculated = rules.success && rules.data?.available && !settings.error && !preference.error && !exemption.error && settings.data && partnerMinimum > 0
+        ? feeMode === "amount" ? minimumFeeInclusivePayout(partnerMinimum, currency, pct, rules.data.fee) : partnerMinimum
         : null;
       const minimum = calculated == null ? null : Math.max(calculated, currency === "UGX" ? Number(settings.data?.min_payout_amount) || 0 : 0);
       setResult({ currency, minimum, loading: false, feeMode });
