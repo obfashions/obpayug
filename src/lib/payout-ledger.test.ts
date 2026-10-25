@@ -1,12 +1,13 @@
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeEach, afterEach, describe, expect, it } from "vitest";
+import { WALLET_CURRENCIES } from "./countries";
 
 const merchant = "00000000-0000-4000-8000-000000000001";
 let db: PGlite;
 const migration = readFileSync(new URL("../../drizzle/migrations/0019_atomic_payout_reservation.sql", import.meta.url), "utf8");
 async function reserve(reference: string, amount = 30000, currency = "UGX") {
-  const result = await db.query<{ record: { id: string; metadata: Record<string, number> } }>("select public.reserve_payout_and_balance($1,$2,$3,$4,'0700000000','api',null) record", [merchant, reference, amount, currency]);
+  const result = await db.query<{ record: { id: string; metadata: Record<string, number> } }>("select public.reserve_payout_and_balance($1,$2,$3,$4,'0700000000','api',null,'{}'::jsonb,$3) record", [merchant, reference, amount, currency]);
   return result.rows[0].record;
 }
 async function settle(id: string, status: string) {
@@ -33,6 +34,8 @@ beforeEach(async () => {
     insert into merchant_balances(merchant_id,currency,available_balance) values('${merchant}','UGX',20000);
   `);
   await db.exec(migration);
+  await db.exec(readFileSync(new URL("../../drizzle/migrations/0025_payout_reservation_debits_amount_plus_fees.sql", import.meta.url), "utf8"));
+  await db.exec(readFileSync(new URL("../../drizzle/migrations/0032_payout_all_supported_wallet_currencies.sql", import.meta.url), "utf8"));
   await db.exec(`alter table payment_records add column created_at timestamptz default now();
     create table audit_logs(user_id uuid,action text,resource text,resource_id text,details jsonb);
     create function public.has_permission(uuid,text) returns boolean language sql as $$ select $1='00000000-0000-4000-8000-000000000002'::uuid $$;`);
@@ -41,6 +44,41 @@ beforeEach(async () => {
 afterEach(async () => { await db.close(); });
 
 describe("actual payout database functions", () => {
+  it.each(WALLET_CURRENCIES.filter((currency) => currency !== "USD"))("reserves %s funds without changing another currency", async (currency) => {
+    await db.query("insert into merchant_balances(merchant_id,currency,available_balance) values($1,$2,100) on conflict(merchant_id,currency) do update set available_balance=100", [merchant, currency]);
+    const record = await reserve(`supported-${currency}`, 50, currency);
+    expect(record.metadata.balance_before - record.metadata.balance_after).toBe(50);
+    expect((await db.query<{ currency: string }>("select currency from payment_records where id=$1", [record.id])).rows[0].currency).toBe(currency);
+    if (currency !== "UGX") expect((await balances()).wallet).toBe(20000);
+  });
+  it("reserves a 50 ZMW payout plus both fees and refunds exactly 58 ZMW once", async () => {
+    await db.exec(`update merchant_wallets set balances_by_currency=balances_by_currency||'{"ZMW":100}'::jsonb`);
+    const result = await db.query<{ record: { id: string; metadata: Record<string, number> } }>("select reserve_payout_and_balance($1,'zmw-fees',50,'ZMW','260971234567','api',null,'{}'::jsonb,58) record", [merchant]);
+    const record = result.rows[0].record;
+    expect(record.metadata).toMatchObject({ total_debit: 58, balance_before: 100, balance_after: 42 });
+    expect(Number((await db.query<{ zmw: string }>("select balances_by_currency->>'ZMW' zmw from merchant_wallets")).rows[0].zmw)).toBe(42);
+    await settle(record.id, "failed");
+    await settle(record.id, "failed");
+    expect(Number((await db.query<{ zmw: string }>("select balances_by_currency->>'ZMW' zmw from merchant_wallets")).rows[0].zmw)).toBe(100);
+    expect(await balances()).toEqual({ wallet: 20000, managed: 20000 });
+  });
+  it("credits a confirmed 50 ZMW deposit net of its 3 ZMW charge once", async () => {
+    await db.exec(`insert into payment_records(merchant_id,reference,type,amount,currency,status,source) values('${merchant}','zmw-deposit','collection',50,'ZMW','pending','api')`);
+    const record = (await db.query<{ id: string }>("select id from payment_records where reference='zmw-deposit'")).rows[0];
+    await db.query("select settle_payment_record_and_balance($1,'success',3,'verified-zmw')", [record.id]);
+    await db.query("select settle_payment_record_and_balance($1,'success',3,'verified-zmw')", [record.id]);
+    expect(Number((await db.query<{ balance: string }>("select available_balance balance from merchant_balances where currency='ZMW'")).rows[0].balance)).toBe(47);
+    expect(await balances()).toEqual({ wallet: 20000, managed: 20000 });
+  });
+  it.each(["USD", "BAD", null])("rejects unsupported payout currency %s before altering funds", async (currency) => {
+    await expect(reserve("invalid-currency", 50, currency as string)).rejects.toThrow("Invalid payout amount or currency");
+    expect(await balances()).toEqual({ wallet: 20000, managed: 20000 });
+  });
+  it("keeps both reservation overloads inaccessible to merchants", async () => {
+    const result = await db.query<{ allowed: boolean }>("select has_function_privilege('authenticated',oid,'EXECUTE') allowed from pg_proc where proname='reserve_payout_and_balance'");
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows.every((row) => row.allowed === false)).toBe(true);
+  });
   async function confirm(id: string, status: string, actor = "00000000-0000-4000-8000-000000000002", currency = "UGX") {
     return db.query("select confirm_payout_status($1,$2,'provider-test',$3,'Partner verified',$4::jsonb)", [id,status,actor,JSON.stringify({ reference: "provider-test", status, currency, net_amount: 30000 })]);
   }
