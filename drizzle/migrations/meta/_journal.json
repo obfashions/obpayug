@@ -204,6 +204,13 @@
       "when": 1792893313388,
       "tag": "0028_protect_main_wallet_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792895277310,
+      "tag": "0029_audited_payout_confirmation",
+      "breakpoints": true
     }
   ]
 }
