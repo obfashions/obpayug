@@ -1,3 +1,4 @@
+- [ ] Fix Zambia collections and payouts across wallet and API paths, crosscheck Payza payloads and documentation, and verify without moving merchant money.
 - [x] Update the API documentation page for Zambia: ZMW added to overview, collect and payout fields, phone/network formats, minimum 30 ZMW and Zambia payout examples.
 - [x] Fix missing recipient inputs and non-UGX New Payout navigation; expose existing sender/recipient fee settings on Payouts and refresh minimums after saving. Live Zambia rules (minimum 30 ZMW, 4.67% floor 5) and below-minimum validation verified; 51 regression tests passed, no merchant funds moved.
 - [ ] Verify Zambia payout form and saved fee choices end to end; blocked by the requesting account's login-code verification. Real payout delivery remains untested; no authorized funded payout was submitted.
