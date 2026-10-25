@@ -33,10 +33,51 @@ beforeEach(async () => {
     insert into merchant_balances(merchant_id,currency,available_balance) values('${merchant}','UGX',20000);
   `);
   await db.exec(migration);
+  await db.exec(`alter table payment_records add column created_at timestamptz default now();
+    create table audit_logs(user_id uuid,action text,resource text,resource_id text,details jsonb);
+    create function public.has_permission(uuid,text) returns boolean language sql as $$ select $1='00000000-0000-4000-8000-000000000002'::uuid $$;`);
+  await db.exec(readFileSync(new URL("../../drizzle/migrations/0029_audited_payout_confirmation.sql", import.meta.url), "utf8"));
 });
 afterEach(async () => { await db.close(); });
 
 describe("actual payout database functions", () => {
+  async function confirm(id: string, status: string, actor = "00000000-0000-4000-8000-000000000002", currency = "UGX") {
+    return db.query("select confirm_payout_status($1,$2,'provider-test',$3,'Partner verified',$4::jsonb)", [id,status,actor,JSON.stringify({ reference: "provider-test", status, currency, net_amount: 30000 })]);
+  }
+  async function prepare(reference: string) {
+    const record = await reserve(reference);
+    await db.query("update payment_records set metadata=metadata || '{\"total_debit\":30000}'::jsonb where id=$1", [record.id]);
+    return record;
+  }
+  it("admin success confirmation re-deducts a refunded payout only once", async () => {
+    const record = await prepare("corrected");
+    await settle(record.id, "failed");
+    await confirm(record.id, "success");
+    await confirm(record.id, "success");
+    expect(await balances()).toEqual({ wallet: 0, managed: 10000 });
+    expect((await db.query("select * from audit_logs")).rows).toHaveLength(1);
+  });
+  it("admin failed confirmation refunds a reserved payout only once", async () => {
+    const record = await prepare("admin-failed");
+    await confirm(record.id, "failed");
+    await confirm(record.id, "failed");
+    expect(await balances()).toEqual({ wallet: 20000, managed: 20000 });
+  });
+  it("admin confirming a held payout success does not debit twice", async () => {
+    const record = await prepare("admin-success");
+    await confirm(record.id, "success");
+    expect(await balances()).toEqual({ wallet: 0, managed: 10000 });
+  });
+  it("merchants cannot confirm payout outcomes", async () => {
+    const record = await prepare("forbidden");
+    await expect(confirm(record.id, "success", merchant)).rejects.toThrow("Finance permission required");
+    expect(await balances()).toEqual({ wallet: 0, managed: 10000 });
+  });
+  it("confirmation cannot move money in a mismatched currency", async () => {
+    const record = await prepare("wrong-currency");
+    await expect(confirm(record.id, "success", "00000000-0000-4000-8000-000000000002", "KES")).rejects.toThrow("Currency mismatch");
+    expect(await balances()).toEqual({ wallet: 0, managed: 10000 });
+  });
   it("deducts 30000 immediately from 40000 across both stores", async () => {
     const record = await reserve("immediate");
     expect(await balances()).toEqual({ wallet: 0, managed: 10000 });
