@@ -396,6 +396,24 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_fee_exemptions: {
+        Row: {
+          created_at: string
+          merchant_id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          merchant_id: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          merchant_id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       merchant_payout_preferences: {
         Row: {
           fee_mode: string
