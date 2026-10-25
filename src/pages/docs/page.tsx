@@ -109,7 +109,7 @@ const endpointList: Array<{ m: string; p: string; d: string }> = [
   { m: "GET", p: "/account", d: "Your merchant id and counts." },
   { m: "GET", p: "/balance", d: "Collected, paid out and available balance." },
   { m: "POST", p: "/collect", d: "Send a PIN prompt to a customer's MTN or Airtel phone." },
-  { m: "POST", p: "/payouts", d: "Send money to an MTN or Airtel mobile money number." },
+  { m: "POST", p: "/payouts", d: "Send money to a mobile money number in Uganda, Kenya, Rwanda or Zambia." },
   { m: "GET", p: "/transactions", d: "List with filters and pagination." },
   { m: "GET", p: "/transactions/{reference}", d: "One transaction, re-checked live." },
   { m: "GET", p: "/payment-links", d: "List your payment links." },
@@ -162,7 +162,7 @@ export default function DocsPage() {
           "@context": "https://schema.org",
           "@type": "TechArticle",
           headline: "ObPay (PawaPay Ptn) API documentation",
-          description: "Receive and send mobile money across East Africa with the ObPay REST API.",
+          description: "Receive and send mobile money in Uganda, Kenya, Rwanda and Zambia with the ObPay REST API.",
         }}
       />
       <Navbar />
@@ -192,7 +192,7 @@ export default function DocsPage() {
             <section className="space-y-4">
               <Header icon="ri-home-4-line" label="ObPay API" subtitle={`Base URL: ${BASE}`} />
               <p className={P}>
-                Receive and send mobile money and bank payments across East Africa (Uganda, Kenya, Rwanda) from your own website or app. Every
+                Receive and send mobile money in Uganda, Kenya, Rwanda and Zambia from your own website or app. Every
                 request is JSON over HTTPS, authenticated with your secret key. Every response looks like{" "}
                 <code className={C}>{'{ "success": true, "data": {…} }'}</code> or{" "}
                 <code className={C}>{'{ "success": false, "error": "…" }'}</code>.
@@ -327,15 +327,16 @@ export default function DocsPage() {
             <section className="space-y-3">
               <Header icon="ri-download-cloud-line" label="Receive money" subtitle={`POST ${BASE}/collect`} />
               <p className={P}>
-                Sends a PIN prompt to the customer's MTN or Airtel phone. The customer enters their PIN and the money
+                Sends a PIN prompt to the customer's phone: MTN or Airtel in Uganda, M-Pesa in Kenya, MTN or Airtel in
+                Rwanda, and Airtel, MTN or Zamtel in Zambia. The customer enters their PIN and the money
                 lands in your ObPay balance. The payment starts as <code className={C}>pending</code> and becomes{" "}
                 <code className={C}>success</code> or <code className={C}>failed</code> — usually within a minute.
               </p>
               <Table
                 rows={[
-                  { name: "amount", type: "integer", required: "Yes", desc: "Whole UGX amount, e.g. 5000. No decimals." },
-                  { name: "currency", type: "string", required: "No", desc: "Supported currency for the country (e.g. UGX, KES, RWF)." },
-                  { name: "phone_number", type: "string", required: "Yes", desc: "Customer's MTN or Airtel number: 0772123456, 772123456 or 256772123456." },
+                  { name: "amount", type: "integer", required: "Yes", desc: "Whole amount in the chosen currency, e.g. 5000. No decimals." },
+                  { name: "currency", type: "string", required: "No", desc: "Supported currency (e.g. UGX, KES, RWF, ZMW). Defaults to your main wallet." },
+                  { name: "phone_number", type: "string", required: "Yes", desc: "Customer's mobile money number: 0772123456 (UG), 0971234567 (ZM) or 256772123456." },
                   { name: "customer_name", type: "string", required: "Yes", desc: "Customer's full name." },
                   { name: "customer_email", type: "string", required: "Yes", desc: "Customer's email (for the receipt)." },
                   { name: "reference", type: "string", required: "No", desc: "Your unique order id (max 40 chars). Reusing one is refused." },
@@ -441,14 +442,16 @@ print(r.json())`}
             <section className="space-y-3">
               <Header icon="ri-upload-cloud-line" label="Send money" subtitle={`POST ${BASE}/payouts`} />
               <p className={P}>
-                Sends money from your ObPay balance to an MTN or Airtel mobile money number. The transfer fee is taken
-                out of the amount, so sending 10,000 deducts 10,000 from your balance and the recipient gets 10,000 minus the fee.
-                The response shows <code>fee</code> and <code>recipient_gets</code>. Minimum payout varies by currency (e.g. UGX 5,000, KES 100). Bank payouts are not available yet.
+                Sends money from your ObPay balance to a mobile money number in Uganda, Kenya, Rwanda or Zambia. The response
+                shows <code>fee</code> and <code>recipient_gets</code>. Fees are deducted from the amount by default; if your
+                account is set to pay fees, they are added on top. Minimum payout varies by currency (e.g. UGX 5,000, KES 100,
+                ZMW 30). Bank payouts are not available yet.
               </p>
               <Table
                 rows={[
-                  { name: "amount", type: "integer", required: "Yes", desc: "Whole UGX amount taken from your balance (fee included)." },
-                  { name: "phone_number", type: "string", required: "Yes", desc: "Recipient's MTN or Airtel number, e.g. 0772123456." },
+                  { name: "amount", type: "integer", required: "Yes", desc: "Whole amount in the chosen currency, taken from your balance." },
+                  { name: "currency", type: "string", required: "No", desc: "UGX (default), KES, RWF or ZMW." },
+                  { name: "phone_number", type: "string", required: "Yes", desc: "Recipient's mobile money number, e.g. 0772123456 (UG) or 0971234567 (ZM)." },
                   { name: "customer_name", type: "string", required: "Yes", desc: "Recipient's name as registered on the wallet." },
                   { name: "reference", type: "string", required: "No", desc: "Your unique payout id." },
                   { name: "callback_url", type: "string", required: "Recommended", desc: "Receives payout.success / payout.failed." },
@@ -470,6 +473,15 @@ print(r.json())`}
   }'`}
               />
               <CodeBlock title="Response 200" code={`{\n  "success": true,\n  "data": { "reference": "PAYOUT-77", "status": "pending", "amount": 20000, "currency": "UGX", "type": "payout" }\n}`} />
+              <CodeBlock
+                title="Zambia payout"
+                code={`curl -X POST ${BASE}/payouts \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "amount": 100,\n    "currency": "ZMW",\n    "phone_number": "0971234567",\n    "customer_name": "Chanda Mwansa",\n    "reference": "PAYOUT-78",\n    "callback_url": "https://yoursite.com/obpay/callback"\n  }'`}
+              />
+              <p className={P}>
+                Zambia numbers are <code className={C}>09XXXXXXXX</code> local or <code className={C}>2609XXXXXXXX</code> international,
+                on Airtel, MTN or Zamtel. Amounts are whole ZMW and the payout minimum is <b>ZMW 30</b>. Confirm the live fee with{" "}
+                <code className={C}>GET /payout-methods?currency=ZMW</code> before going live.
+              </p>
               <Note tone="warn">A payout larger than your available balance is refused with "Insufficient balance".</Note>
             </section>
           )}
@@ -537,10 +549,12 @@ print(r.json())`}
               <ul className="text-sm list-disc pl-5 space-y-1">
                 <li><b>UGX</b> Uganda – MTN, Airtel (<code>network: "mtn" | "airtel"</code>), phone <code>2567XXXXXXXX</code>. Payout min 10,000.</li>
                 <li><b>KES</b> Kenya – M-Pesa PIN prompt (<code>network: "mpesa"</code>), phone <code>2547XXXXXXXX</code>. Payout min 500.</li>
-                <li><b>RWF</b> Rwanda – MTN, Airtel, phone <code>2507XXXXXXXX</code>. Payout min 2,000.</li>
+                <li><b>RWF</b> Rwanda – MTN, Airtel, phone <code>2507XXXXXXXX</code>. Payout min 500.</li>
+                <li><b>ZMW</b> Zambia – Airtel, MTN or Zamtel (<code>network: "airtel" | "mtn" | "zamtel"</code>), phone <code>2609XXXXXXXX</code>. Payout min 30, mobile money only. Whole amounts only.</li>
                 <li><b>USD</b> crypto – set <code>crypto: true</code>; the response has <code>checkout_url</code> for the customer to pay in coins. Credits your USD balance.</li>
               </ul>
               <CodeBlock title="Kenya collection" code={`curl -X POST ${BASE}/collect \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" -H "Content-Type: application/json" \\\n  -d '{"currency":"KES","amount":100,"phone_number":"254712345678","network":"mpesa","customer_name":"Jane W","customer_email":"jane@example.com"}'`} />
+              <CodeBlock title="Zambia payout" code={`curl -X POST ${BASE}/payouts \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" -H "Content-Type: application/json" \\\n  -d '{"currency":"ZMW","amount":100,"phone_number":"260971234567","network":"airtel","customer_name":"Chanda Mwansa"}'`} />
               <CodeBlock title="Crypto collection" code={`curl -X POST ${BASE}/collect \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" -H "Content-Type: application/json" \\\n  -d '{"currency":"USD","crypto":true,"amount":5,"customer_name":"Sam","customer_email":"sam@example.com"}'`} />
               <p className="text-sm"><code>GET /rates</code> returns live rates against USD. <code>GET /payout-methods?currency=KES</code> returns availability, minimum and fees.</p>
             </section>
