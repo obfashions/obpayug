@@ -160,10 +160,50 @@ export async function convertBalance(id: Identity, body: Record<string, any>) {
   const all = SUPPORTED_MONEY_CURRENCIES;
   if (!all.includes(from) || !all.includes(to) || from === to) return fail("Choose two different currencies.");
   if (!Number.isFinite(amount) || amount <= 0) return fail("Enter an amount greater than zero.");
-  // No documented partner conversion API exists. A ledger credit alone would
-  // create a destination balance without converting the actual payout funds.
-  // Keep existing balances/history intact, but fail closed before any mutation.
-  return fail("Currency exchange is temporarily unavailable. No money has been moved or charged.");
+  if (from !== "USD" && !Number.isInteger(amount)) return fail(`Enter a whole ${from} amount.`);
+
+  // 1. Confirm the merchant's own balance in the wallet being exchanged from.
+  const { combinedBalances } = await import("./balance-values");
+  const [{ data: wallet }, { data: managed }, { data: prof }] = await Promise.all([
+    db().from("merchant_wallets").select("available_balance, currency, balances_by_currency").eq("user_id", id.userId).maybeSingle(),
+    db().from("merchant_balances").select("currency, available_balance").eq("merchant_id", id.userId),
+    db().from("profiles").select("default_currency").eq("id", id.userId).maybeSingle(),
+  ]);
+  const mine = combinedBalances(wallet, managed ?? [], prof?.default_currency || wallet?.currency || "UGX");
+  const fromBalance = mine[from] || 0;
+  if (amount > fromBalance) return fail(`Your ${from} wallet has ${fromBalance.toLocaleString()} ${from}, which is less than ${amount.toLocaleString()} ${from}. No money has been moved.`);
+
+  // 2. Price the exchange.
+  const r: any = await getRates();
+  if (!r.success) return r;
+  const rate = r.data.rates[to] / r.data.rates[from];
+  const fee = r.data.fee_percent;
+  const { exchangeReceive } = await import("./exchange-math");
+  const receive = exchangeReceive(amount, rate, fee, to);
+  if (!Number.isFinite(receive) || receive <= 0) return fail("This amount is too small to exchange.");
+
+  // 3. The destination wallet must already hold enough real (partner) funds that
+  //    are not owed to any merchant; otherwise the credit would be unbacked.
+  const { getGatewayCreds, gatewayLiveBalances } = await import("./gateway.server");
+  const creds = await getGatewayCreds();
+  if (!creds) return fail("Currency exchange is unavailable right now. No money has been moved.");
+  const live = (await gatewayLiveBalances(creds, [to]))[0];
+  if (live?.available == null) return fail(`We couldn't confirm the ${to} wallet balance right now. Please try again shortly. No money has been moved.`);
+  const [{ data: owedManaged }, { data: owedMain }] = await Promise.all([
+    db().from("merchant_balances").select("available_balance").eq("currency", to),
+    db().from("merchant_wallets").select("available_balance").eq("currency", to),
+  ]);
+  const owed = [...(owedManaged ?? []), ...(owedMain ?? [])].reduce((s: number, x: any) => s + Math.max(0, Number(x.available_balance) || 0), 0);
+  const free = Math.max(0, live.available - owed);
+  if (receive > free) {
+    return fail(`The ${to} wallet doesn't have enough funds to complete this exchange right now (${receive.toLocaleString()} ${to} needed). Please try a smaller amount or another currency later. No money has been moved or charged.`);
+  }
+
+  const { error } = await db().rpc("exchange_wallet_balance", {
+    p_merchant_id: id.userId, p_from: from, p_to: to, p_amount: amount, p_to_amount: receive, p_rate: rate, p_fee_percent: fee,
+  });
+  if (error) return fail(/insufficient/i.test(error.message) ? `Your ${from} wallet doesn't have enough funds. No money has been moved.` : "The exchange could not be completed. No money has been moved.");
+  return ok({ from_amount: amount, to_amount: receive, rate, fee_percent: fee });
 }
 
 export async function listExchanges(id: Identity) {
