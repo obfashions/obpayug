@@ -31,7 +31,7 @@ export async function reviewVerifiedPayout(input: { recordId: string; partnerRef
   }
   const evidence = { reference, status: check.status, currency, net_amount: net, fee: Number(partner.fee || 0), verified_at: new Date().toISOString() };
   if (!input.status) return { success: true as const, evidence, currentStatus: record.status, totalDebit: total, fee: fees };
-  if (input.status !== check.status || check.status === "pending") throw new Error("Confirmation must match the payment-network result. Pending payouts cannot be confirmed yet.");
+  if (check.status === "pending" || input.status !== check.status) throw new Error("Confirmation must match the payment-network result. Pending payouts cannot be confirmed yet.");
   const reason = String(input.reason || "").trim();
   if (reason.length < 5) throw new Error("Enter a confirmation reason of at least five characters.");
   const { data: result, error: confirmError } = await db.rpc("confirm_payout_status", {
