@@ -20,3 +20,4 @@
 - [x] Verify Mukoya's 55 partner records; deduct only omitted confirmed collection fees (575 UGX, 1,568 RWF), retaining prior payout corrections; admin displays UGX 275,680 and RWF -568.
 - [ ] Reconcile Mukoya's historical cross-currency discrepancy; confirmed movements show an unexplained 90,480 RWF gap matching UGX collection numbers. Requires historical balance/profile change evidence before any further monetary correction; 130k UGX is not substantiated.
 - [x] Prevent changing the account currency from relabeling existing money; displayed wallet selection remains available.
+- [ ] Correct UGX payout method mapping and test partner rejection handling without sending real money.
