@@ -5,8 +5,8 @@ const slides = [
   {
     image: "https://readdy.ai/api/search-image?query=Candid%20photo%20of%20an%20African%20businessman%20in%20a%20light%20blue%20dress%20shirt%20working%20on%20a%20laptop%20at%20a%20modern%20bank%20office%20with%20large%20windows%20natural%20afternoon%20light%20shallow%20depth%20of%20field%20editorial%20photography%20warm%20skin%20tones%20realistic%20authentic%20not%20posed&width=1400&height=900&seq=obpay-hero-real-01&orientation=landscape",
     alt: "Business professional working in a modern East African bank office",
-    headline: "Payments Built for East African Businesses",
-    subline: "Accept Mobile Money, bank transfers, and card payments. Same-day settlements to your account.",
+    headline: "ObPay — International Payments",
+    subline: "ObPay operates internationally. Accept payments and manage separate currency wallets across supported countries.",
     cta: "Open a Business Account",
     ctaLink: "/register",
   },
