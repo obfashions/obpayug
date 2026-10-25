@@ -197,6 +197,13 @@
       "when": 1792861067663,
       "tag": "0027_merchant_payout_fee_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792893313388,
+      "tag": "0028_protect_main_wallet_currency",
+      "breakpoints": true
     }
   ]
 }

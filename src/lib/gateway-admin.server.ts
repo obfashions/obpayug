@@ -121,7 +121,7 @@ export async function runGatewayAdminAction(
     const { getGatewayCreds, gatewayCollectionStatus, gatewayPayoutStatus } = await import("./gateway.server");
     const creds = await getGatewayCreds();
     if (!creds) return { success: false, error: "Payment verification is unavailable." };
-    const result: Array<{ record: Record<string, any>; verified: boolean; partner: Record<string, unknown> | null }> = [];
+    const result: Array<{ record: Record<string, any>; verified: boolean; partner: { status: string; amount: number | null; fee: number | null; net_amount: number | null; currency: string; reference: string; note: string } | null }> = [];
     for (const record of records || []) {
       const checked = record.type === "payout"
         ? await gatewayPayoutStatus(creds, { platformReference: record.provider_reference })
@@ -129,8 +129,8 @@ export async function runGatewayAdminAction(
       const raw = checked.res?.raw;
       const partner = raw?.payout || (Array.isArray(raw?.payouts) ? raw.payouts[0] : null) || checked.res?.data;
       result.push({ record, verified: checked.ok, partner: partner ? {
-        status: partner.status, amount: partner.amount, fee: partner.fee, net_amount: partner.net_amount,
-        currency: partner.currency, reference: partner.reference, note: partner.note || partner.admin_note,
+        status: String(partner.status || ""), amount: partner.amount == null ? null : Number(partner.amount), fee: partner.fee == null ? null : Number(partner.fee), net_amount: partner.net_amount == null ? null : Number(partner.net_amount),
+        currency: String(partner.currency || ""), reference: String(partner.reference || ""), note: String(partner.note || partner.admin_note || ""),
       } : null });
     }
     return { success: true, data: { records: result, nextOffset: (records || []).length === 15 ? offset + 15 : null } };
