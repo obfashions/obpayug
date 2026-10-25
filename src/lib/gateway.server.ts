@@ -589,7 +589,9 @@ export async function gatewayPayout(creds: GatewayCreds, req: PayoutRequest) {
         error: `The payment network requires a whole ${currency} amount after fees. No money was sent.` } as GatewayResult,
     };
   }
-  const method = currency === "KES" ? (req.network === "airtel_money" ? "airtel_money" : "mpesa") : (req.network || "mobile_money");
+  // A SIM network (MTN/Airtel) is not a payout method. Outside Kenya the
+  // mobile-money rail requires mobile_money, regardless of the chosen SIM.
+  const method = currency === "KES" ? (req.network === "airtel_money" ? "airtel_money" : "mpesa") : "mobile_money";
   const { tagDescription, tagMetadata } = await import("./merchant-identity.server");
   const body = {
     amount: gross,
