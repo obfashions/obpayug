@@ -1,4 +1,5 @@
-- [ ] Verify current unallocated Rwanda partner funds and the owner's requested allocation to Mukoya, preserving audit history and existing credits/debits.
+- [x] Verify Rwanda ownership across both wallet stores: live partner 276.03 RWF; Mukoya managed balance 0; another active merchant main RWF wallet 301. No unallocated backing exists. No funds reassigned.
+- [ ] Allocate Rwanda funds to Mukoya only after verified additional funding or reconciliation of the existing 301 RWF merchant claim; current provider funds are insufficient, so automatic pooled-balance substitution remains blocked.
 - [x] Confirm Mukoya's recorded RWF balance is 0 and fee exemption active; add /balance?currency=RWF, uncached responses and incomplete-read protection; 51 balance/fee/ledger tests pass. No funds changed or history hidden.
 - [ ] Verify Mukoya's API with his actual integration and a funded Rwanda collection/payout; blocked by no authorized integration session or funded recipient test. Shared provider float is not his merchant balance.
 - [x] Trace current Mukoya RWF mismatch: ObPay 9,951 includes 9,911 from an internal UGX exchange; live shared Payza RWF float is 276.03. Fixed punctuation causing NaN in live balance parsing; two tests and authenticated live read passed. No balances changed.
