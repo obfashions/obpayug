@@ -41,3 +41,9 @@
 - [ ] Reconcile Mukoya's historical cross-currency discrepancy; confirmed movements show an unexplained 90,480 RWF gap matching UGX collection numbers. Requires historical balance/profile change evidence before any further monetary correction; 130k UGX is not substantiated.
 - [x] Prevent changing the account currency from relabeling existing money; displayed wallet selection remains available.
 - [x] Correct UGX payout method mapping; 18 payout/error/ledger tests pass, including MTN/Airtel mobile_money submission and rejected payments never reported as accepted. No live payout sent; retain confirmed outcomes and one-time rejection refunds rather than false success.
+
+## Done (payout net fix + earnings + settings)
+- Settlement no longer recomputes payout "recipient gets" as amount minus fee; acceptance-time value is authoritative. 15 verified payouts corrected (incl. 72a57b60 → 1,634 RWF received).
+- Payouts page shows a "Recipient gets" column.
+- Admin account position shows per-currency ObPay earnings (collection margin + ObPay payout fees only).
+- Admin Settings: new Currency Exchange Fee card (default 1.5%).
