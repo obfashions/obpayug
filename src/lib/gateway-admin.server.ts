@@ -173,6 +173,25 @@ export async function runGatewayAdminAction(
       byCurrency[c].paid_out += Number(row.total_payouts) || 0;
       byCurrency[c].merchant_available += Number(row.available_balance) || 0;
     }
+    // ObPay's own earnings per currency: the collection margin kept above the
+    // partner's charge, plus the ObPay fee kept on payouts. Partner charges are
+    // never counted as earnings, so the platform can see it is not losing money.
+    const { data: earnRows } = await client
+      .from("payment_records")
+      .select("type, currency, fee_amount, metadata")
+      .eq("status", "success")
+      .in("type", ["collection", "payout"]);
+    const earnings: Record<string, number> = {};
+    for (const r of earnRows || []) {
+      const c = String(r.currency || "UGX");
+      const meta = (r.metadata || {}) as Record<string, any>;
+      const partnerFee = Number(meta.partner_fee) || 0;
+      const earned =
+        r.type === "collection"
+          ? Math.max((Number(r.fee_amount) || 0) - partnerFee, 0)
+          : Number(meta.obpay_fee) || 0;
+      earnings[c] = (earnings[c] || 0) + earned;
+    }
     const tracked = Object.entries(byCurrency).map(([currency, v]) => ({
       currency,
       collected: v.collected,
@@ -180,6 +199,7 @@ export async function runGatewayAdminAction(
       merchant_available: v.merchant_available,
       // Money held at the partner that is not owed to merchants (fees, float).
       platform_share: Math.max(v.collected - v.paid_out - v.merchant_available, 0),
+      obpay_earnings: earnings[currency] || 0,
     }));
     // Live partner balance + charges (read-only).
     let live: any = null;

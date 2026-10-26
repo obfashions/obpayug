@@ -374,6 +374,7 @@ export default function AdminGatewayApi() {
                   <div className="flex justify-between"><span className="text-foreground-500">Paid out</span><span>{Number(row.paid_out).toLocaleString()}</span></div>
                   <div className="flex justify-between"><span className="text-foreground-500">Owed to merchants</span><span>{Number(row.merchant_available).toLocaleString()}</span></div>
                   <div className="flex justify-between font-medium"><span>Platform share (fees)</span><span>{Number(row.platform_share).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-foreground-500">ObPay earnings</span><span>{Number(row.obpay_earnings || 0).toLocaleString()}</span></div>
                 </div>
               ))}
             </div>
