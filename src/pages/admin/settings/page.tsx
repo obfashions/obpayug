@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { WALLET_CURRENCIES } from "@/lib/countries";
 import { getCurrencyInfo } from "@/lib/currency";
 import WhatsappLinkCard from "./WhatsappLinkCard";
+import ExchangeFeeCard from "./ExchangeFeeCard";
 
 type CurrencyFees = Record<string, { collect?: number | string; withdraw?: number | string }>;
 
@@ -263,6 +264,7 @@ export default function AdminSettings() {
         </div>
 
         <WhatsappLinkCard />
+        <ExchangeFeeCard />
 
         {/* Danger Zone */}
         <div className="bg-background-50 rounded-xl border border-accent-200/70 p-6">

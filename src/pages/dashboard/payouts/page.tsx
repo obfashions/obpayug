@@ -31,6 +31,7 @@ interface Payout {
   rejection_reason: string;
   provider_reference: string;
   fee_amount: number;
+  net_amount: number;
   requested_at: string;
   processed_at: string;
   completed_at: string;
@@ -113,6 +114,7 @@ export default function PayoutsPage() {
         id: row.id, amount: row.amount, currency: row.currency, status: row.status,
         phone_number: row.customer_phone, network: "mobile money", description: row.description,
         rejection_reason: "", provider_reference: row.reference, fee_amount: row.fee_amount,
+        net_amount: row.net_amount,
         requested_at: row.created_at, processed_at: row.created_at, completed_at: row.completed_at || "",
       }));
       const references = new Set(managedPayouts.map((p) => p.provider_reference));
@@ -785,6 +787,7 @@ export default function PayoutsPage() {
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Recipient</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Amount</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Fee</th>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Recipient gets</th>
                   <th className="text-center px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Status</th>
                   <th className="text-right px-5 py-3 text-xs font-medium text-foreground-500 uppercase">Date</th>
                 </tr></thead>
@@ -812,6 +815,11 @@ export default function PayoutsPage() {
                         <td className="px-5 py-3">
                           <span className="text-xs text-accent-600 font-medium">
                             {p.fee_amount ? formatCurrency(p.fee_amount, p.currency || activeCurrency) : "—"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className="text-sm font-medium text-foreground-900">
+                            {p.status === "success" && p.net_amount ? formatCurrency(p.net_amount, p.currency || activeCurrency) : "—"}
                           </span>
                         </td>
                         <td className="px-5 py-3 text-center">

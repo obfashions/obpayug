@@ -51,4 +51,8 @@ it("both modes keep flat KES network and ObPay fees accounted for", () => {
   const rules = { min: 500, flat: 155, percent: 0, floor: 0 };
   expect(payoutAmounts(1000, "KES", rules, "amount", 1)).toMatchObject({ net: 835, totalDebit: 1000, partnerFee: 155, platformFee: 10, error: null });
   expect(payoutAmounts(1000, "KES", rules, "account", 1)).toMatchObject({ net: 1000, totalDebit: 1165, partnerFee: 155, platformFee: 10, error: null });
+});it("account mode records the full entered amount as received after the partner fee", () => {
+  // Regression for payout 72a57b60: the recipient gets the full 1,634 RWF;
+  // the 500 partner fee is added on top of the debit, never taken from the recipient.
+  expect(payoutAmounts(1634, "RWF", rwf, "account", 0)).toMatchObject({ gross: 2134, net: 1634, partnerFee: 500, platformFee: 0, totalDebit: 2134, error: null });
 });

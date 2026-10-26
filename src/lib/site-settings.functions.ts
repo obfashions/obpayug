@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-const ALLOWED_KEYS = ["whatsapp_group_url"] as const;
+const ALLOWED_KEYS = ["whatsapp_group_url", "exchange_fee_percent"] as const;
 
 export const getSiteSetting = createServerFn({ method: "GET" })
   .inputValidator((data: { key: string }) => ({ key: String(data?.key || "") }))
@@ -32,6 +32,10 @@ export const saveSiteSetting = createServerFn({ method: "POST" })
       if (!(ALLOWED_KEYS as readonly string[]).includes(data.key)) return { success: false, error: "Unknown setting." };
       if (data.key === "whatsapp_group_url" && data.value && !/^https:\/\/(chat\.whatsapp\.com|wa\.me|whatsapp\.com|www\.whatsapp\.com)\//i.test(data.value)) {
         return { success: false, error: "Enter a WhatsApp link starting with https://chat.whatsapp.com/ or https://wa.me/" };
+      }
+      if (data.key === "exchange_fee_percent") {
+        const pct = Number(data.value);
+        if (!Number.isFinite(pct) || pct < 0 || pct > 20) return { success: false, error: "Enter a percentage between 0 and 20." };
       }
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error } = await (supabaseAdmin as any).from("site_settings").upsert(
