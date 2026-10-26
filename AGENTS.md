@@ -44,3 +44,6 @@
 - Partner balance evidence is currency-matched, finite and account-wide; never use it to overwrite a merchant ledger — why: pooled float includes other merchants and internal exchanges do not convert partner funds.
 - API balance accepts currency, reconciles first, fails on incomplete reads and is uncached — why: never relabel UGX or pooled float as merchant RWF.
 - Exchanges check the from-wallet, then require live partner to-currency funds minus all merchant balances in it to cover the credit, else refuse kindly — why: no partner conversion API, so credits must be backed.
+- Payout settlement preserves the recipient net saved at acceptance; never recompute it as amount minus fee (account mode pays the full entered amount).
+- Admin account position shows per-currency ObPay earnings = collection margin above partner charge + ObPay payout fees; partner charges are never earnings.
+- The exchange fee % is an admin site setting (exchange_fee_percent, 0-20) with a Settings card; default 1.5 when unset.
