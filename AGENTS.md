@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Payment partner is Payza; all partner logic lives in src/lib/gateway.server.ts behind a stable adapter API — why: swapping providers touches one file.
+- Primary mobile-money partner remains Payza in gateway.server.ts; secondary Uganda services use marz-services.server.ts via the server connector — why: additional services must not reroute existing payments.
 - Collections trigger the PIN prompt server-side and settle only after /api/v1/verify confirms — why: white-label UX and never trust unsigned/unchecked notices.
 - Accounts, profiles, wallets and transactions live in this project's own backend; the old outside system is read only by src/lib/legacy-migrate.server.ts to move an account on its first sign-in (same ID + password; an admin's first sign-in imports all merchants) — why: one backend for auth, emails and data.
 - Password resets (merchant and admin) email a Mailjet link built from generateLink recovery hashed_token → /reset-password — why: no dependency on the old system's email sender.
@@ -42,3 +42,5 @@
 - Payout settlement preserves the recipient net saved at acceptance; never recompute it as amount minus fee (account mode pays the full entered amount).
 - Admin account position shows per-currency ObPay earnings = collection margin above partner charge + ObPay payout fees; partner charges are never earnings.
 - The exchange fee % is an admin site setting (exchange_fee_percent, 0-20) with a Settings card; default 1.5 when unset.
+- Secondary service purchases reserve funds atomically before submission, reuse UUID references, verify terminal outcomes, and retain uncertain reservations; bank creation stays blocked without exact pre-submit fees/idempotency — why: avoid double spending and losses.
+- Secondary card credits use a service-only one-time RPC into a restricted card balance, never mobile-money funds — why: the provider card rail is separate.

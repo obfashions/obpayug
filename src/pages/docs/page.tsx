@@ -8,6 +8,7 @@ const BASE = "https://obpay.online/api/public/v1";
 
 type SectionId =
   | "overview"
+  | "services"
   | "operating"
   | "quickstart"
   | "authentication"
@@ -24,6 +25,7 @@ type SectionId =
   | "going-live";
 
 const sections: Array<{ id: SectionId; label: string; icon: string }> = [
+  { id: "services", label: "Bills, airtime & cards", icon: "ri-apps-line" },
   { id: "overview", label: "Overview", icon: "ri-home-4-line" },
   { id: "operating", label: "How ObPay works", icon: "ri-compass-3-line" },
   { id: "quickstart", label: "Quick start", icon: "ri-flashlight-line" },
@@ -105,6 +107,14 @@ function Table({ rows }: { rows: Array<{ name: string; type: string; required: s
 }
 
 const endpointList: Array<{ m: string; p: string; d: string }> = [
+  { m: "GET", p: "/services", d: "Current additional service availability." },
+  { m: "GET", p: "/services/airtime/catalog", d: "Uganda networks and live data bundles." },
+  { m: "GET", p: "/services/bills/catalog", d: "Utilities and the current service fee." },
+  { m: "POST", p: "/services/airtime", d: "Buy airtime or a data bundle." },
+  { m: "POST", p: "/services/bills", d: "Pay a verified Uganda utility account." },
+  { m: "POST", p: "/services/cards", d: "Create a hosted card collection in UGX." },
+  { m: "GET", p: "/services/status/{reference}", d: "Reverify a service payment." },
+  { m: "GET", p: "/services/history", d: "Your service payments and restricted card balance." },
   { m: "GET", p: "/ping", d: "Check that your key works." },
   { m: "GET", p: "/account", d: "Your merchant id and counts." },
   { m: "GET", p: "/balance", d: "Collected, paid out and available balance." },
@@ -161,7 +171,7 @@ export default function DocsPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "TechArticle",
-          headline: "ObPay (PawaPay Ptn) API documentation",
+          headline: "ObPay API documentation",
           description: "Receive and send mobile money in Uganda, Kenya, Rwanda and Zambia with the ObPay REST API.",
         }}
       />
@@ -188,6 +198,28 @@ export default function DocsPage() {
         </aside>
 
         <main className="bg-white rounded-2xl border border-background-200 p-4 sm:p-8 min-w-0 space-y-4">
+          {active === "services" && <section className="space-y-4">
+            <Header icon="ri-apps-line" label="Bills, airtime, data & card payments"/>
+            <p className={P}>These additional services currently use UGX in Uganda. Existing mobile-money collections and payouts keep their current endpoints and fee rules. Bank transfers are customer-service assisted; no automatic bank-transfer endpoint is enabled.</p>
+            <Table rows={[
+              {name:"Airtime",type:"MTN / Airtel / Lyca",required:"UGX",desc:"Live network minimum; Lyca supports airtime only."},
+              {name:"Data",type:"MTN / Airtel",required:"UGX",desc:"Use a live catalog product_id. Airtel delivery may remain pending."},
+              {name:"Bills",type:"LIGHT / NWSC / DSTV / GOTV",required:"UGX",desc:"NWSC requires area. TV amount must match the live package price."},
+              {name:"Cards",type:"Card collections",required:"UGX",desc:"Hosted checkout, 500–10,000,000 UGX. Card proceeds are restricted and separate; no card issuing."},
+            ]}/>
+            <CodeBlock title="Buy airtime" code={`curl -X POST "${BASE}/services/airtime" \\\n+  -H "Authorization: Bearer $OBPAY_SECRET_KEY" \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"reference":"550e8400-e29b-41d4-a716-446655440000","purchase_type":"airtime","msisdn":"256771234567","amount":5000}'`}/>
+            <CodeBlock title="Buy a data bundle" code={`POST /services/airtime
+{"reference":"660e8400-e29b-41d4-a716-446655440000","purchase_type":"bundle","msisdn":"256771234567","bundle_id":"RACT_UG_Data_201","expected_amount":1000}`}/>
+            <p className={P}>Read <code className={C}>GET /services/airtime/catalog</code> first. Use the current product price as expected_amount; do not send amount for bundles. Server-side price checks reject changed prices without sending a purchase.</p>
+            <CodeBlock title="Pay an electricity bill" code={`POST /services/bills
+{"reference":"770e8400-e29b-41d4-a716-446655440000","utility_code":"LIGHT","meter_number":"12345678901","phone_number":"256771234567","amount":10000,"expected_fee":1200}`}/>
+            <p className={P}>Read the current bill fee from <code className={C}>GET /services/bills/catalog</code>; 1,200 above is an example, not a fixed guarantee. Minimum bill amount is 1,000 UGX. The wallet pays amount plus the verified service fee. Optional customer_name and email are supported. NWSC requires area; DSTV/GOTV require bouquet_code and its exact current price.</p>
+            <CodeBlock title="Create a card collection" code={`POST /services/cards
+{"reference":"880e8400-e29b-41d4-a716-446655440000","amount":5000,"description":"Order payment"}`}/>
+            <p className={P}>Redirect the customer to the returned checkout_url. Never collect card numbers or PINs in your own form. Check <code className={C}>GET /services/status/REFERENCE</code> for verified confirmation. Card funds appear as card_balance in service history, not in the mobile-money balance endpoint. Contact customer service to withdraw card proceeds to a bank.</p>
+            <Note tone="warn">Keep the same UUID reference when checking or retrying the same request. A timeout is not proof of failure: do not pay again with a new reference. Funds are reserved before service submission; confirmed failed purchases are refunded once. No unsigned callback credits a wallet. Pending services are rechecked through status and history reads.</Note>
+            <p className={P}><Link to="/services" className="text-primary underline">Browse service pages</Link> · <Link to="/dashboard/service-history" className="text-primary underline">Service history</Link></p>
+          </section>}
           {active === "overview" && (
             <section className="space-y-4">
               <Header icon="ri-home-4-line" label="ObPay API" subtitle={`Base URL: ${BASE}`} />
