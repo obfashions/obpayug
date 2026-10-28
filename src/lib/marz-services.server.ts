@@ -104,6 +104,25 @@ async function existing(userId: string, reference: string) {
   return data;
 }
 
+const cleanName = (v: unknown) => String(v ?? "").trim().replace(/\s+/g, " ");
+const sameName = (a: unknown, b: unknown) => cleanName(a).toLowerCase() === cleanName(b).toLowerCase() && cleanName(a).length > 0;
+
+/** Approved identity may live in the current KYC table or the migrated merchant profile; both need a verified name. */
+export async function verifiedIdentity(userId: string): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
+  const client = await db();
+  const [kycRes, mpRes] = await Promise.all([
+    client.from("kyc_submissions").select("status, full_name, business_name").eq("merchant_id", userId).maybeSingle(),
+    client.from("merchant_profiles").select("verification_status, company_name").eq("user_id", userId).maybeSingle(),
+  ]);
+  if (kycRes.error && mpRes.error) return { ok: false, error: "We couldn't confirm your verification right now. Please try again." };
+  const kyc = kycRes.data, mp = mpRes.data;
+  const approved = kyc?.status === "approved" || mp?.verification_status === "approved";
+  if (!approved) return { ok: false, error: "Complete identity verification before using this service." };
+  const name = cleanName((kyc?.status === "approved" && (kyc.full_name || kyc.business_name)) || mp?.company_name || kyc?.full_name || kyc?.business_name);
+  if (name.length < 2) return { ok: false, error: "Your verified name is missing. Please update your identity details or contact support." };
+  return { ok: true, name };
+}
+
 export async function secondaryPurchase(userId: string, kind: "airtime" | "bill" | "card", body: any) {
   let reserved = false;
   try {
@@ -116,8 +135,8 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
     const client = await db();
     const { data: account, error: accountError } = await client.from("profiles").select("status").eq("id", userId).maybeSingle();
     if (accountError || account?.status !== "active") return fail("This account cannot submit service payments. Please contact ObPay support.");
-    const { data: kyc, error: kycError } = await client.from("kyc_submissions").select("status").eq("merchant_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (kycError || kyc?.status !== "approved") return fail("Complete identity verification before using this service.");
+    const identity = await verifiedIdentity(userId);
+    if (!identity.ok) return fail(identity.error);
     let amount = payload.amount, partnerFee = 0;
     const service = kind === "airtime" ? "airtime_data" : kind === "bill" ? "bill_payment" : "card_payments";
     if (kind === "airtime") {
