@@ -71,15 +71,21 @@ export default function BillPaymentsPage({ initialUtility = "" }: { initialUtili
       ...(form.area ? { area: form.area } : {}),
     });
     setVerifying(false);
-    if (res?.success) setVerified(res.data);
-    else setResult({ ok: false, message: res?.error || "Verification failed." });
+    if (res?.success) {
+      const name = String(res.data?.customer_details?.customer_name || res.data?.customer_name || "").trim();
+      if (!name) { setResult({ ok: false, message: "We couldn't find the account holder's name for this number. Check it and try again." }); return; }
+      setResult(null);
+      setVerified({ ...res.data, name, confirmed: false });
+      setForm((f) => ({ ...f, customerName: name }));
+    } else setResult({ ok: false, message: res?.error || "Verification failed." });
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!verified?.confirmed) { setResult({ ok: false, message: "Verify the account and confirm the holder's name first." }); return; }
     setSubmitting(true);
     setResult(null);
-    const res = await invokeObpay({ action: "bill-pay", ...form, reference, expectedFee: charge, amount: Number(form.amount || 0) });
+    const res = await invokeObpay({ action: "bill-pay", ...form, confirmedName: verified.name, reference, expectedFee: charge, amount: Number(form.amount || 0) });
     setSubmitting(false);
     if (res?.success) {
       setResult({ ok: true, message: `${res.data.status === "success" ? "Bill paid" : res.data.status === "failed" ? "Payment failed and refunded" : "Awaiting confirmation"}. Reference ${res.data.reference}.` });
@@ -98,6 +104,11 @@ export default function BillPaymentsPage({ initialUtility = "" }: { initialUtili
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Bill Payments</h1>
+          <ol className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <li className="rounded-full bg-muted px-3 py-1">1. Choose service</li>
+            <li className="rounded-full bg-muted px-3 py-1">2. Verify account name</li>
+            <li className="rounded-full bg-muted px-3 py-1">3. Confirm &amp; pay</li>
+          </ol>
           <p className="text-sm text-muted-foreground">
             Pay electricity (LIGHT/UMEME), water (NWSC) and TV (DSTV, GOTV) bills from your wallet.
             {charge > 0 && ` A ${charge.toLocaleString()} UGX service charge applies.`}
@@ -128,7 +139,7 @@ export default function BillPaymentsPage({ initialUtility = "" }: { initialUtili
                 <input
                   required
                   value={form.meterNumber}
-                  onChange={(e) => setForm({ ...form, meterNumber: e.target.value })}
+                  onChange={(e) => { setVerified(null); setForm({ ...form, meterNumber: e.target.value }); }}
                   className="flex-1 min-w-0 rounded-lg border border-border bg-background p-2.5 text-sm"
                 />
                 <Button
@@ -137,7 +148,7 @@ export default function BillPaymentsPage({ initialUtility = "" }: { initialUtili
                   disabled={!form.utilityCode || !form.meterNumber || verifying}
                   className="shrink-0 rounded-lg bg-secondary px-3 text-sm text-secondary-foreground disabled:opacity-50"
                 >
-                  {verifying ? "…" : "Verify"}
+                  {verifying ? "Checking…" : "Verify name"}
                 </Button>
               </div>
             </div>
@@ -203,11 +214,12 @@ export default function BillPaymentsPage({ initialUtility = "" }: { initialUtili
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 text-foreground">Customer name (optional)</label>
+              <label className="block text-sm mb-1 text-foreground">Account holder</label>
               <input
+                readOnly
                 value={form.customerName}
-                onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background p-2.5 text-sm"
+                placeholder="Filled after verification"
+                className="w-full rounded-lg border border-border bg-muted p-2.5 text-sm"
               />
             </div>
             <div>
@@ -222,7 +234,17 @@ export default function BillPaymentsPage({ initialUtility = "" }: { initialUtili
           </div>
 
           {verified && (
-            <pre className="overflow-x-auto rounded-lg bg-muted p-3 text-xs text-foreground">{JSON.stringify(verified, null, 2)}</pre>
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Account holder</p>
+                <p className="text-lg font-semibold text-foreground">{verified.name}</p>
+                {verified.customer_details?.customer_type && <p className="text-xs text-muted-foreground">{verified.customer_details.customer_type} · {form.meterNumber}</p>}
+              </div>
+              <label className="flex items-start gap-2 text-sm text-foreground">
+                <input type="checkbox" className="mt-1" checked={!!verified.confirmed} onChange={(e) => setVerified({ ...verified, confirmed: e.target.checked })} />
+                <span>This is the correct account. I want to pay {verified.name}.</span>
+              </label>
+            </div>
           )}
 
           {result && (
@@ -234,7 +256,7 @@ export default function BillPaymentsPage({ initialUtility = "" }: { initialUtili
           <p className="text-sm text-muted-foreground">Total wallet debit: {(Number(form.amount || 0) + charge).toLocaleString()} UGX · Service fee: {charge.toLocaleString()} UGX</p>
           <Button
             type="submit"
-            disabled={submitting || !loaded || !reference}
+            disabled={submitting || !loaded || !reference || !verified?.confirmed}
             className="w-full sm:w-auto rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
             {submitting ? "Paying…" : "Pay bill"}
