@@ -7,9 +7,6 @@ import { ServiceDirectory } from "@/pages/services/page";
 const SERVICE_LINKS = [
   { title: "Collections", desc: "Mobile money and card payments from customers.", href: "/dashboard/collections", icon: "ri-download-cloud-line" },
   { title: "Payouts", desc: "Send money to MTN, Airtel and M-Pesa wallets.", href: "/dashboard/payouts", icon: "ri-upload-cloud-line" },
-  { title: "Bank Transfer", desc: "Push funds to any supported Ugandan bank account.", href: "/dashboard/bank-transfer", icon: "ri-bank-line" },
-  { title: "Bill Payments", desc: "LIGHT/UMEME, NWSC water, DSTV and GOTV.", href: "/dashboard/bill-payments", icon: "ri-flashlight-line" },
-  { title: "Airtime & Data", desc: "MTN, Airtel and Lyca airtime and data bundles.", href: "/dashboard/airtime-data", icon: "ri-smartphone-line" },
   { title: "Payment Links", desc: "Shareable hosted checkout pages.", href: "/dashboard/payment-links", icon: "ri-link-m" },
 ];
 
@@ -54,7 +51,7 @@ export default function ServicesPage() {
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : services.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No provider services reported.</p>
+            <p className="text-sm text-muted-foreground">Service availability could not be confirmed.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {services.map((s: any) => (
