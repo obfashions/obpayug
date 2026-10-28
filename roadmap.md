@@ -1,3 +1,4 @@
+- [ ] Review Marz documentation; add only verified secondary-provider services, missing pages, admin configuration, homepage and API documentation, with safe money handling. Live activation requires provider credentials and supported endpoints.
 - [x] Verify Rwanda ownership across both wallet stores: live partner 276.03 RWF; Mukoya managed balance 0; another active merchant main RWF wallet 301. No unallocated backing exists. No funds reassigned.
 - [ ] Allocate Rwanda funds to Mukoya only after verified additional funding or reconciliation of the existing 301 RWF merchant claim; current provider funds are insufficient, so automatic pooled-balance substitution remains blocked.
 - [x] Confirm Mukoya's recorded RWF balance is 0 and fee exemption active; add /balance?currency=RWF, uncached responses and incomplete-read protection; 51 balance/fee/ledger tests pass. No funds changed or history hidden.
