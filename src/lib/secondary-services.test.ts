@@ -37,6 +37,7 @@ describe("secondary service rules", () => {
   it("does not treat an API success envelope as delivery confirmation", () => {
     expect(serviceState("success")).toBe("pending");
     expect(serviceState("completed")).toBe("success");
+    expect(serviceState("successful")).toBe("success");
   });
   it("keeps automatic bank transfers blocked before moving money", async () => {
     const out = await secondaryAction("bank-transfer", "merchant", { amount: 1000 });

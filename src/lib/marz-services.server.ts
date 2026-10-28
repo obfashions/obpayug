@@ -64,13 +64,22 @@ export async function refreshSecondaryRecord(row: any) {
   const service = row.metadata?.service;
   const root = service === "card_payments" ? "/collect-money" : service === "bill_payment" ? "/bill-payment" : "/airtime-data";
   // Bank-transfer submissions are disabled: no documented quote/idempotency contract.
-  const details = await marzRequest(`${root}/${encodeURIComponent(row.metadata?.lookup_reference || row.reference)}`);
+  let details = await marzRequest(`${root}/${encodeURIComponent(row.metadata?.lookup_reference || row.reference)}`);
+  // The collection-detail contract can omit charges; transaction lookup includes them.
+  if (service === "card_payments" && moneyRaw(details.collection?.charge ?? details.transaction?.charge) == null && details.transaction?.uuid) {
+    details = await marzRequest(`/transactions/${encodeURIComponent(details.transaction.uuid)}`);
+  }
   const txn = details.transaction || details;
   const next = serviceState(txn.status);
   if (next === "pending") return row;
   const detail = details.bill_payment || details;
+  const evidenceAmount = detail.amount ?? txn.amount ?? details.collection?.amount;
+  const evidenceCurrency = evidenceAmount?.currency;
+  if (evidenceCurrency !== "UGX") return row;
   const reported = moneyRaw(detail.amount ?? txn.amount ?? details.collection?.amount);
-  if (next === "success" && reported !== Number(row.amount)) return row;
+  if (reported !== Number(row.amount)) return row;
+  const evidenceReference = txn.reference || txn.uuid || details.reference;
+  if (![row.reference, row.metadata?.lookup_reference].includes(evidenceReference)) return row;
   const partnerFee = moneyRaw(detail.charge ?? txn.charge ?? details.collection?.charge);
   if (service === "card_payments") {
     if (next === "success" && partnerFee == null) return row;
@@ -155,7 +164,7 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
     const request = kind === "card" ? { reference: payload.reference, amount, method: "card", country: "UG", description: payload.description }
       : kind === "bill" ? { ...payload, expected_fee: undefined, phone_number: `+${payload.phone_number}` } : payload;
     const out = await marzRequest(kind === "card" ? "/collect-money" : kind === "bill" ? "/bill-payment" : "/airtime-data", request);
-    const lookup = out.transaction?.uuid || out.uuid || payload.reference;
+    const lookup = kind === "card" ? out.transaction?.uuid || out.uuid || payload.reference : payload.reference;
     const checkout = kind === "card" ? out.redirect_url : null;
     if (checkout && !/^https:\/\//.test(checkout)) throw new Error("The checkout address could not be verified.");
     const { error: saveError } = await client.from("payment_records").update({ metadata: { ...row.metadata, lookup_reference: lookup, checkout_url: checkout, submission_state: "accepted" }, provider_reference: lookup }).eq("id", row.id);

@@ -38,7 +38,7 @@ export function moneyRaw(value: unknown): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 export function serviceState(value: unknown): "success" | "failed" | "pending" {
-  if (value === "completed") return "success";
+  if (["completed", "successful"].includes(String(value))) return "success";
   if (["failed", "rejected", "cancelled"].includes(String(value))) return "failed";
   return "pending";
 }
