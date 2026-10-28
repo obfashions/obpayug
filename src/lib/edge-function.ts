@@ -65,16 +65,18 @@ const PUBLIC_ACTIONS = new Set([
   "svc-list",
   "bank-banks",
   "bank-services",
-  "bank-validate",
   "bill-services",
   "bill-areas",
   "bill-bouquets",
-  "bill-verify",
   "airtime-catalog",
   "airtime-detect",
 ]);
 
 const LOCAL_ACTIONS = new Set([
+  "card-create",
+  "card-status",
+  "card-list",
+  "service-history",
   "collect",
   "payout",
   "balance",

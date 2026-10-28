@@ -396,6 +396,27 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_card_balances: {
+        Row: {
+          available_balance: number
+          currency: string
+          merchant_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_balance?: number
+          currency?: string
+          merchant_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_balance?: number
+          currency?: string
+          merchant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       merchant_fee_exemptions: {
         Row: {
           created_at: string
@@ -1549,6 +1570,15 @@ export type Database = {
         Args: {
           p_fee?: number
           p_provider_reference?: string
+          p_record_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      settle_secondary_card: {
+        Args: {
+          p_fee: number
+          p_partner_fee: number
           p_record_id: string
           p_status: string
         }

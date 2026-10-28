@@ -146,6 +146,7 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
       if (error) return fail("The payment could not be reserved. Check your UGX balance and transaction reference; no request was sent.");
       row = data;
       // Persist fees before any external money movement; a failed save retains the reservation for investigation.
+      reserved = true;
       const { error: updateError } = await client.from("payment_records").update({ fee_amount: partnerFee, net_amount: amount }).eq("id", row.id);
       if (updateError) throw new Error("The reservation needs review. Do not submit another purchase.");
       row = { ...row, fee_amount: partnerFee, net_amount: amount };

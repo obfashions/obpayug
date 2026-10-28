@@ -142,6 +142,10 @@ export async function settlePaymentRecord(
  */
 export async function refreshPaymentRecord(record: Record<string, any>): Promise<Record<string, any>> {
   if (!record || record.status !== "pending") return record;
+  if (record.metadata?.provider === "marz") {
+    const { refreshSecondaryRecord } = await import("./marz-services.server");
+    return refreshSecondaryRecord(record);
+  }
   // A network request still in flight (or timed out) is not a failed payout.
   // Keep its reservation until acceptance is saved or support verifies it.
   if (record.type === "payout" && record.metadata?.atomic_reservation && !record.provider_reference) return record;
