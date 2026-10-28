@@ -459,9 +459,6 @@ export async function runObpayAction(action: string, accessToken: string, body: 
   if (action === "impersonate-user") return adminImpersonate(accessToken, body);
   if (action === "set-withdrawal-limit") return adminWithdrawalLimit(accessToken, body);
 
-  const creds = await getGatewayCreds();
-  if (!creds) return { success: false, error: "Payments are not configured yet. Please contact ObPay support." };
-
   // Extra services (bank transfers, and the catalog).
   if (SERVICE_ACTIONS.includes(action)) {
     if (SERVICE_PUBLIC_ACTIONS.includes(action)) return runServiceAction(action, accessToken, null, body);
@@ -469,6 +466,9 @@ export async function runObpayAction(action: string, accessToken: string, body: 
     if (!svcUserId) return { success: false, error: "Please sign in again to continue." };
     return runServiceAction(action, accessToken, svcUserId, body);
   }
+
+  const creds = await getGatewayCreds();
+  if (!creds) return { success: false, error: "Payments are not configured yet. Please contact ObPay support." };
 
   // The public IP the banking partner sees (admin diagnostics).
   if (action === "server-ip") {

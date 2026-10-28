@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as VerifyLoginRouteImport } from './routes/verify-login'
@@ -30,29 +31,37 @@ import { Route as AdminMerchantsRouteImport } from './routes/admin.merchants'
 import { Route as AdminPayoutRequestsRouteImport } from './routes/admin.payout-requests'
 import { Route as AdminRefundsRouteImport } from './routes/admin.refunds'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminTransactionLookupRouteImport } from './routes/admin.transaction-lookup'
 import { Route as AdminTransactionsRouteImport } from './routes/admin.transactions'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardAirtimeRouteImport } from './routes/dashboard.airtime'
 import { Route as DashboardAirtimeDataRouteImport } from './routes/dashboard.airtime-data'
 import { Route as DashboardApiKeysRouteImport } from './routes/dashboard.api-keys'
 import { Route as DashboardApiSandboxRouteImport } from './routes/dashboard.api-sandbox'
 import { Route as DashboardBankTransferRouteImport } from './routes/dashboard.bank-transfer'
 import { Route as DashboardBillPaymentsRouteImport } from './routes/dashboard.bill-payments'
+import { Route as DashboardCardsRouteImport } from './routes/dashboard.cards'
 import { Route as DashboardCollectionsRouteImport } from './routes/dashboard.collections'
 import { Route as DashboardCompanyDocumentsRouteImport } from './routes/dashboard.company-documents'
 import { Route as DashboardCryptoRouteImport } from './routes/dashboard.crypto'
+import { Route as DashboardDataRouteImport } from './routes/dashboard.data'
+import { Route as DashboardElectricityRouteImport } from './routes/dashboard.electricity'
 import { Route as DashboardExchangeRouteImport } from './routes/dashboard.exchange'
 import { Route as DashboardKycRouteImport } from './routes/dashboard.kyc'
 import { Route as DashboardPaymentLinksRouteImport } from './routes/dashboard.payment-links'
 import { Route as DashboardPayoutsRouteImport } from './routes/dashboard.payouts'
 import { Route as DashboardRefundsRouteImport } from './routes/dashboard.refunds'
 import { Route as DashboardReportsRouteImport } from './routes/dashboard.reports'
+import { Route as DashboardServiceHistoryRouteImport } from './routes/dashboard.service-history'
 import { Route as DashboardServicesRouteImport } from './routes/dashboard.services'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardTransactionsRouteImport } from './routes/dashboard.transactions'
+import { Route as DashboardTvRouteImport } from './routes/dashboard.tv'
+import { Route as DashboardWaterRouteImport } from './routes/dashboard.water'
 import { Route as PaySlugRouteImport } from './routes/pay.$slug'
 import { Route as ApiPublicEgressIpRouteImport } from './routes/api/public/egress-ip'
 import { Route as ApiPublicGatewayCallbackRouteImport } from './routes/api/public/gateway-callback'
@@ -96,6 +105,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesRoute = ServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupportRoute = SupportRouteImport.update({
@@ -168,6 +182,11 @@ const AdminReportsRoute = AdminReportsRouteImport.update({
   path: '/admin/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminServicesRoute = AdminServicesRouteImport.update({
+  id: '/admin/services',
+  path: '/admin/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/admin/settings',
   path: '/admin/settings',
@@ -198,6 +217,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardAirtimeRoute = DashboardAirtimeRouteImport.update({
+  id: '/dashboard/airtime',
+  path: '/dashboard/airtime',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardAirtimeDataRoute = DashboardAirtimeDataRouteImport.update({
   id: '/dashboard/airtime-data',
   path: '/dashboard/airtime-data',
@@ -223,6 +247,11 @@ const DashboardBillPaymentsRoute = DashboardBillPaymentsRouteImport.update({
   path: '/dashboard/bill-payments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardCardsRoute = DashboardCardsRouteImport.update({
+  id: '/dashboard/cards',
+  path: '/dashboard/cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardCollectionsRoute = DashboardCollectionsRouteImport.update({
   id: '/dashboard/collections',
   path: '/dashboard/collections',
@@ -237,6 +266,16 @@ const DashboardCompanyDocumentsRoute =
 const DashboardCryptoRoute = DashboardCryptoRouteImport.update({
   id: '/dashboard/crypto',
   path: '/dashboard/crypto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardDataRoute = DashboardDataRouteImport.update({
+  id: '/dashboard/data',
+  path: '/dashboard/data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardElectricityRoute = DashboardElectricityRouteImport.update({
+  id: '/dashboard/electricity',
+  path: '/dashboard/electricity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardExchangeRoute = DashboardExchangeRouteImport.update({
@@ -269,6 +308,11 @@ const DashboardReportsRoute = DashboardReportsRouteImport.update({
   path: '/dashboard/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardServiceHistoryRoute = DashboardServiceHistoryRouteImport.update({
+  id: '/dashboard/service-history',
+  path: '/dashboard/service-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardServicesRoute = DashboardServicesRouteImport.update({
   id: '/dashboard/services',
   path: '/dashboard/services',
@@ -282,6 +326,16 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
 const DashboardTransactionsRoute = DashboardTransactionsRouteImport.update({
   id: '/dashboard/transactions',
   path: '/dashboard/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardTvRoute = DashboardTvRouteImport.update({
+  id: '/dashboard/tv',
+  path: '/dashboard/tv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardWaterRoute = DashboardWaterRouteImport.update({
+  id: '/dashboard/water',
+  path: '/dashboard/water',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaySlugRoute = PaySlugRouteImport.update({
@@ -340,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/services': typeof ServicesRoute
   '/support': typeof SupportRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
@@ -353,28 +408,36 @@ export interface FileRoutesByFullPath {
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/airtime': typeof DashboardAirtimeRoute
   '/dashboard/airtime-data': typeof DashboardAirtimeDataRoute
   '/dashboard/api-keys': typeof DashboardApiKeysRoute
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
   '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
+  '/dashboard/cards': typeof DashboardCardsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/crypto': typeof DashboardCryptoRoute
+  '/dashboard/data': typeof DashboardDataRoute
+  '/dashboard/electricity': typeof DashboardElectricityRoute
   '/dashboard/exchange': typeof DashboardExchangeRoute
   '/dashboard/kyc': typeof DashboardKycRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/refunds': typeof DashboardRefundsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/service-history': typeof DashboardServiceHistoryRoute
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
+  '/dashboard/tv': typeof DashboardTvRoute
+  '/dashboard/water': typeof DashboardWaterRoute
   '/pay/$slug': typeof PaySlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -395,6 +458,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/services': typeof ServicesRoute
   '/support': typeof SupportRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
@@ -408,28 +472,36 @@ export interface FileRoutesByTo {
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/airtime': typeof DashboardAirtimeRoute
   '/dashboard/airtime-data': typeof DashboardAirtimeDataRoute
   '/dashboard/api-keys': typeof DashboardApiKeysRoute
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
   '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
+  '/dashboard/cards': typeof DashboardCardsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/crypto': typeof DashboardCryptoRoute
+  '/dashboard/data': typeof DashboardDataRoute
+  '/dashboard/electricity': typeof DashboardElectricityRoute
   '/dashboard/exchange': typeof DashboardExchangeRoute
   '/dashboard/kyc': typeof DashboardKycRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/refunds': typeof DashboardRefundsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/service-history': typeof DashboardServiceHistoryRoute
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
+  '/dashboard/tv': typeof DashboardTvRoute
+  '/dashboard/water': typeof DashboardWaterRoute
   '/pay/$slug': typeof PaySlugRoute
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -451,6 +523,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/services': typeof ServicesRoute
   '/support': typeof SupportRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
@@ -464,28 +537,36 @@ export interface FileRoutesById {
   '/admin/payout-requests': typeof AdminPayoutRequestsRoute
   '/admin/refunds': typeof AdminRefundsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/transaction-lookup': typeof AdminTransactionLookupRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/dashboard/airtime': typeof DashboardAirtimeRoute
   '/dashboard/airtime-data': typeof DashboardAirtimeDataRoute
   '/dashboard/api-keys': typeof DashboardApiKeysRoute
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
   '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
+  '/dashboard/cards': typeof DashboardCardsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
   '/dashboard/crypto': typeof DashboardCryptoRoute
+  '/dashboard/data': typeof DashboardDataRoute
+  '/dashboard/electricity': typeof DashboardElectricityRoute
   '/dashboard/exchange': typeof DashboardExchangeRoute
   '/dashboard/kyc': typeof DashboardKycRoute
   '/dashboard/payment-links': typeof DashboardPaymentLinksRoute
   '/dashboard/payouts': typeof DashboardPayoutsRoute
   '/dashboard/refunds': typeof DashboardRefundsRoute
   '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/service-history': typeof DashboardServiceHistoryRoute
   '/dashboard/services': typeof DashboardServicesRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/transactions': typeof DashboardTransactionsRoute
+  '/dashboard/tv': typeof DashboardTvRoute
+  '/dashboard/water': typeof DashboardWaterRoute
   '/pay/$slug': typeof PaySlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -508,6 +589,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/services'
     | '/support'
     | '/verify-email'
     | '/verify-login'
@@ -521,28 +603,36 @@ export interface FileRouteTypes {
     | '/admin/payout-requests'
     | '/admin/refunds'
     | '/admin/reports'
+    | '/admin/services'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/tickets'
     | '/admin/transaction-lookup'
     | '/admin/transactions'
+    | '/dashboard/airtime'
     | '/dashboard/airtime-data'
     | '/dashboard/api-keys'
     | '/dashboard/api-sandbox'
     | '/dashboard/bank-transfer'
     | '/dashboard/bill-payments'
+    | '/dashboard/cards'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/crypto'
+    | '/dashboard/data'
+    | '/dashboard/electricity'
     | '/dashboard/exchange'
     | '/dashboard/kyc'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/refunds'
     | '/dashboard/reports'
+    | '/dashboard/service-history'
     | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
+    | '/dashboard/tv'
+    | '/dashboard/water'
     | '/pay/$slug'
     | '/admin/'
     | '/dashboard/'
@@ -563,6 +653,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/services'
     | '/support'
     | '/verify-email'
     | '/verify-login'
@@ -576,28 +667,36 @@ export interface FileRouteTypes {
     | '/admin/payout-requests'
     | '/admin/refunds'
     | '/admin/reports'
+    | '/admin/services'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/tickets'
     | '/admin/transaction-lookup'
     | '/admin/transactions'
+    | '/dashboard/airtime'
     | '/dashboard/airtime-data'
     | '/dashboard/api-keys'
     | '/dashboard/api-sandbox'
     | '/dashboard/bank-transfer'
     | '/dashboard/bill-payments'
+    | '/dashboard/cards'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/crypto'
+    | '/dashboard/data'
+    | '/dashboard/electricity'
     | '/dashboard/exchange'
     | '/dashboard/kyc'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/refunds'
     | '/dashboard/reports'
+    | '/dashboard/service-history'
     | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
+    | '/dashboard/tv'
+    | '/dashboard/water'
     | '/pay/$slug'
     | '/admin'
     | '/dashboard'
@@ -618,6 +717,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/services'
     | '/support'
     | '/verify-email'
     | '/verify-login'
@@ -631,28 +731,36 @@ export interface FileRouteTypes {
     | '/admin/payout-requests'
     | '/admin/refunds'
     | '/admin/reports'
+    | '/admin/services'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/tickets'
     | '/admin/transaction-lookup'
     | '/admin/transactions'
+    | '/dashboard/airtime'
     | '/dashboard/airtime-data'
     | '/dashboard/api-keys'
     | '/dashboard/api-sandbox'
     | '/dashboard/bank-transfer'
     | '/dashboard/bill-payments'
+    | '/dashboard/cards'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
     | '/dashboard/crypto'
+    | '/dashboard/data'
+    | '/dashboard/electricity'
     | '/dashboard/exchange'
     | '/dashboard/kyc'
     | '/dashboard/payment-links'
     | '/dashboard/payouts'
     | '/dashboard/refunds'
     | '/dashboard/reports'
+    | '/dashboard/service-history'
     | '/dashboard/services'
     | '/dashboard/settings'
     | '/dashboard/transactions'
+    | '/dashboard/tv'
+    | '/dashboard/water'
     | '/pay/$slug'
     | '/admin/'
     | '/dashboard/'
@@ -674,6 +782,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ServicesRoute: typeof ServicesRoute
   SupportRoute: typeof SupportRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   VerifyLoginRoute: typeof VerifyLoginRoute
@@ -687,28 +796,36 @@ export interface RootRouteChildren {
   AdminPayoutRequestsRoute: typeof AdminPayoutRequestsRoute
   AdminRefundsRoute: typeof AdminRefundsRoute
   AdminReportsRoute: typeof AdminReportsRoute
+  AdminServicesRoute: typeof AdminServicesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSupportRoute: typeof AdminSupportRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
   AdminTransactionLookupRoute: typeof AdminTransactionLookupRoute
   AdminTransactionsRoute: typeof AdminTransactionsRoute
+  DashboardAirtimeRoute: typeof DashboardAirtimeRoute
   DashboardAirtimeDataRoute: typeof DashboardAirtimeDataRoute
   DashboardApiKeysRoute: typeof DashboardApiKeysRoute
   DashboardApiSandboxRoute: typeof DashboardApiSandboxRoute
   DashboardBankTransferRoute: typeof DashboardBankTransferRoute
   DashboardBillPaymentsRoute: typeof DashboardBillPaymentsRoute
+  DashboardCardsRoute: typeof DashboardCardsRoute
   DashboardCollectionsRoute: typeof DashboardCollectionsRoute
   DashboardCompanyDocumentsRoute: typeof DashboardCompanyDocumentsRoute
   DashboardCryptoRoute: typeof DashboardCryptoRoute
+  DashboardDataRoute: typeof DashboardDataRoute
+  DashboardElectricityRoute: typeof DashboardElectricityRoute
   DashboardExchangeRoute: typeof DashboardExchangeRoute
   DashboardKycRoute: typeof DashboardKycRoute
   DashboardPaymentLinksRoute: typeof DashboardPaymentLinksRoute
   DashboardPayoutsRoute: typeof DashboardPayoutsRoute
   DashboardRefundsRoute: typeof DashboardRefundsRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
+  DashboardServiceHistoryRoute: typeof DashboardServiceHistoryRoute
   DashboardServicesRoute: typeof DashboardServicesRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardTransactionsRoute: typeof DashboardTransactionsRoute
+  DashboardTvRoute: typeof DashboardTvRoute
+  DashboardWaterRoute: typeof DashboardWaterRoute
   PaySlugRoute: typeof PaySlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -771,6 +888,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services': {
+      id: '/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/support': {
@@ -871,6 +995,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/services': {
+      id: '/admin/services'
+      path: '/admin/services'
+      fullPath: '/admin/services'
+      preLoaderRoute: typeof AdminServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/admin/settings'
@@ -913,6 +1044,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/airtime': {
+      id: '/dashboard/airtime'
+      path: '/dashboard/airtime'
+      fullPath: '/dashboard/airtime'
+      preLoaderRoute: typeof DashboardAirtimeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/airtime-data': {
       id: '/dashboard/airtime-data'
       path: '/dashboard/airtime-data'
@@ -948,6 +1086,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardBillPaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/cards': {
+      id: '/dashboard/cards'
+      path: '/dashboard/cards'
+      fullPath: '/dashboard/cards'
+      preLoaderRoute: typeof DashboardCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/collections': {
       id: '/dashboard/collections'
       path: '/dashboard/collections'
@@ -967,6 +1112,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/crypto'
       fullPath: '/dashboard/crypto'
       preLoaderRoute: typeof DashboardCryptoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/data': {
+      id: '/dashboard/data'
+      path: '/dashboard/data'
+      fullPath: '/dashboard/data'
+      preLoaderRoute: typeof DashboardDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/electricity': {
+      id: '/dashboard/electricity'
+      path: '/dashboard/electricity'
+      fullPath: '/dashboard/electricity'
+      preLoaderRoute: typeof DashboardElectricityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/exchange': {
@@ -1011,6 +1170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/service-history': {
+      id: '/dashboard/service-history'
+      path: '/dashboard/service-history'
+      fullPath: '/dashboard/service-history'
+      preLoaderRoute: typeof DashboardServiceHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/services': {
       id: '/dashboard/services'
       path: '/dashboard/services'
@@ -1030,6 +1196,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/transactions'
       fullPath: '/dashboard/transactions'
       preLoaderRoute: typeof DashboardTransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/tv': {
+      id: '/dashboard/tv'
+      path: '/dashboard/tv'
+      fullPath: '/dashboard/tv'
+      preLoaderRoute: typeof DashboardTvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/water': {
+      id: '/dashboard/water'
+      path: '/dashboard/water'
+      fullPath: '/dashboard/water'
+      preLoaderRoute: typeof DashboardWaterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pay/$slug': {
@@ -1106,6 +1286,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ServicesRoute: ServicesRoute,
   SupportRoute: SupportRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   VerifyLoginRoute: VerifyLoginRoute,
@@ -1119,28 +1300,36 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPayoutRequestsRoute: AdminPayoutRequestsRoute,
   AdminRefundsRoute: AdminRefundsRoute,
   AdminReportsRoute: AdminReportsRoute,
+  AdminServicesRoute: AdminServicesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSupportRoute: AdminSupportRoute,
   AdminTicketsRoute: AdminTicketsRoute,
   AdminTransactionLookupRoute: AdminTransactionLookupRoute,
   AdminTransactionsRoute: AdminTransactionsRoute,
+  DashboardAirtimeRoute: DashboardAirtimeRoute,
   DashboardAirtimeDataRoute: DashboardAirtimeDataRoute,
   DashboardApiKeysRoute: DashboardApiKeysRoute,
   DashboardApiSandboxRoute: DashboardApiSandboxRoute,
   DashboardBankTransferRoute: DashboardBankTransferRoute,
   DashboardBillPaymentsRoute: DashboardBillPaymentsRoute,
+  DashboardCardsRoute: DashboardCardsRoute,
   DashboardCollectionsRoute: DashboardCollectionsRoute,
   DashboardCompanyDocumentsRoute: DashboardCompanyDocumentsRoute,
   DashboardCryptoRoute: DashboardCryptoRoute,
+  DashboardDataRoute: DashboardDataRoute,
+  DashboardElectricityRoute: DashboardElectricityRoute,
   DashboardExchangeRoute: DashboardExchangeRoute,
   DashboardKycRoute: DashboardKycRoute,
   DashboardPaymentLinksRoute: DashboardPaymentLinksRoute,
   DashboardPayoutsRoute: DashboardPayoutsRoute,
   DashboardRefundsRoute: DashboardRefundsRoute,
   DashboardReportsRoute: DashboardReportsRoute,
+  DashboardServiceHistoryRoute: DashboardServiceHistoryRoute,
   DashboardServicesRoute: DashboardServicesRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardTransactionsRoute: DashboardTransactionsRoute,
+  DashboardTvRoute: DashboardTvRoute,
+  DashboardWaterRoute: DashboardWaterRoute,
   PaySlugRoute: PaySlugRoute,
   AdminIndexRoute: AdminIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,

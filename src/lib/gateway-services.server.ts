@@ -49,17 +49,21 @@ export const SERVICE_PUBLIC_ACTIONS = [
   "svc-list",
   "bank-banks",
   "bank-services",
-  "bank-validate",
   "bill-services",
   "bill-areas",
   "bill-bouquets",
-  "bill-verify",
   "airtime-catalog",
   "airtime-detect",
 ];
 
 /** Actions that move money and therefore need a signed-in merchant. */
 export const SERVICE_PRIVATE_ACTIONS = [
+  "bank-validate",
+  "bill-verify",
+  "card-create",
+  "card-status",
+  "card-list",
+  "service-history",
   "bank-transfer",
   "bank-status",
   "bill-pay",
@@ -164,6 +168,11 @@ function bankCodeFor(input: string): string {
 }
 
 export async function runServiceAction(action: string, accessToken: string, userId: string | null, body: any) {
+  const { secondaryAction } = await import("./marz-services.server");
+  return secondaryAction(action, userId, body || {});
+}
+
+async function retiredServiceAction(action: string, accessToken: string, userId: string | null, body: any) {
   const b = body || {};
 
   if (UNAVAILABLE.has(action)) return { success: false, error: UNAVAILABLE_MESSAGE };
@@ -229,7 +238,8 @@ export async function runServiceAction(action: string, accessToken: string, user
 
       const currency = "UGX";
       const fee = await bankCharge(accessToken, amount);
-      const shortfall = await ensureFunds(accessToken, userId!, amount + fee, currency);
+      if (!userId) return { success: false, error: "Please sign in again." };
+      const shortfall = await ensureFunds(accessToken, userId, amount + fee, currency);
       if (shortfall) return { success: false, error: shortfall };
 
       const reference = newRef("BNK");
@@ -246,7 +256,7 @@ export async function runServiceAction(action: string, accessToken: string, user
       });
       if (!out.ok) return { success: false, error: friendlyError(out.res, "payout") };
 
-      await debitWallet(accessToken, userId!, {
+      await debitWallet(accessToken, userId, {
         amount,
         fee,
         currency,

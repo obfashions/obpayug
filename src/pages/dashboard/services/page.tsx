@@ -2,13 +2,11 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { Link } from "@/lib/router-compat";
 import { invokeObpay } from "@/lib/edge-function";
+import { ServiceDirectory } from "@/pages/services/page";
 
 const SERVICE_LINKS = [
   { title: "Collections", desc: "Mobile money and card payments from customers.", href: "/dashboard/collections", icon: "ri-download-cloud-line" },
   { title: "Payouts", desc: "Send money to MTN, Airtel and M-Pesa wallets.", href: "/dashboard/payouts", icon: "ri-upload-cloud-line" },
-  { title: "Bank Transfer", desc: "Push funds to any supported Ugandan bank account.", href: "/dashboard/bank-transfer", icon: "ri-bank-line" },
-  { title: "Bill Payments", desc: "LIGHT/UMEME, NWSC water, DSTV and GOTV.", href: "/dashboard/bill-payments", icon: "ri-flashlight-line" },
-  { title: "Airtime & Data", desc: "MTN, Airtel and Lyca airtime and data bundles.", href: "/dashboard/airtime-data", icon: "ri-smartphone-line" },
   { title: "Payment Links", desc: "Shareable hosted checkout pages.", href: "/dashboard/payment-links", icon: "ri-link-m" },
 ];
 
@@ -28,8 +26,11 @@ export default function ServicesPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Services</h1>
-          <p className="text-sm text-muted-foreground">Everything your ObPay account can do, and which provider services are active.</p>
+          <p className="text-sm text-muted-foreground">Payments and everyday services for your business.</p>
         </div>
+
+        <ServiceDirectory />
+        <Link to="/dashboard/service-history" className="text-primary underline text-sm">View service history</Link>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {SERVICE_LINKS.map((s) => (
@@ -46,25 +47,24 @@ export default function ServicesPage() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="mb-3 font-semibold text-foreground">Provider service status</h2>
+          <h2 className="mb-3 font-semibold text-foreground">Service availability</h2>
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : services.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No provider services reported.</p>
+            <p className="text-sm text-muted-foreground">Service availability could not be confirmed.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {services.map((s: any) => (
-                <div key={s.service?.uuid} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div key={s.code} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{s.service?.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{s.service?.type}</p>
+                    <p className="text-sm font-medium text-foreground">{s.name}</p>
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                      s.availability?.is_subscribed ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"
+                      s.status === "active" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {s.availability?.is_subscribed ? "Active" : "Not enabled"}
+                    {s.status === "active" ? "Available" : s.status === "manual_review" ? "Contact support" : "Unavailable"}
                   </span>
                 </div>
               ))}

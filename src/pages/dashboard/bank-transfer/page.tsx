@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { invokeObpay } from "@/lib/edge-function";
+import { Link } from "@/lib/router-compat";
 
 interface Bank {
   code: string;
@@ -99,7 +100,8 @@ export default function BankTransferPage() {
           </div>
         )}
 
-        <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-5 space-y-4">
+        <section className="border-y border-border py-5 space-y-3"><h2 className="font-semibold">Customer-service assisted transfers</h2><p className="text-sm text-muted-foreground">Our team confirms the bank, recipient and exact network fee before moving funds. No transfer is submitted from this page.</p><Link to="/support" className="text-primary underline">Contact customer service</Link></section>
+        <form hidden onSubmit={submit} className="rounded-2xl border border-border bg-card p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1 text-foreground">Bank</label>

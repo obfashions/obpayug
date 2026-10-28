@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { invokeObpay } from "@/lib/edge-function";
+import { Button } from "@/components/ui/button";
 
 interface Bundle {
   product_id: string;
@@ -9,9 +10,11 @@ interface Bundle {
   validity?: string;
 }
 
-export default function AirtimeDataPage() {
+export default function AirtimeDataPage({ initialMode = "airtime" }: { initialMode?: "airtime" | "bundle" }) {
   const [catalog, setCatalog] = useState<any>(null);
-  const [mode, setMode] = useState<"airtime" | "bundle">("airtime");
+  const [mode, setMode] = useState<"airtime" | "bundle">(initialMode);
+  const [reference, setReference] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [msisdn, setMsisdn] = useState("");
   const [amount, setAmount] = useState("");
   const [network, setNetwork] = useState<string>("");
@@ -27,10 +30,12 @@ export default function AirtimeDataPage() {
       invokeObpay({ action: "airtime-list" }),
     ]);
     if (cat?.success) setCatalog(cat.data);
+    else setLoadError(cat?.error || "Airtime service unavailable.");
     if (list?.success) setHistory(list.data?.purchases || list.data?.data || []);
   }, []);
 
   useEffect(() => {
+    setReference(crypto.randomUUID());
     load();
   }, [load]);
 
@@ -56,6 +61,7 @@ export default function AirtimeDataPage() {
     setResult(null);
     const res = await invokeObpay({
       action: "airtime-purchase",
+      reference,
       purchaseType: mode,
       msisdn,
       amount: Number(amount || 0),
@@ -64,7 +70,8 @@ export default function AirtimeDataPage() {
     });
     setSubmitting(false);
     if (res?.success) {
-      setResult({ ok: true, message: `Purchase submitted. Reference ${res.data.reference}.` });
+      setResult({ ok: true, message: `${res.data.status === "success" ? "Purchase completed" : res.data.status === "failed" ? "Purchase failed and refunded" : "Awaiting delivery confirmation"}. Reference ${res.data.reference}.` });
+      setReference(crypto.randomUUID());
       setAmount("");
       setBundleId("");
       load();
@@ -81,17 +88,19 @@ export default function AirtimeDataPage() {
           <p className="text-sm text-muted-foreground">Buy MTN, Airtel and Lyca airtime or data bundles straight from your wallet.</p>
         </div>
 
+        {loadError && <p role="alert" className="text-sm text-destructive">{loadError}</p>}
+
         <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-5 space-y-4">
           <div className="flex gap-2">
             {(["airtime", "bundle"] as const).map((m) => (
-              <button
+              <Button
                 key={m}
                 type="button"
                 onClick={() => setMode(m)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium ${mode === m ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
               >
                 {m === "airtime" ? "Airtime" : "Data bundle"}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -107,9 +116,9 @@ export default function AirtimeDataPage() {
                   placeholder="0771234567"
                   className="flex-1 min-w-0 rounded-lg border border-border bg-background p-2.5 text-sm"
                 />
-                <button type="button" onClick={detect} className="shrink-0 rounded-lg bg-secondary px-3 text-sm text-secondary-foreground">
+                <Button variant="secondary" type="button" onClick={detect} className="shrink-0">
                   {detecting ? "…" : "Detect"}
-                </button>
+                </Button>
               </div>
               {network && <p className="mt-1 text-xs text-emerald-600">Network: {network}</p>}
             </div>
@@ -158,13 +167,14 @@ export default function AirtimeDataPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !catalog || !reference || (mode === "bundle" && network === "LYCA")}
             className="w-full sm:w-auto rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
             {submitting ? "Processing…" : mode === "airtime" ? "Buy airtime" : "Buy bundle"}
-          </button>
+          </Button>
+          {mode === "bundle" && network === "LYCA" && <p className="text-sm text-muted-foreground">Lyca supports airtime only.</p>}
         </form>
 
         {history.length > 0 && (

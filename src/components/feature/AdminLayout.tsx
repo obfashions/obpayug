@@ -19,6 +19,7 @@ const adminNavItems = [
   { label: "Tickets", href: "/admin/tickets", icon: "ri-ticket-2-line" },
   { label: "Email Campaigns", href: "/admin/email-campaigns", icon: "ri-mail-send-line" },
   { label: "Gateway API", href: "/admin/gateway-api", icon: "ri-key-2-line" },
+  { label: "Additional Services", href: "/admin/services", icon: "ri-apps-line" },
   { label: "Settings", href: "/admin/settings", icon: "ri-settings-4-line" },
 ];
 

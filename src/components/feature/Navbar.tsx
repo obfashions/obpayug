@@ -25,6 +25,7 @@ export default function Navbar({ onToggleTheme, theme = "light" }: NavbarProps) 
   }, [location]);
 
   const navLinks = [
+    { label: "Services", href: "/services" },
     { label: "Features", href: "#features" },
     { label: "Pricing", href: "/pricing" },
     { label: "API Docs", href: "/docs" },
