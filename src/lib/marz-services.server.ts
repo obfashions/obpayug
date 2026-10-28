@@ -162,9 +162,13 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
         const product = bundles.bouquet_details?.find((p: any) => p.code === payload.bouquet_code);
         if (moneyRaw(product?.price) !== amount) return fail("The payment amount must match the current TV package price.");
       }
-      await marzRequest("/bill-payment/verify", { utility_code: payload.utility_code, meter_number: payload.meter_number, ...(payload.area ? { area: payload.area } : {}) });
+      const check = await marzRequest("/bill-payment/verify", { utility_code: payload.utility_code, meter_number: payload.meter_number, ...(payload.area ? { area: payload.area } : {}) });
+      const accountName = cleanName(check?.customer_details?.customer_name || check?.customer_name);
+      if (!accountName) return fail("We couldn't confirm the account holder's name for this number. Check it and try again.");
+      if (!sameName(body.confirmed_name, accountName)) return fail("Verify the account and confirm the holder's name before paying.");
+      payload.customer_name = accountName;
     }
-    const metadata = { provider: "marz", service, partner_fee: partnerFee, obpay_fee: 0, total_debit: amount + partnerFee, fee_mode: "account" };
+    const metadata: any = { provider: "marz", service, partner_fee: partnerFee, obpay_fee: 0, total_debit: amount + partnerFee, fee_mode: "account", payer_name: identity.name, ...(kind === "bill" ? { account_name: payload.customer_name } : {}) };
     let row: any;
     if (kind === "card") {
       const { data, error } = await client.from("payment_records").insert({ merchant_id: userId, reference: payload.reference, amount, currency: "UGX", type: "collection", source: "dashboard", status: "pending", description: payload.description, metadata }).select("*").single();
@@ -234,7 +238,7 @@ export async function secondaryAction(action: string, userId: string | null, b: 
       return ok(await marzRequest("/bill-payment/verify", input));
     }
     if (action === "airtime-purchase") return secondaryPurchase(userId, "airtime", { reference: b.reference, purchase_type: b.purchaseType, msisdn: b.msisdn, ...(b.purchaseType === "bundle" ? { bundle_id: b.bundleId, expected_amount: b.bundlePrice } : { amount: b.amount }) });
-    if (action === "bill-pay") return secondaryPurchase(userId, "bill", { reference: b.reference, utility_code: b.utilityCode, meter_number: b.meterNumber, phone_number: b.phoneNumber, amount: b.amount, area: b.area, bouquet_code: b.bouquetCode, customer_name: b.customerName, email: b.email, expected_fee: b.expectedFee });
+    if (action === "bill-pay") return secondaryPurchase(userId, "bill", { reference: b.reference, utility_code: b.utilityCode, meter_number: b.meterNumber, phone_number: b.phoneNumber, amount: b.amount, area: b.area, bouquet_code: b.bouquetCode, customer_name: b.customerName, email: b.email, expected_fee: b.expectedFee, confirmed_name: b.confirmedName });
     if (action === "card-create") return secondaryPurchase(userId, "card", b);
     const client = await db();
     if (["airtime-status", "bill-status", "card-status"].includes(action)) {
