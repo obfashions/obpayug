@@ -10,7 +10,7 @@ const features = [
   {
     icon: "ri-upload-cloud-line",
     title: "Payouts",
-    description: "Send money to any mobile money wallet or bank account. Schedule bulk payouts and track every transaction in real time.",
+    description: "Send money to supported mobile money wallets. Bank transfers are assisted by customer service with confirmed fees.",
     color: "bg-accent-100 text-accent-600",
   },
   {

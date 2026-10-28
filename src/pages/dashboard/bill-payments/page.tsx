@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { invokeObpay } from "@/lib/edge-function";
+import { Button } from "@/components/ui/button";
 
 interface Utility {
   code: string;
@@ -9,13 +10,13 @@ interface Utility {
   required_fields?: string[];
 }
 
-export default function BillPaymentsPage() {
+export default function BillPaymentsPage({ initialUtility = "" }: { initialUtility?: string }) {
   const [utilities, setUtilities] = useState<Utility[]>([]);
   const [charge, setCharge] = useState(0);
   const [areas, setAreas] = useState<string[]>([]);
   const [bouquets, setBouquets] = useState<string[]>([]);
   const [form, setForm] = useState({
-    utilityCode: "",
+    utilityCode: initialUtility,
     meterNumber: "",
     area: "",
     bouquetCode: "",
@@ -28,16 +29,22 @@ export default function BillPaymentsPage() {
   const [verified, setVerified] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [reference, setReference] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [packageDetails, setPackageDetails] = useState<any[]>([]);
 
   const load = useCallback(async () => {
     const res = await invokeObpay({ action: "bill-services" });
     if (res?.success) {
       setUtilities(res.data?.available_utilities || []);
       setCharge(Number(res.data?.bill_payment_settings?.charge_amount?.raw || 0));
+      setLoaded(true);
     }
+    else setResult({ ok: false, message: res?.error || "Bill service unavailable." });
   }, []);
 
   useEffect(() => {
+    setReference(crypto.randomUUID());
     load();
   }, [load]);
 
@@ -49,7 +56,7 @@ export default function BillPaymentsPage() {
     }
     if (code === "DSTV" || code === "GOTV") {
       invokeObpay({ action: "bill-bouquets", utilityCode: code }).then((r) =>
-        setBouquets(r?.success ? r.data?.bouquet_codes || [] : []),
+        { setBouquets(r?.success ? r.data?.bouquet_codes || [] : []); setPackageDetails(r?.success ? r.data?.bouquet_details || [] : []); },
       );
     }
   }, [form.utilityCode]);
@@ -72,10 +79,11 @@ export default function BillPaymentsPage() {
     e.preventDefault();
     setSubmitting(true);
     setResult(null);
-    const res = await invokeObpay({ action: "bill-pay", ...form, amount: Number(form.amount || 0) });
+    const res = await invokeObpay({ action: "bill-pay", ...form, reference, expectedFee: charge, amount: Number(form.amount || 0) });
     setSubmitting(false);
     if (res?.success) {
-      setResult({ ok: true, message: `Bill payment submitted. Reference ${res.data.reference}.` });
+      setResult({ ok: true, message: `${res.data.status === "success" ? "Bill paid" : res.data.status === "failed" ? "Payment failed and refunded" : "Awaiting confirmation"}. Reference ${res.data.reference}.` });
+      setReference(crypto.randomUUID());
       setForm({ ...form, meterNumber: "", amount: "", bouquetCode: "" });
       setVerified(null);
     } else {
@@ -123,14 +131,14 @@ export default function BillPaymentsPage() {
                   onChange={(e) => setForm({ ...form, meterNumber: e.target.value })}
                   className="flex-1 min-w-0 rounded-lg border border-border bg-background p-2.5 text-sm"
                 />
-                <button
+                <Button
                   type="button"
                   onClick={verify}
                   disabled={!form.utilityCode || !form.meterNumber || verifying}
                   className="shrink-0 rounded-lg bg-secondary px-3 text-sm text-secondary-foreground disabled:opacity-50"
                 >
                   {verifying ? "…" : "Verify"}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -159,13 +167,13 @@ export default function BillPaymentsPage() {
                 <select
                   required
                   value={form.bouquetCode}
-                  onChange={(e) => setForm({ ...form, bouquetCode: e.target.value })}
+                  onChange={(e) => { const p = packageDetails.find(p => p.code === e.target.value); setForm({ ...form, bouquetCode: e.target.value, amount: p ? String(p.price) : "" }); }}
                   className="w-full rounded-lg border border-border bg-background p-2.5 text-sm"
                 >
                   <option value="">Select bouquet</option>
                   {bouquets.map((c) => (
                     <option key={c} value={c}>
-                      {c}
+                      {packageDetails.find(p => p.code === c)?.name || c} {packageDetails.find(p => p.code === c)?.price ? `— ${Number(packageDetails.find(p => p.code === c)?.price).toLocaleString()} UGX` : ""}
                     </option>
                   ))}
                 </select>
@@ -223,13 +231,14 @@ export default function BillPaymentsPage() {
             </div>
           )}
 
-          <button
+          <p className="text-sm text-muted-foreground">Total wallet debit: {(Number(form.amount || 0) + charge).toLocaleString()} UGX · Service fee: {charge.toLocaleString()} UGX</p>
+          <Button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !loaded || !reference}
             className="w-full sm:w-auto rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
             {submitting ? "Paying…" : "Pay bill"}
-          </button>
+          </Button>
         </form>
       </div>
     </DashboardLayout>

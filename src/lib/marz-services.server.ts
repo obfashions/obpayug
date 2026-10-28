@@ -5,7 +5,7 @@ import { requireAdmin } from "./identity.server";
 
 const db = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin as any;
 const fail = (error: string) => ({ success: false, error });
-const ok = (data: any) => ({ success: true, data });
+const ok = (data: any) => ({ success: true as const, data });
 const UNAVAILABLE = "This service is temporarily unavailable. No money has been moved. Please contact ObPay support.";
 
 export async function marzRequest(path: string, body?: Record<string, unknown>): Promise<any> {
@@ -69,9 +69,9 @@ export async function refreshSecondaryRecord(row: any) {
   const next = serviceState(txn.status);
   if (next === "pending") return row;
   const detail = details.bill_payment || details;
-  const reported = moneyRaw(detail.amount ?? txn.amount);
+  const reported = moneyRaw(detail.amount ?? txn.amount ?? details.collection?.amount);
   if (next === "success" && reported !== Number(row.amount)) return row;
-  const partnerFee = moneyRaw(detail.charge ?? txn.charge);
+  const partnerFee = moneyRaw(detail.charge ?? txn.charge ?? details.collection?.charge);
   if (service === "card_payments") {
     if (next === "success" && partnerFee == null) return row;
     const { collectionFeeFor } = await import("./settle.server");
@@ -155,7 +155,7 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
     const request = kind === "card" ? { reference: payload.reference, amount, method: "card", country: "UG", description: payload.description }
       : kind === "bill" ? { ...payload, expected_fee: undefined, phone_number: `+${payload.phone_number}` } : payload;
     const out = await marzRequest(kind === "card" ? "/collect-money" : kind === "bill" ? "/bill-payment" : "/airtime-data", request);
-    const lookup = out.transaction?.uuid || payload.reference;
+    const lookup = out.transaction?.uuid || out.uuid || payload.reference;
     const checkout = kind === "card" ? out.redirect_url : null;
     if (checkout && !/^https:\/\//.test(checkout)) throw new Error("The checkout address could not be verified.");
     const { error: saveError } = await client.from("payment_records").update({ metadata: { ...row.metadata, lookup_reference: lookup, checkout_url: checkout, submission_state: "accepted" }, provider_reference: lookup }).eq("id", row.id);

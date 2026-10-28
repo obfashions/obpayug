@@ -19,6 +19,7 @@ import InstallPWA from "./components/InstallPWA";
 import ComplianceSection from "./components/ComplianceSection";
 import WhatsappFloatingButton from "@/components/feature/WhatsappFloatingButton";
 import CountriesSection from "./components/CountriesSection";
+import { ServiceDirectory } from "@/pages/services/page";
 
 export default function Home() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -171,6 +172,7 @@ export default function Home() {
       <main>
         <HeroSection />
         <CountriesSection />
+        <section className="px-4 py-12 max-w-7xl mx-auto space-y-6"><div><h2 className="text-2xl font-semibold text-foreground">Payments and everyday services</h2><p className="text-muted-foreground mt-2">Uganda airtime, data, electricity, water, TV and card payments. Bank transfers are customer-service assisted.</p></div><ServiceDirectory/></section>
         <QuickActionsSection />
         <PaymentMethodsSection />
         <FeaturesSection />

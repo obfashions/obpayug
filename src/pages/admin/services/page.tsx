@@ -15,7 +15,7 @@ export default function AdminServicesPage() {
       const accessToken = await getAccessToken();
       if (!accessToken) { setError("Please sign in again."); return; }
       const r = await secondaryAdminCall({ data: { accessToken } });
-      if (r.success) { setData(r.data); setError(""); } else setError(r.error || "Connection unavailable.");
+      if ("data" in r) { setData(r.data); setError(""); } else setError(r.error || "Connection unavailable.");
     } finally { setBusy(false); }
   }
   useEffect(() => { void load(); }, []);
