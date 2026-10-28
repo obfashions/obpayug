@@ -21,12 +21,12 @@ export async function marzRequest(path: string, body?: Record<string, unknown>):
   const text = await response.text();
   let out: any;
   try { out = JSON.parse(text); } catch { throw new Error(UNAVAILABLE); }
-  if (!response.ok || out.status !== "success") {
+  if (!response.ok || (out.status !== "success" && !(path.startsWith("/transactions/") && out.transaction && out.event_type))) {
     // Never relay upstream branding, credentials, or customer data to merchants.
     console.error("Secondary service request refused", response.status, String(out.error_code || "unknown"));
     throw new Error(UNAVAILABLE);
   }
-  return out.data;
+  return out.data || out;
 }
 
 function cleanCatalog(data: any) {
@@ -79,7 +79,7 @@ export async function refreshSecondaryRecord(row: any) {
   const reported = moneyRaw(detail.amount ?? txn.amount ?? details.collection?.amount);
   if (reported !== Number(row.amount)) return row;
   const evidenceReference = txn.reference || txn.uuid || details.reference;
-  if (![row.reference, row.metadata?.lookup_reference].includes(evidenceReference)) return row;
+  if (![row.reference, row.metadata?.lookup_reference].includes(evidenceReference) && ![row.reference, row.metadata?.lookup_reference].includes(txn.uuid)) return row;
   const partnerFee = moneyRaw(detail.charge ?? txn.charge ?? details.collection?.charge);
   if (service === "card_payments") {
     if (next === "success" && partnerFee == null) return row;

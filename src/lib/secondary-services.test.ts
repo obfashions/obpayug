@@ -50,4 +50,15 @@ describe("secondary service rules", () => {
     expect(await refreshSecondaryRecord(row)).toEqual(row);
     expect(rpc).not.toHaveBeenCalled();
   });
+  it("credits a matching verified card only through the restricted wallet RPC", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { transaction: { reference, status: "completed", amount: { raw: 5000, currency: "UGX" }, charge: { raw: 200 } } } }))));
+    rpc.mockResolvedValue({ data: { record: { status: "success" } }, error: null });
+    await refreshSecondaryRecord({ id: "record", reference, amount: 5000, status: "pending", metadata: { provider: "marz", service: "card_payments" } });
+    expect(rpc).toHaveBeenCalledWith("settle_secondary_card", { p_record_id: "record", p_status: "success", p_fee: 250, p_partner_fee: 200 });
+  });
+  it("never credits a same-number amount in a different currency", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { transaction: { reference, status: "completed", amount: { raw: 5000, currency: "RWF" }, charge: { raw: 200 } } } }))));
+    await refreshSecondaryRecord({ id: "record", reference, amount: 5000, status: "pending", metadata: { provider: "marz", service: "card_payments" } });
+    expect(rpc).not.toHaveBeenCalled();
+  });
 });
