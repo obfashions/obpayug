@@ -1,4 +1,6 @@
-- [ ] Review Marz documentation; add only verified secondary-provider services, missing pages, admin configuration, homepage and API documentation, with safe money handling. Live activation requires provider credentials and supported endpoints.
+- [x] Connect Marz secondary services; live airtime/bill catalogs and subscriptions verified, nine service routes plus homepage/docs/admin monitor added; 45 safety checks pass. Payza payments unchanged.
+- [ ] Activate automatic bank transfers: blocked by missing pre-submit exact fee and client-idempotency contract; customer-service path remains available.
+- [ ] Verify funded Marz purchases, card settlement and admin service panel end to end: requesting account is deactivated; no authorized funded recipient or active admin session supplied. No real purchase sent.
 - [x] Verify Rwanda ownership across both wallet stores: live partner 276.03 RWF; Mukoya managed balance 0; another active merchant main RWF wallet 301. No unallocated backing exists. No funds reassigned.
 - [ ] Allocate Rwanda funds to Mukoya only after verified additional funding or reconciliation of the existing 301 RWF merchant claim; current provider funds are insufficient, so automatic pooled-balance substitution remains blocked.
 - [x] Confirm Mukoya's recorded RWF balance is 0 and fee exemption active; add /balance?currency=RWF, uncached responses and incomplete-read protection; 51 balance/fee/ledger tests pass. No funds changed or history hidden.

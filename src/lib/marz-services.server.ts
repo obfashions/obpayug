@@ -114,6 +114,8 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
       return ok(publicOrder(await refreshSecondaryRecord(prior).catch(() => prior)));
     }
     const client = await db();
+    const { data: account, error: accountError } = await client.from("profiles").select("status").eq("id", userId).maybeSingle();
+    if (accountError || account?.status !== "active") return fail("This account cannot submit service payments. Please contact ObPay support.");
     const { data: kyc, error: kycError } = await client.from("kyc_submissions").select("status").eq("merchant_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (kycError || kyc?.status !== "approved") return fail("Complete identity verification before using this service.");
     let amount = payload.amount, partnerFee = 0;
