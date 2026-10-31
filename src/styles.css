@@ -494,3 +494,5 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: 0; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+body { color: var(--foreground); background-color: var(--background); }

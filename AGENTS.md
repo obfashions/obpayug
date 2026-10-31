@@ -13,7 +13,7 @@
 - Collections trigger the PIN prompt server-side and settle only after /api/v1/verify confirms — white-label UX and never trust unsigned/unchecked notices.
 - Accounts/auth/ledgers use this backend; legacy-migrate.server.ts imports old accounts on first login (same ID/password; first admin imports merchants) — one system of record.
 - Password resets (merchant and admin) email a Mailjet link built from generateLink recovery hashed_token → /reset-password — no dependency on the old system's email sender.
-- Merchant payout deduction mode is stored in owner-protected merchant_payout_preferences; payoutQuote uses shared payoutAmounts to reserve the exact debit before sending that quote to the partner, with full refunds — account and submitted-amount modes must account for both fees without re-quoting reserved funds.
+- Payout mode lives in owner-protected merchant_payout_preferences; payoutQuote uses payoutAmounts to reserve the exact debit and submit that quote, with full refunds — both fees are accounted for without re-quoting.
 - Payouts and account Settings reuse PayoutFees and notify live minimum hooks after a successful save; non-Uganda New Payout opens IntlMoneyPanel with required recipient name — fee guidance must follow the persisted choice and selected wallets must never silently submit UGX.
 - Payouts reject fractional gross or net amounts for zero-decimal currencies and offer a compatible entered amount for explicit merchant approval — the partner calculates fees independently, so silently rounding locally cannot make the payout rail safe.
 - Payout error presentation preserves payment-network validation and uncertain-submission instructions verbatim — a payment-network rule is not an internet failure, and hiding no-retry instructions risks duplicate payments.
@@ -42,8 +42,8 @@
 - Payout settlement preserves the recipient net saved at acceptance; never recompute it as amount minus fee (account mode pays the entered amount).
 - Admin account position shows per-currency earnings = collection margin above partner charge + ObPay payout fees; partner charges are never earnings.
 - The exchange fee % is an admin site setting (exchange_fee_percent, 0-20) with a Settings card; default 1.5 when unset.
-- Secondary service purchases reserve funds atomically before submission, reuse UUID references, verify terminal outcomes, and retain uncertain reservations; bank creation stays blocked without exact pre-submit fees/idempotency — avoid double spending and losses.
+- Secondary services reserve funds atomically, reuse UUIDs, verify outcomes and retain uncertain reservations; bank submission requires exact fees/idempotency — prevent losses.
 - Secondary card credits use a service-only one-time RPC into a restricted card balance, never mobile-money funds — the provider card rail is separate.
 - Merchant directory is service-only, paged; balance refresh scopes current IDs. Business statements keep currencies separate and disable incomplete exports — scalable, truthful records.
 
-- Public pages use original task-focused copy and shared semantic presentation tokens; account layouts keep navigation fixed and content scrollable — credible, consistent payment-product presentation without changing financial behavior.
+- Public copy is original and task-focused; shared tokens style pages, with fixed account navigation and scrollable content — consistency without financial changes.
