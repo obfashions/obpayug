@@ -1465,6 +1465,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_merchant_directory: {
+        Args: {
+          p_account_type?: string
+          p_page?: number
+          p_search?: string
+          p_status?: string
+          p_verification?: string
+        }
+        Returns: Json
+      }
       apply_merchant_balance_change: {
         Args: {
           p_available_delta: number
