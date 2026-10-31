@@ -250,16 +250,13 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background-50">
       <Navbar />
-      <div className="pt-20 md:pt-24 pb-12">
+      <div className="pt-32 md:pt-36 pb-20">
         <div className="w-full px-4 md:px-6 lg:px-8">
           <div className="max-w-md mx-auto">
-            <div className="bg-background-50 rounded-2xl p-6 md:p-8 border border-background-200/70">
-              <div className="text-center mb-8">
-                <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center mx-auto mb-4">
-                  <i className="ri-login-box-line text-primary-600 text-2xl" />
-                </div>
+            <div className="bg-background-50 p-2 md:p-4">
+              <div className="mb-8">
                 <h1 className="font-heading font-bold text-2xl md:text-3xl text-foreground-900 mb-2">
-                  Welcome Back
+                  Sign in to ObPay
                 </h1>
                 <p className="text-sm text-foreground-600">
                   Log in to your merchant account
@@ -379,7 +376,7 @@ export default function Login() {
                   to="/register"
                   className="text-primary-500 hover:text-primary-600 font-medium"
                 >
-                  Get Started
+                  Create an account
                 </Link>
               </p>
             </div>

@@ -366,7 +366,7 @@ export default function SupportChatWidget() {
                           <p className="text-xs text-foreground-500 mt-0.5 truncate">{agent.email}</p>
                           <div className="flex items-center gap-1 mt-1.5">
                             <span className="w-2 h-2 rounded-full bg-green-500" />
-                            <span className="text-[10px] text-foreground-500">Online</span>
+                            <span className="text-[10px] text-foreground-500">Support team</span>
                           </div>
                         </div>
                         <div className="w-8 h-8 rounded-full bg-background-100 group-hover:bg-primary-100 flex items-center justify-center shrink-0 transition-colors">
@@ -458,7 +458,8 @@ export default function SupportChatWidget() {
       {showBubble && (
         <button
           onClick={handleOpen}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary-500 hover:bg-primary-600 text-background-50 flex items-center justify-center shadow-lg hover:scale-105 transition-all z-50 cursor-pointer"
+          aria-label="Contact support"
+          className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-600 text-background-50 flex items-center justify-center shadow-sm transition-colors z-50 cursor-pointer"
         >
           <i className="ri-chat-3-line text-2xl" />
           {unreadCount > 0 && (

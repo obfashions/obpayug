@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "@/lib/router-compat";
 import { permissionForAdminPath, staffHome } from "@/lib/member-permissions";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
 const adminNavItems = [
-  { label: "Dashboard", href: "/admin", icon: "ri-dashboard-line" },
+  { label: "Overview", href: "/admin", icon: "ri-dashboard-line" },
   { label: "Merchants", href: "/admin/merchants", icon: "ri-store-3-line" },
   { label: "KYC Review", href: "/admin/kyc-review", icon: "ri-shield-check-line" },
   { label: "Transactions", href: "/admin/transactions", icon: "ri-exchange-line" },
-  { label: "Txn Lookup", href: "/admin/transaction-lookup", icon: "ri-search-line" },
+  { label: "Transaction lookup", href: "/admin/transaction-lookup", icon: "ri-search-line" },
   { label: "Payout Requests", href: "/admin/payout-requests", icon: "ri-upload-cloud-line" },
   { label: "Refunds", href: "/admin/refunds", icon: "ri-refund-2-line" },
   { label: "Reports", href: "/admin/reports", icon: "ri-file-chart-line" },
   { label: "API Monitoring", href: "/admin/api-monitoring", icon: "ri-radar-line" },
   { label: "Audit Logs", href: "/admin/audit-logs", icon: "ri-file-list-3-line" },
-  { label: "Company Docs", href: "/admin/company-documents", icon: "ri-government-line" },
+  { label: "Company documents", href: "/admin/company-documents", icon: "ri-government-line" },
   { label: "Support Chat", href: "/admin/support", icon: "ri-chat-3-line" },
   { label: "Tickets", href: "/admin/tickets", icon: "ri-ticket-2-line" },
   { label: "Email Campaigns", href: "/admin/email-campaigns", icon: "ri-mail-send-line" },
@@ -100,7 +101,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     : "AD";
 
   return (
-    <div className="min-h-screen bg-background-100 flex">
+    <div className="account-workspace min-h-screen bg-background-100 flex">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
@@ -133,7 +134,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {visibleNav.map((item) => {
             const isActive = location.pathname === item.href;
             return (
-              <button
+              <Button
+                variant="ghost"
                 key={item.href}
                 onClick={() => {
                   navigate(item.href);
@@ -141,7 +143,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   isActive
-                    ? "bg-accent-100 text-accent-700"
+                    ? "bg-primary-50 text-primary-700"
                     : "text-foreground-600 hover:bg-background-200/70 hover:text-foreground-900"
                 }`}
               >
@@ -149,10 +151,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <i className={`${item.icon} text-lg`} />
                 </div>
                 <span className="flex-1 text-left">{item.label}</span>
-                {item.href === "/admin/kyc-review" && (
-                  <span className="shrink-0 text-[10px] font-bold bg-accent-500 text-background-50 px-1.5 py-0.5 rounded-full">!</span>
-                )}
-              </button>
+
+              </Button>
             );
           })}
         </nav>
@@ -221,6 +221,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              aria-label="Open menu"
               className="lg:hidden w-9 h-9 flex items-center justify-center text-foreground-600 hover:text-foreground-900 cursor-pointer"
             >
               <i className="ri-menu-line text-xl" />
@@ -237,7 +238,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Lookup txn by ref ID..."
+                placeholder="Search transaction reference"
                 className="bg-transparent text-sm text-foreground-700 placeholder-foreground-400 focus:outline-none w-56"
               />
               {searchQuery && (

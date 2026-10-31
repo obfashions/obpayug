@@ -35,15 +35,15 @@ import {
 const BANNER_DISMISSED_KEY = "obpay_verify_banner_dismissed";
 
 const navItems: Array<{ label: string; href: string; icon: LucideIcon; group: string }> = [
-  { label: "Dashboard", href: "/dashboard", icon: Gauge, group: "main" },
+  { label: "Overview", href: "/dashboard", icon: Gauge, group: "main" },
   { label: "Collections", href: "/dashboard/collections", icon: BanknoteArrowDown, group: "main" },
   { label: "Payouts", href: "/dashboard/payouts", icon: BanknoteArrowUp, group: "main" },
-  { label: "Bank Transfer", href: "/dashboard/bank-transfer", icon: Building2, group: "main" },
-  { label: "Bill Payments", href: "/dashboard/bill-payments", icon: ReceiptText, group: "main" },
-  { label: "Airtime & Data", href: "/dashboard/airtime-data", icon: Smartphone, group: "main" },
-  { label: "Card Payments", href: "/dashboard/cards", icon: CreditCard, group: "main" },
-  { label: "Service History", href: "/dashboard/service-history", icon: ReceiptText, group: "main" },
-  { label: "Services", href: "/dashboard/services", icon: LayoutGrid, group: "main" },
+  { label: "Bank Transfer", href: "/dashboard/bank-transfer", icon: Building2, group: "services" },
+  { label: "Bill Payments", href: "/dashboard/bill-payments", icon: ReceiptText, group: "services" },
+  { label: "Airtime & Data", href: "/dashboard/airtime-data", icon: Smartphone, group: "services" },
+  { label: "Card Payments", href: "/dashboard/cards", icon: CreditCard, group: "services" },
+  { label: "Service History", href: "/dashboard/service-history", icon: ReceiptText, group: "services" },
+  { label: "Services", href: "/dashboard/services", icon: LayoutGrid, group: "services" },
   { label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight, group: "main" },
   { label: "Payment Links", href: "/dashboard/payment-links", icon: Link2, group: "main" },
   { label: "Refunds", href: "/dashboard/refunds", icon: RefreshCcw, group: "main" },
@@ -227,7 +227,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     : "??";
 
   return (
-    <div className="min-h-screen bg-background-100 flex">
+    <div className="account-workspace min-h-screen bg-background-100 flex">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
@@ -254,9 +254,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-          {["main", "dev", "account"].map((group) => {
+          {["main", "services", "dev", "account"].map((group) => {
             const groupItems = navItems.filter((n) => n.group === group);
-            const groupLabel = group === "dev" ? "Developer" : group === "account" ? "Account" : null;
+            const groupLabel = group === "dev" ? "Developer" : group === "account" ? "Account" : group === "services" ? "Services" : "Payments";
             return (
               <div key={group} className={group !== "main" ? "pt-3" : ""}>
                 {groupLabel && (
@@ -267,23 +267,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 {groupItems.map((item) => {
                   const isActive = location.pathname === item.href;
                   return (
-                    <button
+                    <Button
+                      variant="ghost"
                       key={item.href}
                       onClick={() => {
                         navigate(item.href);
                         setIsSidebarOpen(false);
                       }}
-                      className={`group w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                      className={`group w-full flex items-center gap-3 px-2.5 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                         isActive
-                          ? "bg-primary-100 text-primary-800 shadow-sm"
+                          ? "bg-primary-50 text-primary-700"
                           : "text-foreground-600 hover:bg-background-200/70 hover:text-foreground-900"
                       }`}
                     >
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${isActive ? "bg-primary-500 text-background-50" : "bg-background-100 text-foreground-600"}`}>
+                      <div className={`w-5 h-5 flex items-center justify-center shrink-0 ${isActive ? "text-primary-700" : "text-foreground-500"}`}>
                         <item.icon className="h-5 w-5" strokeWidth={isActive ? 2.4 : 1.9} />
                       </div>
                       <span className="flex-1 text-left">{item.label}</span>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -326,8 +327,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {verificationLoading
                 ? "Loading your status..."
                 : isVerified
-                  ? "All features are unlocked."
-                  : "Complete KYC to unlock all features."}
+                  ? "Identity review approved."
+                  : "Identity review required."}
             </p>
             {!isVerified && !isAdmin && !verificationLoading && (
               <button
@@ -419,21 +420,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Search */}
-            <div className="hidden md:flex items-center bg-background-100 rounded-lg px-3 py-2 border border-background-200/70">
-              <i className="ri-search-line text-foreground-400 text-sm mr-2" />
-              <input
-                type="text"
-                placeholder="Search transactions..."
-                className="bg-transparent text-sm text-foreground-700 placeholder-foreground-400 focus:outline-none w-48"
-              />
-            </div>
 
             <Button
               onClick={toggleTheme}
               variant="outline"
               size="sm"
-              className="h-9 gap-2 rounded-full border-background-300 bg-background-100 px-2.5 text-foreground-900 shadow-sm hover:bg-background-200 hover:text-foreground-900"
+              className="h-9 w-9 border-background-200 bg-background-50 p-0 text-foreground-700"
               aria-label={isDark ? "Use light appearance" : "Use dark appearance"}
               title={isDark ? "Light mode" : "Dark mode"}
               aria-pressed={isDark}
@@ -443,25 +435,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               ) : (
                 <Moon className="h-4 w-4 text-primary-700" strokeWidth={2.5} />
               )}
-              <span className="text-xs font-bold">{isDark ? "Light" : "Dark"}</span>
-              <span
-                aria-hidden="true"
-                className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
-                  isDark ? "border-accent-500 bg-accent-500" : "border-background-400 bg-background-300"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-background-50 shadow-sm transition-transform ${
-                    isDark ? "translate-x-4" : "translate-x-0.5"
-                  }`}
-                />
-              </span>
+
             </Button>
 
             {/* Notifications */}
             <div className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
+                aria-label="Notifications"
                 className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-background-200/70 text-foreground-600 transition-colors cursor-pointer"
               >
                 <Bell className="h-5 w-5" />
@@ -475,7 +456,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {isNotifOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-background-50 rounded-xl border border-background-200/70 shadow-lg z-50 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-[min(20rem,calc(100vw-2rem))] bg-background-50 rounded-xl border border-background-200/70 shadow-lg z-50 overflow-hidden">
                     <div className="p-4 border-b border-background-200/70 flex items-center justify-between">
                       <h3 className="font-heading font-semibold text-sm text-foreground-900">Notifications</h3>
                       {unreadCount > 0 && (
@@ -546,7 +527,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 Your account is pending verification
               </p>
               <p className="text-xs text-foreground-600 mt-0.5">
-                You have full access to all features. Complete KYC to unlock additional benefits and remove this reminder.
+                Submit your identity documents to complete the account review.
               </p>
             </div>
             <button

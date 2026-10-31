@@ -7,7 +7,7 @@ import { useNavigate } from "@/lib/router-compat";
 import CollectionBreakdown from "./components/CollectionBreakdown";
 import { invokeObpay } from "@/lib/edge-function";
 import { formatCurrency, formatDate, SUPPORTED_CURRENCIES } from "@/lib/currency";
-import { Activity, Eye, EyeOff, Radio, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WalletData {
@@ -368,7 +368,7 @@ export default function DashboardPage() {
               t.type === "success"
                 ? "bg-primary-100 text-primary-800 border-primary-200"
                 : t.type === "error"
-                ? "bg-red-100 text-red-800 border-red-200"
+                ? "bg-destructive/10 text-destructive border-destructive/20"
                 : "bg-accent-100 text-accent-800 border-accent-200"
             }`}
           >
@@ -378,7 +378,7 @@ export default function DashboardPage() {
                   t.type === "success"
                     ? "ri-check-line text-primary-600"
                     : t.type === "error"
-                    ? "ri-error-warning-line text-red-600"
+                    ? "ri-error-warning-line text-destructive"
                     : "ri-information-line text-accent-600"
                 }`}
               />
@@ -392,12 +392,8 @@ export default function DashboardPage() {
         {/* ─── GREETING ─────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm text-foreground-500">
-              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},
-            </p>
-            <h1 className="font-heading font-bold text-3xl md:text-4xl tracking-tight text-foreground-900 leading-tight break-words">
-              {profile?.full_name?.split(" ")[0] || "Merchant"}
-            </h1>
+            <p className="text-sm text-foreground-500">{profile?.full_name || "Merchant account"}</p>
+            <h1 className="font-heading font-semibold text-3xl text-foreground-900 mt-1">Account overview</h1>
           </div>
           <div className="flex items-center gap-2">
             <select
@@ -426,37 +422,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Live account pulse */}
-        <div className="bank-pulse flex items-center gap-3 overflow-hidden rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3">
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-500 text-background-50">
-            <Radio className="h-4 w-4" />
-            <span className="absolute inset-0 rounded-xl border border-primary-400 animate-ping opacity-30" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase text-primary-700">Live account</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />
-            </div>
-            <div className="overflow-hidden">
-              <p className="bank-ticker whitespace-nowrap text-sm font-medium text-foreground-700">
-                Payments are monitored continuously · balances refresh every 5 seconds · {pendingTxns.length} payment{pendingTxns.length === 1 ? "" : "s"} in progress · last checked {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "now"}
-              </p>
-            </div>
-          </div>
-          <Activity className="hidden h-5 w-5 shrink-0 text-primary-600 sm:block" />
-        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-y border-background-200 py-3 text-xs text-foreground-500"><span>{pendingTxns.length} pending payment{pendingTxns.length === 1 ? "" : "s"}</span><span>Last retrieved {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</span></div>
 
         {/* ─── BENTO: ACCOUNT CARD + STATS ─────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <div className="account-card lg:col-span-3 relative overflow-hidden rounded-3xl bg-gradient-to-br from-foreground-900 via-primary-800 to-primary-600 text-background-50 shadow-xl">
+          <div className="account-card lg:col-span-3 relative overflow-hidden rounded-3xl bg-inverse text-on-inverse">
             <div className="account-card-grid absolute inset-0 opacity-20" />
             <div className="relative p-6 md:p-8 flex flex-col h-full min-h-[230px]">
               <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background-50/15 text-xs font-semibold tracking-wide">
-                  <i className="ri-bank-line" />ObPay Business
+                  <i className="ri-bank-line" />Currency wallet
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-flex items-center gap-1 text-xs text-background-50/80"><ShieldCheck className="h-3.5 w-3.5" />Secured</span>
+                  
                   <Button
                     type="button"
                     onClick={() => setShowBalance((value) => !value)}
@@ -471,7 +449,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <p className="mt-6 text-xs uppercase tracking-[0.2em] text-background-50/70">Available balance</p>
-              <p className="font-heading font-bold text-4xl sm:text-5xl tracking-tight mt-2 break-words leading-none">
+              <p className="font-heading font-bold text-3xl sm:text-4xl mt-2 break-words leading-none">
                 {showBalance ? formatCurrency(activeBalance, activeCurrency) : `${activeCurrency} ••••••`}
               </p>
               <div className="mt-auto pt-6 flex items-end justify-between gap-3">
@@ -489,10 +467,10 @@ export default function DashboardPage() {
 
           <div className="lg:col-span-2 grid grid-cols-2 gap-4">
             {[
-              { label: "Today in", value: formatCurrency(todayCollections, activeCurrency), sub: "Collections today", icon: "ri-sun-line", tone: "bg-primary-100 text-primary-700" },
-              { label: "This month", value: formatCurrency(monthlyCollections, activeCurrency), sub: `${successTxns.length} settled`, icon: "ri-calendar-check-line", tone: "bg-emerald-100 text-emerald-700" },
+              { label: "Today’s collections", value: formatCurrency(todayCollections, activeCurrency), sub: "Collections today", icon: "ri-sun-line", tone: "bg-primary-100 text-primary-700" },
+              { label: "This month", value: formatCurrency(monthlyCollections, activeCurrency), sub: `${successTxns.length} settled`, icon: "ri-calendar-check-line", tone: "bg-primary-100 text-primary-700" },
               { label: "In progress", value: String(pendingTxns.length), sub: "Pending payments", icon: "ri-time-line", tone: "bg-accent-100 text-accent-700" },
-              { label: "Total fees", value: formatCurrency(totalFees, activeCurrency), sub: "Lifetime charges", icon: "ri-percent-line", tone: "bg-background-200 text-foreground-700" },
+              { label: "Total fees", value: formatCurrency(totalFees, activeCurrency), sub: "Fees in recent records", icon: "ri-percent-line", tone: "bg-background-200 text-foreground-700" },
             ].map((s) => (
               <div key={s.label} className="bg-background-50 rounded-3xl border border-background-200/70 p-4 md:p-5 flex flex-col gap-3 min-w-0">
                 <div className={`w-10 h-10 rounded-2xl ${s.tone} flex items-center justify-center`}>
@@ -508,38 +486,22 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Financial command strip */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="flex items-center gap-3 rounded-2xl border border-background-200 bg-background-50 p-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700"><Zap className="h-5 w-5" /></div>
-            <div className="min-w-0"><p className="text-xs text-foreground-500">Settlement speed</p><p className="font-heading font-bold text-foreground-900">Live confirmation</p></div>
-          </div>
-          <div className="flex items-center gap-3 rounded-2xl border border-background-200 bg-background-50 p-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-100 text-accent-700"><Activity className="h-5 w-5" /></div>
-            <div className="min-w-0"><p className="text-xs text-foreground-500">Account flow</p><p className="font-heading font-bold text-foreground-900">{successTxns.length} settled payments</p></div>
-          </div>
-          <div className="flex items-center gap-3 rounded-2xl border border-background-200 bg-background-50 p-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary-100 text-secondary-700"><Sparkles className="h-5 w-5" /></div>
-            <div className="min-w-0"><p className="text-xs text-foreground-500">Multi-currency</p><p className="font-heading font-bold text-foreground-900">{availableCurrencies.length || 1} active wallet{availableCurrencies.length === 1 ? "" : "s"}</p></div>
-          </div>
-        </div>
-
         {/* ─── PRIMARY ACTIONS ─────────────────────────────── */}
         <div>
-          <h2 className="font-heading font-bold text-xl md:text-2xl tracking-tight text-foreground-900 mb-4">Move money</h2>
+          <h2 className="font-heading font-bold text-xl md:text-2xl tracking-tight text-foreground-900 mb-4">Payments</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {[
               { label: "Collect", sub: "Request payment", icon: "ri-arrow-down-line", href: "/dashboard/collections", tone: "bg-primary-500 text-background-50" },
-              { label: "Send", sub: "Pay anyone", icon: "ri-arrow-up-line", href: "/dashboard/payouts", tone: "bg-accent-500 text-background-50" },
-              { label: "Pay link", sub: "Share & get paid", icon: "ri-link", href: "/dashboard/payment-links", tone: "bg-secondary-500 text-background-50" },
+              { label: "Send", sub: "Recipient payout", icon: "ri-arrow-up-line", href: "/dashboard/payouts", tone: "bg-accent-500 text-background-50" },
+              { label: "Payment link", sub: "Customer checkout", icon: "ri-link", href: "/dashboard/payment-links", tone: "bg-secondary-500 text-background-50" },
             ].map((a) => (
               <a
                 key={a.label}
                 href={a.href}
-                className="bg-background-50 border border-background-200/70 rounded-3xl p-4 md:p-5 flex flex-col gap-4 hover:-translate-y-0.5 hover:shadow-lg transition-all cursor-pointer group"
+                className="bg-background-50 border border-background-200/70 rounded-3xl p-4 md:p-5 flex flex-col gap-4 hover:border-primary-300 transition-colors cursor-pointer group"
               >
                 <div className={`w-12 h-12 rounded-2xl ${a.tone} flex items-center justify-center`}>
-                  <i className={`${a.icon} text-xl group-hover:scale-110 transition-transform`} />
+                  <i className={`${a.icon} text-xl `} />
                 </div>
                 <div>
                   <p className="font-heading font-bold text-lg text-foreground-900 leading-tight">{a.label}</p>
@@ -549,10 +511,10 @@ export default function DashboardPage() {
             ))}
             <button
               onClick={() => setShowWithdrawModal(true)}
-              className="bg-background-50 border border-background-200/70 rounded-3xl p-4 md:p-5 flex flex-col gap-4 text-left hover:-translate-y-0.5 hover:shadow-lg transition-all cursor-pointer group"
+              className="bg-background-50 border border-background-200/70 rounded-3xl p-4 md:p-5 flex flex-col gap-4 text-left hover:border-primary-300 transition-colors cursor-pointer group"
             >
               <div className="w-12 h-12 rounded-2xl bg-foreground-900 text-background-50 flex items-center justify-center">
-                <i className="ri-smartphone-line text-xl group-hover:scale-110 transition-transform" />
+                <i className="ri-smartphone-line text-xl " />
               </div>
               <div>
                 <p className="font-heading font-bold text-lg text-foreground-900 leading-tight">Withdraw</p>
@@ -570,8 +532,8 @@ export default function DashboardPage() {
               { label: "Transactions", icon: "ri-exchange-line", href: "/dashboard/transactions", color: "text-primary-600 bg-primary-100" },
               { label: "Statements", icon: "ri-file-chart-line", href: "/dashboard/reports", color: "text-secondary-600 bg-secondary-100" },
               { label: "API Keys", icon: "ri-key-2-line", href: "/dashboard/api-keys", color: "text-accent-600 bg-accent-100" },
-              { label: "Refunds", icon: "ri-refund-2-line", href: "/dashboard/refunds", color: "text-emerald-600 bg-emerald-100" },
-              { label: "Verification", icon: "ri-shield-user-line", href: "/dashboard/kyc", color: "text-indigo-600 bg-indigo-100" },
+              { label: "Refunds", icon: "ri-refund-2-line", href: "/dashboard/refunds", color: "text-primary-600 bg-primary-100" },
+              { label: "Verification", icon: "ri-shield-user-line", href: "/dashboard/kyc", color: "text-secondary-600 bg-secondary-100" },
               { label: "Settings", icon: "ri-settings-3-line", href: "/dashboard/settings", color: "text-foreground-700 bg-background-200" },
             ].map((s) => (
               <a
@@ -579,7 +541,7 @@ export default function DashboardPage() {
                 href={s.href}
                 className="bg-background-50 rounded-3xl border border-background-200/70 p-3 md:p-4 flex flex-col items-center text-center gap-2 hover:border-primary-300 hover:shadow-md transition-all cursor-pointer group"
               >
-                <div className={`w-12 h-12 rounded-2xl ${s.color} flex items-center justify-center group-hover:scale-105 transition-transform`}>
+                <div className={`w-12 h-12 rounded-2xl ${s.color} flex items-center justify-center `}>
                   <i className={`${s.icon} text-xl`} />
                 </div>
                 <p className="text-xs md:text-sm font-semibold text-foreground-800 leading-tight">{s.label}</p>
@@ -643,12 +605,12 @@ export default function DashboardPage() {
                   <div key={txn.id} className="flex items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-background-100/50 transition-colors">
                     <div
                       className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        txn.type === "collection" ? "bg-emerald-100" : "bg-accent-100"
+                        txn.type === "collection" ? "bg-primary-100" : "bg-accent-100"
                       }`}
                     >
                       <i
                         className={`${
-                          txn.type === "collection" ? "ri-arrow-down-line text-emerald-600" : "ri-arrow-up-line text-accent-600"
+                          txn.type === "collection" ? "ri-arrow-down-line text-primary-600" : "ri-arrow-up-line text-accent-600"
                         } text-sm`}
                       />
                     </div>
@@ -661,17 +623,17 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className={`text-sm font-semibold ${txn.type === "collection" ? "text-emerald-600" : "text-foreground-900"}`}>
+                      <p className={`text-sm font-semibold ${txn.type === "collection" ? "text-primary-600" : "text-foreground-900"}`}>
                         {txn.type === "collection" ? "+" : "−"}
                         {formatCurrency(txn.amount, txn.currency || activeCurrency)}
                       </p>
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium mt-0.5 ${
                           txn.status === "success"
-                            ? "bg-emerald-100 text-emerald-700"
+                            ? "bg-primary-100 text-primary-700"
                             : txn.status === "pending"
                             ? "bg-accent-100 text-accent-700"
-                            : "bg-red-100 text-red-700"
+                            : "bg-destructive/10 text-destructive"
                         }`}
                       >
                         {txn.status.charAt(0).toUpperCase() + txn.status.slice(1)}
@@ -689,8 +651,8 @@ export default function DashboardPage() {
               <h4 className="font-heading font-bold text-lg tracking-tight text-foreground-900 mb-4">Money movement</h4>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                    <i className="ri-download-cloud-line text-emerald-600 text-lg" />
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center shrink-0">
+                    <i className="ri-download-cloud-line text-primary-600 text-lg" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-foreground-500">Total Collections</p>
@@ -711,61 +673,22 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-                    <i className="ri-subtract-line text-red-600 text-lg" />
+                  <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                    <i className="ri-subtract-line text-destructive text-lg" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-foreground-500">Total Fees</p>
-                    <p className="font-heading font-bold text-lg text-red-600 break-words">{formatCurrency(totalFees, activeCurrency)}</p>
+                    <p className="font-heading font-bold text-lg text-destructive break-words">{formatCurrency(totalFees, activeCurrency)}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* System status */}
-            <div className="bg-background-50 rounded-3xl p-5 border border-background-200/70">
-              <h4 className="font-heading font-semibold text-sm text-foreground-900 mb-3">System status</h4>
-              <div className="space-y-3">
-                {[
-                  { name: "Payments API", status: "Operational" },
-                  { name: "Collections", status: "Operational" },
-                  { name: "Payouts", status: "Operational" },
-                  { name: "Auto-Sync", status: "Every 5s" },
-                ].map((svc) => (
-                  <div key={svc.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-sm text-foreground-700">{svc.name}</span>
-                    </div>
-                    <span className="text-xs text-emerald-600 font-medium">{svc.status}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <div className="border-t border-background-200 py-5"><h4 className="font-semibold text-sm text-foreground-900">Account support</h4><a href="/support" className="mt-3 inline-block text-sm text-primary-600">Contact customer service →</a></div>
           </div>
         </div>
 
-        {/* ─── TRUST & COMPLIANCE ──────────────────────────── */}
-        <div className="bg-background-50 rounded-3xl border border-background-200/70 p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { icon: "ri-lock-line", label: "Secure sign-in", sub: "Protected access", color: "text-emerald-600" },
-              { icon: "ri-shield-check-line", label: "Private documents", sub: "Controlled access", color: "text-primary-600" },
-              { icon: "ri-timer-flash-line", label: "Live reconciliation", sub: "Automatic checks", color: "text-accent-600" },
-              { icon: "ri-key-2-line", label: "Signed API requests", sub: "Verified callbacks", color: "text-secondary-600" },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-background-100 flex items-center justify-center shrink-0">
-                  <i className={`${item.icon} ${item.color} text-base`} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground-900">{item.label}</p>
-                  <p className="text-[10px] text-foreground-500">{item.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+
       </div>
 
 
@@ -790,9 +713,9 @@ export default function DashboardPage() {
               </button>
             </div>
             {withdrawStatus && (
-              <div className={`rounded-lg px-4 py-3 mb-4 text-sm ${withdrawStatus.ok ? "bg-emerald-100 text-emerald-700" : "bg-accent-100 text-accent-700"}`}>
+              <div className={`rounded-lg px-4 py-3 mb-4 text-sm ${withdrawStatus.ok ? "bg-primary-100 text-primary-700" : "bg-accent-100 text-accent-700"}`}>
                 <div className="flex items-start gap-2">
-                  <i className={`${withdrawStatus.ok ? "ri-checkbox-circle-line text-emerald-500" : "ri-error-warning-line text-accent-500"} mt-0.5`} />
+                  <i className={`${withdrawStatus.ok ? "ri-checkbox-circle-line text-primary-500" : "ri-error-warning-line text-accent-500"} mt-0.5`} />
                   <p>{withdrawStatus.message}</p>
                 </div>
               </div>
