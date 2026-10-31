@@ -1,4 +1,5 @@
-- [ ] Refresh ObPay's homepage, shared account layouts and public copy with an established financial-product presentation; verify public desktop/mobile screens and available signed-in views without changing payment logic.
+- [x] Refresh homepage, shared merchant/admin layouts, services, pricing, sign-in/registration and support copy. Public desktop/mobile navigation, dark mode and seven pages verified; no overflow/runtime errors; 36 existing fee/balance/permission tests passed.
+- [ ] Visually verify refreshed merchant/admin screens signed in: requesting account redirects to login (previously deactivated); no access controls bypassed or account status changed.
 - [x] Strengthen growing-account management: service-only paged directory, checked status/onboarding writes, current-page balance refresh every 30 seconds with overlapping/hidden requests blocked.
 - [x] Add business workspace, currency-separated monthly CSV statements, verification and integration links; admin business filters, review details, API use and aging-pending tracking.
 - [x] Verify live payout fees for ten currencies and actual recent UGX/RWF/ZMW collection charges; configure 2% collection margin/payout rate across all currencies, preserve exemptions, defer credits with unknown charges. 105 regression checks passed; website validation clean.
