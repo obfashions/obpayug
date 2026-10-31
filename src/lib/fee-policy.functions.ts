@@ -21,7 +21,7 @@ export const partnerFeeSchedule = createServerFn({ method: "POST" })
         return m?.provider !== "marz" && m?.partner_fee != null && Number.isFinite(Number(m.partner_fee)) && Number(r.amount) > 0;
       });
       const metadata = evidence?.metadata as Record<string, unknown> | null;
-      return { currency, payout: payout.ok ? (payout as any).res?.raw?.payout_methods || (payout as any).res?.data?.payout_methods || (payout as any).res?.data || null : null,
+      return { currency, payout: payout.ok ? { available: payout.available, fee: payout.fee, minimum: payout.minimum } : null,
         collection: evidence ? { percent: Number(metadata?.partner_fee) / Number(evidence.amount) * 100, at: evidence.created_at } : null };
     }));
     return { checkedAt: new Date().toISOString(), rows };
