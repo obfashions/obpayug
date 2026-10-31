@@ -7,8 +7,8 @@ import { WALLET_CURRENCIES } from "@/lib/countries";
 import { getCurrencyInfo } from "@/lib/currency";
 import WhatsappLinkCard from "./WhatsappLinkCard";
 import ExchangeFeeCard from "./ExchangeFeeCard";
-
-type CurrencyFees = Record<string, { collect?: number | string; withdraw?: number | string }>;
+import FeePolicyPanel, { type CurrencyFees } from "./FeePolicyPanel";
+import { Button } from "@/components/ui/button";
 
 interface PlatformSettings {
   id: string;
@@ -56,6 +56,8 @@ export default function AdminSettings() {
 
   const handleSave = async () => {
     if (!settings) return;
+    const values = [settings.platform_fee_percent, settings.withdraw_fee_percent, ...Object.values(settings.currency_fees || {}).flatMap((r) => Object.values(r).filter((v) => v !== "" && v != null))];
+    if (values.some((v) => !Number.isFinite(Number(v)) || Number(v) < 0 || Number(v) > 100)) { setError("Fee percentages must be between 0 and 100."); return; }
     setSaving(true); setError("");
     try {
       const { error: upErr } = await supabase.from("platform_settings").update({
@@ -117,9 +119,9 @@ export default function AdminSettings() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div><h1 className="font-heading font-bold text-2xl text-foreground-900">System Settings</h1><p className="text-sm text-foreground-600 mt-1">Configure platform-wide payment settings</p></div>
-          <button onClick={handleSave} disabled={saving} className={`px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap text-sm ${saved ? "bg-primary-500 text-background-50" : "bg-primary-500 hover:bg-primary-600 text-background-50"}`}>
+          <Button onClick={handleSave} disabled={saving} className="whitespace-nowrap">
             {saved ? (<><i className="ri-check-line" />Saved</>) : saving ? (<><i className="ri-loader-4-line animate-spin" />Saving...</>) : "Save Changes"}
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -128,9 +130,9 @@ export default function AdminSettings() {
             <h3 className="font-heading font-semibold text-foreground-900 mb-4">Fee Configuration</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-foreground-600 mb-1.5">Platform Fee (%)</label>
+                <label className="block text-xs font-medium text-foreground-600 mb-1.5">Legacy collection total (%)</label>
                 <input type="number" value={settings.platform_fee_percent} onChange={(e) => setSettings({ ...settings, platform_fee_percent: parseFloat(e.target.value) })} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" step="0.1" min="0" max="100" />
-                <p className="text-[11px] text-foreground-500 mt-1">Percentage deducted from every collection before crediting wallet. Payouts &amp; withdrawals use tiered pricing (flat fee for amounts ≤ 70K, percentage for amounts &gt; 70K).</p>
+                <p className="text-[11px] text-foreground-500 mt-1">Used only when no collection margin is set below. Includes partner costs; it is not ObPay’s net earning.</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -148,14 +150,14 @@ export default function AdminSettings() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-foreground-600 mb-1.5">Payout Flat Fee (UGX) — Tier 1</label>
+                  <label className="block text-xs font-medium text-foreground-600 mb-1.5">Legacy flat fee (UGX)</label>
                   <input type="number" value={settings.payout_flat_fee} onChange={(e) => setSettings({ ...settings, payout_flat_fee: parseInt(e.target.value) })} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" />
-                  <p className="text-[11px] text-foreground-500 mt-1">Flat fee for amounts 500–70,000 UGX</p>
+                  <p className="text-[11px] text-foreground-500 mt-1">Not used by current partner payouts.</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-foreground-600 mb-1.5">Withdraw/Payout Fee (%) — Tier 2</label>
+                  <label className="block text-xs font-medium text-foreground-600 mb-1.5">Default ObPay payout margin (%)</label>
                   <input type="number" value={settings.withdraw_fee_percent} onChange={(e) => setSettings({ ...settings, withdraw_fee_percent: parseFloat(e.target.value) })} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" step="0.1" min="0" max="100" />
-                  <p className="text-[11px] text-foreground-500 mt-1">Percentage for amounts 70,001–5,000,000 UGX</p>
+                  <p className="text-[11px] text-foreground-500 mt-1">ObPay’s charge, separate from the live partner fee, unless a currency override or merchant exemption applies.</p>
                 </div>
               </div>
               <div>
@@ -229,7 +231,7 @@ export default function AdminSettings() {
 
             <div className="bg-background-50 rounded-xl border border-background-200/70 p-6">
               <h3 className="font-heading font-semibold text-foreground-900 mb-1">Per-Currency Fees</h3>
-              <p className="text-[11px] text-foreground-500 mb-4">Override the default fees for a currency. Leave blank to use the Platform Fee / Withdraw Fee above. The payment partner's own charge is always deducted separately.</p>
+              <p className="text-[11px] text-foreground-500 mb-4">Legacy collection totals include partner costs and are ignored when a collection margin is set below. Withdraw rates are ObPay’s own charge in addition to the partner quote.</p>
               <div className="space-y-2">
                 <div className="grid grid-cols-[1fr_90px_90px] gap-2 text-[11px] font-medium text-foreground-500 uppercase">
                   <span>Currency</span><span>Collect %</span><span>Withdraw %</span>
@@ -244,7 +246,7 @@ export default function AdminSettings() {
                   return (
                     <div key={cur} className="grid grid-cols-[1fr_90px_90px] gap-2 items-center">
                       <span className="text-xs font-medium text-foreground-900">{info.flag} {cur === "SLL" ? "SLE" : cur} <span className="text-foreground-500 font-normal">{info.country}</span></span>
-                      <input type="number" step="0.1" min="0" max="100" placeholder={`${settings.platform_fee_percent}`} value={fees.collect ?? ""} onChange={(e) => setFee("collect", e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-background-300/60 bg-background-50 text-xs text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                      <input type="number" step="0.1" min="0" max="100" disabled={fees.collect_margin != null && fees.collect_margin !== ""} placeholder={`${settings.platform_fee_percent}`} value={fees.collect ?? ""} onChange={(e) => setFee("collect", e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-background-300/60 bg-background-50 text-xs text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-40" />
                       <input type="number" step="0.1" min="0" max="100" placeholder={`${settings.withdraw_fee_percent}`} value={fees.withdraw ?? ""} onChange={(e) => setFee("withdraw", e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-background-300/60 bg-background-50 text-xs text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400" />
                     </div>
                   );
@@ -263,6 +265,7 @@ export default function AdminSettings() {
           </div>
         </div>
 
+        <FeePolicyPanel fees={settings.currency_fees || {}} withdrawDefault={settings.withdraw_fee_percent} onChange={(currency_fees) => setSettings({ ...settings, currency_fees })} />
         <WhatsappLinkCard />
         <ExchangeFeeCard />
 

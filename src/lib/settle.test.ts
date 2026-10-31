@@ -29,6 +29,19 @@ describe("deposit settlement fees", () => {
   it("covers verified partner charges exceeding the configured deposit fee", async () => {
     expect(await collectionFeeFor({ amount: 10000, currency: "RWF" }, 600)).toBe(600);
   });
+  it("takes the partner fee once and retains the configured 2% collection margin", async () => {
+    mocks.settings.mockResolvedValue({ data: { platform_fee_percent: 2.5, currency_fees: { RWF: { collect_margin: 2 } } }, error: null });
+    expect(await collectionFeeFor({ amount: 10000, currency: "RWF" }, 600)).toBe(800);
+  });
+  it("defers margin-based collection credit when the partner fee is missing", async () => {
+    mocks.settings.mockResolvedValue({ data: { platform_fee_percent: 2.5, currency_fees: { RWF: { collect_margin: 2 } } }, error: null });
+    await expect(collectionFeeFor({ amount: 10000, currency: "RWF" })).rejects.toThrow("awaiting confirmation");
+  });
+  it("preserves Mukoya's exemption even when a 2% margin is configured", async () => {
+    mocks.settings.mockResolvedValue({ data: { platform_fee_percent: 2.5, currency_fees: { RWF: { collect_margin: 2 } } }, error: null });
+    mocks.exemption.mockResolvedValue({ data: { merchant_id: "mukoya" }, error: null });
+    expect(await collectionFeeFor({ merchant_id: "mukoya", amount: 10000, currency: "RWF" }, 600)).toBe(600);
+  });
   it("credits Mukoya Rwanda collections less only the verified partner fee", async () => {
     mocks.exemption.mockResolvedValue({ data: { merchant_id: "2e213e51-8069-4795-9873-c95192306c8b" }, error: null });
     await settlePaymentRecord({ id: "mukoya-deposit", merchant_id: "2e213e51-8069-4795-9873-c95192306c8b", amount: 3600, currency: "RWF", type: "collection" }, "success", { partnerFee: 209 });

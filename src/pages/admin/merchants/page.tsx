@@ -8,7 +8,8 @@ import { invokeObpay } from "@/lib/edge-function";
 import MerchantAccountPanel from "./MerchantAccountPanel";
 import { saveMemberRoles } from "@/lib/member-roles.functions";
 import { MEMBER_ROLES, ROLE_LABELS, type MemberRole } from "@/lib/member-permissions";
-import { adminAccountBalances } from "@/lib/admin-insights.functions";
+import { adminAccountBalances, adminMerchantDirectory } from "@/lib/admin-insights.functions";
+import { Button } from "@/components/ui/button";
 import { WALLET_CURRENCIES } from "@/lib/countries";
 
 
@@ -23,6 +24,7 @@ interface Merchant {
   role_tag: string | null;
   memberRoles?: MemberRole[];
   created_at: string;
+  account_type?: string;
   merchant_profiles: {
     company_name: string;
     country: string;
@@ -50,6 +52,10 @@ export default function AdminMerchants() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [verificationFilter, setVerificationFilter] = useState("all");
+  const [accountTypeFilter, setAccountTypeFilter] = useState("all");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<Record<string, number>>({});
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingMemberRoles, setSavingMemberRoles] = useState(false);
@@ -84,34 +90,11 @@ export default function AdminMerchants() {
     setLoading(true);
     setError("");
     try {
-      const { data, error: fetchErr } = await supabase
-        .from("profiles")
-        .select("*, merchant_profiles!merchant_profiles_user_id_fkey(company_name, country, verification_status, business_address, merchant_slug, merchant_id)")
-        .eq("role", "merchant")
-        .neq("status", "deactivated")
-        .order("created_at", { ascending: false });
-
-      if (fetchErr) throw fetchErr;
-
-      // Also fetch admin users
-      const { data: admins } = await supabase
-        .from("profiles")
-        .select("*, merchant_profiles!merchant_profiles_user_id_fkey(company_name, country, verification_status, business_address, merchant_slug, merchant_id)")
-        .eq("role", "admin")
-        .order("created_at", { ascending: false });
-
-      const all = [...(data as Merchant[] || []), ...(admins as Merchant[] || [])];
-      const { data: memberships, error: membershipError } = await supabase.from("member_roles").select("user_id,role");
-      if (membershipError) throw membershipError;
-      const { data: baseRoles, error: rolesError } = await supabase.from("user_roles").select("user_id,role");
-      if (rolesError) throw rolesError;
-      setMerchants(all.map((m) => {
-        const roles: MemberRole[] = (memberships || []).filter((r: any) => r.user_id === m.id).map((r: any) => r.role);
-        const admin = roles.includes("super_admin") || (baseRoles || []).some((r: any) => r.user_id === m.id && r.role === "admin");
-        return { ...m, role: admin ? "admin" : "merchant", memberRoles: roles, role_tag: roles.join(", ") || null, support_agent: roles.includes("support_agent") };
-      }));
-
-      const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+      const accessToken = await getAccessToken();
+      const result = await adminMerchantDirectory({ data: { accessToken, search, status: statusFilter, verification: verificationFilter, accountType: accountTypeFilter, page } });
+      const all = (result.rows || []) as Merchant[];
+      setMerchants(all); setTotal(result.total || 0); setSummary(result.summary || {});
+      const balances = await adminAccountBalances({ data: { accessToken, userIds: all.map((m) => m.id) } });
       setBalanceData(balances);
     } catch (err: any) {
       setError(err.message || "Failed to load merchants");
@@ -121,50 +104,48 @@ export default function AdminMerchants() {
   };
 
   useEffect(() => {
-    fetchMerchants();
-  }, []);
+    const timer = window.setTimeout(() => { void fetchMerchants(); }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search, statusFilter, verificationFilter, accountTypeFilter, page]);
 
-  const filtered = merchants.filter((m) => {
-    const mp = m.merchant_profiles?.[0];
-    if (statusFilter !== "all" && m.status !== statusFilter) return false;
-    if (verificationFilter !== "all" && mp?.verification_status !== verificationFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const companyName = mp?.company_name || "";
-      if (!companyName.toLowerCase().includes(q) && !m.email.toLowerCase().includes(q) && !m.full_name.toLowerCase().includes(q)) return false;
-    }
-    return true;
-  });
+  const filtered = merchants;
 
   const selected = selectedMerchantId ? merchants.find((m) => m.id === selectedMerchantId) : null;
 
   const loadDetailWallet = async (merchantId: string) => {
-    const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
-    setBalanceData(balances);
-    setDetailWallet(balances[merchantId] || null);
+    try {
+      const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken(), userIds: [merchantId] } });
+      setBalanceData((prev) => ({ ...prev, ...balances }));
+      setDetailWallet(balances[merchantId] || null);
+    } catch { setActionMsg({ ok: false, message: "Account balance could not be refreshed. Please retry." }); }
   };
 
   useEffect(() => {
     let stopped = false;
+    let refreshing = false;
     const refresh = async () => {
+      if (refreshing || document.hidden || !merchants.length) return;
+      refreshing = true;
       try {
-        const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+        const balances = await adminAccountBalances({ data: { accessToken: await getAccessToken(), userIds: merchants.map((m) => m.id) } });
         if (stopped) return;
         setBalanceData(balances);
         if (selectedMerchantId) setDetailWallet(balances[selectedMerchantId] || null);
       } catch { /* keep the last confirmed values during a temporary outage */ }
+      finally { refreshing = false; }
     };
-    const interval = window.setInterval(refresh, 5000);
+    const interval = window.setInterval(refresh, 30000);
     const channel = supabase.channel("admin-account-balances")
       .on("postgres_changes", { event: "*", schema: "public", table: "merchant_wallets" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "merchant_balances" }, refresh).subscribe();
     return () => { stopped = true; window.clearInterval(interval); void supabase.removeChannel(channel); };
-  }, [selectedMerchantId]);
+  }, [selectedMerchantId, merchants]);
 
   const handleToggleStatus = async (merchantId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "suspended" : "active";
     try {
-      await supabase.from("profiles").update({ status: newStatus }).eq("id", merchantId);
+      const { data: updated, error } = await supabase.from("profiles").update({ status: newStatus }).eq("id", merchantId).select("id").maybeSingle();
+      if (error || !updated) throw new Error(error?.message || "Account status was not changed.");
       setActionMsg({ ok: true, message: `User ${newStatus === "active" ? "activated" : "suspended"} successfully.` });
       setTimeout(() => setActionMsg(null), 3000);
       fetchMerchants();
@@ -197,7 +178,8 @@ export default function AdminMerchants() {
 
   const handleBanUser = async (merchantId: string, merchantName: string) => {
     try {
-      await supabase.from("profiles").update({ status: "suspended" }).eq("id", merchantId);
+      const { data: updated, error } = await supabase.from("profiles").update({ status: "suspended" }).eq("id", merchantId).select("id").maybeSingle();
+      if (error || !updated) throw new Error(error?.message || "Account was not suspended.");
       setActionMsg({ ok: true, message: `${merchantName} has been banned.` });
       setTimeout(() => setActionMsg(null), 3000);
       fetchMerchants();
@@ -456,7 +438,7 @@ export default function AdminMerchants() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="font-heading font-bold text-2xl text-foreground-900">Users & Merchants</h1>
-            <p className="text-sm text-foreground-600 mt-1">{merchants.length} registered users</p>
+            <p className="text-sm text-foreground-600 mt-1">{total} matching accounts</p>
           </div>
         </div>
 
@@ -467,6 +449,9 @@ export default function AdminMerchants() {
           </div>
         )}
 
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-y border-background-200 py-4">
+          {[["Accounts", summary.accounts], ["Active", summary.active], ["Business accounts", summary.business], ["Awaiting verification", summary.pending]].map(([label, value]) => <div key={String(label)}><p className="text-xs text-foreground-500">{label}</p><p className="text-xl font-semibold text-foreground-900">{value ?? "—"}</p></div>)}
+        </div>
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex items-center bg-background-50 rounded-lg px-3 py-2 border border-background-200/70 flex-1 max-w-sm">
@@ -474,14 +459,14 @@ export default function AdminMerchants() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
               placeholder="Search by company, email or name..."
               className="bg-transparent text-sm text-foreground-700 placeholder-foreground-400 focus:outline-none w-full"
             />
           </div>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
             className="px-3 py-2 rounded-lg border border-background-200/70 bg-background-50 text-sm text-foreground-700 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
           >
             <option value="all">All Status</option>
@@ -491,7 +476,7 @@ export default function AdminMerchants() {
           </select>
           <select
             value={verificationFilter}
-            onChange={(e) => setVerificationFilter(e.target.value)}
+            onChange={(e) => { setVerificationFilter(e.target.value); setPage(0); }}
             className="px-3 py-2 rounded-lg border border-background-200/70 bg-background-50 text-sm text-foreground-700 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
           >
             <option value="all">All Verification</option>
@@ -501,6 +486,7 @@ export default function AdminMerchants() {
           </select>
         </div>
 
+        <select aria-label="Account type" value={accountTypeFilter} onChange={(e) => { setAccountTypeFilter(e.target.value); setPage(0); }} className="rounded-lg border border-background-200 bg-background-50 px-3 py-2 text-sm"><option value="all">All account types</option><option value="business">Business</option><option value="personal">Personal</option></select>
         {/* Table */}
         <div className="bg-background-50 rounded-xl border border-background-200/70 overflow-hidden">
           <div className="overflow-x-auto">
@@ -538,6 +524,7 @@ export default function AdminMerchants() {
                             <div>
                               <p className="text-xs font-medium text-foreground-900">{mp?.company_name || m.full_name}</p>
                               <p className="text-[11px] text-foreground-500">{m.full_name}</p>
+                              <p className="text-[11px] text-foreground-500">{m.account_type === "business" ? "Business" : "Personal"} · Joined {new Date(m.created_at).toLocaleDateString()}</p>
                             </div>
                           </div>
                         </td>
@@ -615,6 +602,7 @@ export default function AdminMerchants() {
           </div>
         </div>
 
+        <div className="flex items-center justify-between gap-3"><span className="text-xs text-foreground-500">Page {page + 1} · {merchants.length} of {total} accounts</span><div className="flex gap-2"><Button variant="outline" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>Previous</Button><Button variant="outline" disabled={(page + 1) * 50 >= total} onClick={() => setPage((p) => p + 1)}>Next</Button></div></div>
         {/* Detail Panel */}
         {selected && (
           <div className="fixed inset-0 z-50 flex justify-end">
@@ -705,7 +693,7 @@ export default function AdminMerchants() {
               {/* Balance Controls */}
               <button
                 onClick={async () => {
-                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken(), userIds: [selected.id] } });
                   const b: any = (all as any)[selected.id] || {};
                   const main = b.currency || "UGX";
                   setBalanceModal({ type: "add", merchantId: selected.id, merchantName: selected.full_name, currentBalance: b.wallets?.[main] || 0, currency: main, mainCurrency: main, wallets: b.wallets || { [main]: 0 } });
@@ -716,7 +704,7 @@ export default function AdminMerchants() {
               </button>
               <button
                 onClick={async () => {
-                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken(), userIds: [selected.id] } });
                   const b: any = (all as any)[selected.id] || {};
                   const main = b.currency || "UGX";
                   setBalanceModal({ type: "deduct", merchantId: selected.id, merchantName: selected.full_name, currentBalance: b.wallets?.[main] || 0, currency: main, mainCurrency: main, wallets: b.wallets || { [main]: 0 } });

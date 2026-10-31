@@ -44,6 +44,7 @@ import { Route as DashboardApiKeysRouteImport } from './routes/dashboard.api-key
 import { Route as DashboardApiSandboxRouteImport } from './routes/dashboard.api-sandbox'
 import { Route as DashboardBankTransferRouteImport } from './routes/dashboard.bank-transfer'
 import { Route as DashboardBillPaymentsRouteImport } from './routes/dashboard.bill-payments'
+import { Route as DashboardBusinessRouteImport } from './routes/dashboard.business'
 import { Route as DashboardCardsRouteImport } from './routes/dashboard.cards'
 import { Route as DashboardCollectionsRouteImport } from './routes/dashboard.collections'
 import { Route as DashboardCompanyDocumentsRouteImport } from './routes/dashboard.company-documents'
@@ -247,6 +248,11 @@ const DashboardBillPaymentsRoute = DashboardBillPaymentsRouteImport.update({
   path: '/dashboard/bill-payments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardBusinessRoute = DashboardBusinessRouteImport.update({
+  id: '/dashboard/business',
+  path: '/dashboard/business',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardCardsRoute = DashboardCardsRouteImport.update({
   id: '/dashboard/cards',
   path: '/dashboard/cards',
@@ -420,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
   '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
+  '/dashboard/business': typeof DashboardBusinessRoute
   '/dashboard/cards': typeof DashboardCardsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
@@ -484,6 +491,7 @@ export interface FileRoutesByTo {
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
   '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
+  '/dashboard/business': typeof DashboardBusinessRoute
   '/dashboard/cards': typeof DashboardCardsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
@@ -549,6 +557,7 @@ export interface FileRoutesById {
   '/dashboard/api-sandbox': typeof DashboardApiSandboxRoute
   '/dashboard/bank-transfer': typeof DashboardBankTransferRoute
   '/dashboard/bill-payments': typeof DashboardBillPaymentsRoute
+  '/dashboard/business': typeof DashboardBusinessRoute
   '/dashboard/cards': typeof DashboardCardsRoute
   '/dashboard/collections': typeof DashboardCollectionsRoute
   '/dashboard/company-documents': typeof DashboardCompanyDocumentsRoute
@@ -615,6 +624,7 @@ export interface FileRouteTypes {
     | '/dashboard/api-sandbox'
     | '/dashboard/bank-transfer'
     | '/dashboard/bill-payments'
+    | '/dashboard/business'
     | '/dashboard/cards'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
@@ -679,6 +689,7 @@ export interface FileRouteTypes {
     | '/dashboard/api-sandbox'
     | '/dashboard/bank-transfer'
     | '/dashboard/bill-payments'
+    | '/dashboard/business'
     | '/dashboard/cards'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
@@ -743,6 +754,7 @@ export interface FileRouteTypes {
     | '/dashboard/api-sandbox'
     | '/dashboard/bank-transfer'
     | '/dashboard/bill-payments'
+    | '/dashboard/business'
     | '/dashboard/cards'
     | '/dashboard/collections'
     | '/dashboard/company-documents'
@@ -808,6 +820,7 @@ export interface RootRouteChildren {
   DashboardApiSandboxRoute: typeof DashboardApiSandboxRoute
   DashboardBankTransferRoute: typeof DashboardBankTransferRoute
   DashboardBillPaymentsRoute: typeof DashboardBillPaymentsRoute
+  DashboardBusinessRoute: typeof DashboardBusinessRoute
   DashboardCardsRoute: typeof DashboardCardsRoute
   DashboardCollectionsRoute: typeof DashboardCollectionsRoute
   DashboardCompanyDocumentsRoute: typeof DashboardCompanyDocumentsRoute
@@ -1086,6 +1099,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardBillPaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/business': {
+      id: '/dashboard/business'
+      path: '/dashboard/business'
+      fullPath: '/dashboard/business'
+      preLoaderRoute: typeof DashboardBusinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/cards': {
       id: '/dashboard/cards'
       path: '/dashboard/cards'
@@ -1312,6 +1332,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardApiSandboxRoute: DashboardApiSandboxRoute,
   DashboardBankTransferRoute: DashboardBankTransferRoute,
   DashboardBillPaymentsRoute: DashboardBillPaymentsRoute,
+  DashboardBusinessRoute: DashboardBusinessRoute,
   DashboardCardsRoute: DashboardCardsRoute,
   DashboardCollectionsRoute: DashboardCollectionsRoute,
   DashboardCompanyDocumentsRoute: DashboardCompanyDocumentsRoute,

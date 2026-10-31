@@ -50,6 +50,7 @@ const navItems: Array<{ label: string; href: string; icon: LucideIcon; group: st
   { label: "Currency Exchange", href: "/dashboard/exchange", icon: BadgeDollarSign, group: "main" },
   { label: "Crypto", href: "/dashboard/crypto", icon: Bitcoin, group: "main" },
   { label: "Reports", href: "/dashboard/reports", icon: FileChartColumn, group: "main" },
+  { label: "Business Account", href: "/dashboard/business", icon: Building2, group: "account" },
   { label: "API Keys", href: "/dashboard/api-keys", icon: KeyRound, group: "dev" },
   { label: "API Sandbox", href: "/dashboard/api-sandbox", icon: Braces, group: "dev" },
   { label: "Compliance", href: "/dashboard/company-documents", icon: Fingerprint, group: "account" },

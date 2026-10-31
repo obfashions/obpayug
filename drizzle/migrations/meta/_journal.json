@@ -253,6 +253,13 @@
       "when": 1793171522224,
       "tag": "0035_secondary_card_wallet",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793453973427,
+      "tag": "0036_bounded_merchant_directory",
+      "breakpoints": true
     }
   ]
 }

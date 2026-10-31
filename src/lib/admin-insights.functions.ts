@@ -7,16 +7,17 @@ const tokenInput = (d: { accessToken: string; days?: number }) => ({
 
 /** Same spendable funds as the merchant view, without combining currencies. */
 export const adminAccountBalances = createServerFn({ method: "POST" })
-  .inputValidator((d: { accessToken: string }) => ({ accessToken: String(d.accessToken || "") }))
+  .inputValidator((d: { accessToken: string; userIds?: string[] }) => ({ accessToken: String(d.accessToken || ""), userIds: (d.userIds || []).filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 51) }))
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./identity.server");
     await requireAdmin(data.accessToken, "finance");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { combinedBalances } = await import("./balance-values");
+    if (!data.userIds.length) return {};
     const [profiles, wallets, managed] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, default_currency"),
-      supabaseAdmin.from("merchant_wallets").select("*"),
-      supabaseAdmin.from("merchant_balances").select("merchant_id, currency, available_balance"),
+      supabaseAdmin.from("profiles").select("id, default_currency").in("id", data.userIds),
+      supabaseAdmin.from("merchant_wallets").select("*").in("user_id", data.userIds),
+      supabaseAdmin.from("merchant_balances").select("merchant_id, currency, available_balance").in("merchant_id", data.userIds),
     ]);
     if (profiles.error || wallets.error || managed.error) throw new Error("Account balances could not be refreshed.");
     return Object.fromEntries((profiles.data || []).map((p) => {
@@ -25,6 +26,29 @@ export const adminAccountBalances = createServerFn({ method: "POST" })
       const values = combinedBalances(wallet || null, managed.data?.filter((b) => b.merchant_id === p.id) || [], currency);
       return [p.id, { currency, withdrawals_enabled: wallet?.withdrawals_enabled !== false, available_balance: values[currency] || 0, wallets: values, pending_balance: Number(wallet?.pending_balance || 0), total_collections: Number(wallet?.total_collections || 0), total_payouts: Number(wallet?.total_payouts || 0) }];
     }));
+  });
+
+export const adminMerchantDirectory = createServerFn({ method: "POST" })
+  .inputValidator((d: { accessToken: string; search?: string; status?: string; verification?: string; accountType?: string; page?: number }) => ({ ...d, search: String(d.search || "").trim().slice(0, 120), page: Math.max(0, Math.floor(Number(d.page) || 0)) }))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./identity.server");
+    await requireAdmin(data.accessToken);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: directory, error } = await supabaseAdmin.rpc("admin_merchant_directory", { p_search: data.search, p_status: data.status || "all", p_verification: data.verification || "all", p_account_type: data.accountType || "all", p_page: data.page });
+    if (error) throw new Error("Merchant accounts could not be loaded. Please retry.");
+    const result = directory as any;
+    const ids = (result.rows || []).map((r: any) => r.id);
+    if (!ids.length) return result;
+    const [members, base] = await Promise.all([
+      supabaseAdmin.from("member_roles").select("user_id,role").in("user_id", ids),
+      supabaseAdmin.from("user_roles").select("user_id,role").in("user_id", ids),
+    ]);
+    if (members.error || base.error) throw new Error("Member permissions could not be loaded.");
+    return { ...result, rows: result.rows.map((r: any) => {
+      const roles = (members.data || []).filter((m) => m.user_id === r.id).map((m) => m.role);
+      const admin = roles.includes("super_admin") || (base.data || []).some((b) => b.user_id === r.id && b.role === "admin");
+      return { ...r, role: admin ? "admin" : "merchant", memberRoles: roles, role_tag: roles.join(", ") || null, support_agent: roles.includes("support_agent"), merchant_profiles: [{ ...r }] };
+    }) };
   });
 
 /** Admin-only: real API usage grouped by endpoint. */
@@ -121,15 +145,16 @@ export const adminMerchantActivity = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const id = data.userId;
-    const [mp, key, legacy, records, payouts, links] = await Promise.all([
+    const [mp, key, legacy, records, payouts, links, kyc] = await Promise.all([
       db.from("merchant_profiles").select("*").eq("user_id", id).maybeSingle(),
       db.from("merchant_api_keys").select("public_key, environment, status, created_at, last_used_at").eq("merchant_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       db.from("transactions").select("id, amount, currency, status, type, created_at, customer_phone, customer_name, description, payment_method, reference, fee_amount").eq("user_id", id).order("created_at", { ascending: false }).limit(500),
       db.from("payment_records").select("id, amount, currency, status, type, created_at, phone_number, description, source, reference, fee_amount").eq("merchant_id", id).order("created_at", { ascending: false }).limit(500),
       db.from("payout_requests").select("id, amount, currency, status, requested_at, phone_number").eq("user_id", id).order("requested_at", { ascending: false }).limit(10),
       db.from("payment_links").select("id", { count: "exact", head: true }).eq("merchant_id", id),
+      db.from("kyc_submissions").select("account_type,business_name,status,id_number,address,reviewed_at").eq("merchant_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
-    if (legacy.error || records.error) throw new Error("Transactions could not be loaded.");
+    if ([mp, key, legacy, records, payouts, links, kyc].some((r) => r.error)) throw new Error("Account tracking could not be loaded. Please retry.");
     const seen = new Set((legacy.data || []).map((t: any) => t.reference).filter(Boolean));
     const fromRecords = (records.data || []).filter((r: any) => !seen.has(r.reference)).map((r: any) => ({
       id: r.id, amount: r.amount, currency: r.currency, status: r.status, type: r.type, created_at: r.created_at,
@@ -137,7 +162,7 @@ export const adminMerchantActivity = createServerFn({ method: "POST" })
       payment_method: r.source === "payment_link" ? "Payment link" : "API",
     }));
     const txs = [...(legacy.data || []), ...fromRecords].sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at)));
-    return { mp: mp.data || null, apiKey: key.data || null, txs, payouts: payouts.data || [], linkCount: links.count || 0 };
+    return { mp: mp.data || null, kyc: kyc.data || null, apiKey: key.data || null, txs, payouts: payouts.data || [], linkCount: links.count || 0, truncated: (legacy.data || []).length === 500 || (records.data || []).length === 500 };
   });
 
 /** Admin-only: platform totals and recent activity across dashboard, API and payment-link payments, never counted twice. */
