@@ -375,11 +375,11 @@ export default function Register() {
                   />
                   <label htmlFor="terms" className="text-xs text-foreground-600 leading-relaxed">
                     I agree to the{" "}
-                    <Link to="#" className="text-primary-500 hover:text-primary-600">
+                    <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:text-primary-600">
                       Terms of Service
                     </Link>{" "}
-                    and{" "}
-                    <Link to="#" className="text-primary-500 hover:text-primary-600">
+                    and acknowledge the{" "}
+                    <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:text-primary-600">
                       Privacy Policy
                     </Link>
                   </label>
