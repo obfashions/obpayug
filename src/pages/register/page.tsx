@@ -76,7 +76,7 @@ export default function Register() {
     const preflightOk = await checkSupabaseConnectivity();
     if (!preflightOk) {
       setServerError(
-        "Cannot reach our authentication servers. This usually happens when the site domain is not yet configured in Supabase. Please contact support or try again in a few minutes."
+        "We cannot reach the account service right now. Please try again shortly or contact support."
       );
       setSubmitting(false);
       return;
@@ -119,7 +119,7 @@ export default function Register() {
       const msg = timeoutErr?.message || "";
       if (msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("network")) {
         setServerError(
-          "Network error. Our servers may be temporarily unavailable, or your domain may not be allowed in Supabase yet. Please try again shortly."
+          "The account service could not be reached. Please check your connection and try again."
         );
       } else {
         setServerError(msg || "Request timed out. Please check your connection and try again.");
@@ -201,19 +201,16 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-background-50">
       <Navbar />
-      <div className="pt-20 md:pt-24 pb-12">
+      <div className="pt-32 md:pt-36 pb-20">
         <div className="w-full px-4 md:px-6 lg:px-8">
           <div className="max-w-md mx-auto">
-            <div className="bg-background-50 rounded-2xl p-6 md:p-8 border border-background-200/70">
-              <div className="text-center mb-8">
-                <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center mx-auto mb-4">
-                  <i className="ri-user-add-line text-primary-600 text-2xl" />
-                </div>
+            <div className="bg-background-50 p-2 md:p-4">
+              <div className="mb-8">
                 <h1 className="font-heading font-bold text-2xl md:text-3xl text-foreground-900 mb-2">
-                  Create Your Account
+                  Create an ObPay account
                 </h1>
                 <p className="text-sm text-foreground-600">
-                  Start accepting payments in minutes
+                  Register your details, then complete identity verification.
                 </p>
               </div>
 
