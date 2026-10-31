@@ -1,3 +1,4 @@
+- [ ] Add ObPay Terms and Privacy pages and replace signup policy placeholders; awaiting confirmed legal operator, address, policy contact, governing jurisdiction and reviewed documents or approval to prepare drafts for legal review.
 - [x] Refresh homepage, shared merchant/admin layouts, services, pricing, sign-in/registration and support copy. Public desktop/mobile navigation, dark mode and seven pages verified; no overflow/runtime errors; 36 existing fee/balance/permission tests passed.
 - [ ] Visually verify refreshed merchant/admin screens signed in: requesting account redirects to login (previously deactivated); no access controls bypassed or account status changed.
 - [x] Strengthen growing-account management: service-only paged directory, checked status/onboarding writes, current-page balance refresh every 30 seconds with overlapping/hidden requests blocked.
