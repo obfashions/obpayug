@@ -1,3 +1,6 @@
+- [ ] Strengthen growing-account management: bounded reads, truthful action errors and targeted balance refresh.
+- [ ] Add business account workspace and clearer merchant tracking.
+- [ ] Research partner fees, configure a 2% ObPay margin without double charges, preserve exemptions and test fee rules.
 - [x] Connect Marz secondary services; live airtime/bill catalogs and subscriptions verified, nine service routes plus homepage/docs/admin monitor added; 45 safety checks pass. Payza payments unchanged.
 - [ ] Activate automatic bank transfers: blocked by missing pre-submit exact fee and client-idempotency contract; customer-service path remains available.
 - [ ] Verify funded Marz purchases, card settlement and admin service panel end to end: requesting account is deactivated; no authorized funded recipient or active admin session supplied. No real purchase sent.
