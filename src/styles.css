@@ -97,7 +97,7 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }
 
-.dark {
+:root.dark {
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
@@ -273,7 +273,7 @@
   --foreground-950: 0.1 0 0;
 }
 
-.dark {
+:root.dark {
   --background-50: 0.15 0 0;
   --background-100: 0.18 0 0;
   --background-200: 0.22 0 0;
@@ -415,7 +415,7 @@ pre code {
   animation: account-grid-drift 5s linear infinite;
 }
 
-.dark {
+:root.dark {
   color-scheme: dark;
 }
 
@@ -458,7 +458,7 @@ pre code {
   --on-inverse: oklch(0.99 0 0);
   --inverse-accent: oklch(0.82 0.12 160);
 }
-.dark {
+:root.dark {
   --background: oklch(0.17 0.005 160);
   --foreground: oklch(0.96 0 0);
   --primary: oklch(0.76 0.12 160);
