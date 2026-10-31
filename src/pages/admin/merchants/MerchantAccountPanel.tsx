@@ -6,6 +6,7 @@ import { merchantMonthRecords } from "@/lib/merchant-report.functions";
 import { adminMerchantActivity } from "@/lib/admin-insights.functions";
 import { platform } from "@/lib/platform";
 import { WALLET_CURRENCIES } from "@/lib/countries";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   userId: string;
