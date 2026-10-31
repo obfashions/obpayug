@@ -185,14 +185,20 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
   const [txs, setTxs] = useState<TxRow[]>([]);
   const [payouts, setPayouts] = useState<PayoutRow[]>([]);
   const [linkCount, setLinkCount] = useState<number>(0);
+  const [kyc, setKyc] = useState<any>(null);
+  const [loadError, setLoadError] = useState("");
+  const [truncated, setTruncated] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setLoadError("");
       const res: any = await adminMerchantActivity({ data: { accessToken: await getAccessToken(), userId } });
       if (cancelled) return;
       setMp(res.mp);
+      setKyc(res.kyc); setTruncated(res.truncated);
       setApiKey(res.apiKey);
       setTxs(res.txs || []);
       setPayouts(res.payouts || []);
@@ -200,12 +206,12 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
       setLoading(false);
     };
     load().then(undefined, () => {
-      if (!cancelled) setLoading(false);
+      if (!cancelled) { setLoading(false); setLoadError("Account tracking could not be loaded. Please retry."); }
     });
     return () => {
       cancelled = true;
     };
-  }, [userId, refreshVersion]);
+  }, [userId, refreshVersion, retry]);
 
   const ok = (s?: string | null) => s === "successful" || s === "completed" || s === "success" || s === "settled";
   const settled = txs.filter((t) => ok(t.status));
@@ -242,11 +248,13 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
       </div>
     );
   }
+  if (loadError) return <div role="alert" className="p-4 text-sm text-accent-600">{loadError} <Button variant="outline" onClick={() => setRetry((v) => v + 1)}>Retry</Button></div>;
 
   return (
     <div className="space-y-5">
       <div className="bg-background-100 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-foreground-900 mb-3"><i className="ri-line-chart-line mr-1.5 text-foreground-500" />Account Tracking</h4>
+        <h4 className="text-sm font-semibold text-foreground-900 mb-3"><i className="ri-line-chart-line mr-1.5 text-foreground-500" />Recent Account Tracking</h4>
+        {truncated && <p className="text-xs text-foreground-500 mb-3">Recent transactions only; these figures are not lifetime totals.</p>}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {stats.map(([label, value, cls]) => (
             <div key={label} className="bg-background-50 rounded-lg border border-background-200/70 p-3">
@@ -256,7 +264,9 @@ export default function MerchantAccountPanel({ userId, refreshVersion = 0 }: Pro
           ))}
         </div>
         <p className="text-[11px] text-foreground-500 mt-2">Last activity: {fmtDate(txs[0]?.created_at)}</p>
+        <p className="text-[11px] text-foreground-500 mt-2">API last used: {fmtDate((apiKey as any)?.last_used_at)} · Pending over 24 hours: {pending.filter((t) => Date.now() - new Date(t.created_at).getTime() > 86400000).length}</p>
       </div>
+      <section className="border-y border-background-200 py-4"><h4 className="text-sm font-semibold text-foreground-900">{kyc?.account_type === "business" ? "Business verification" : "Personal verification"}</h4><dl className="mt-3 grid sm:grid-cols-3 gap-3 text-xs">{[["Verified name", kyc?.business_name || mp?.company_name || "—"], ["Review status", kyc?.status || mp?.verification_status || "Not submitted"], ["Registration / ID", kyc?.id_number || "—"], ["Reviewed", fmtDate(kyc?.reviewed_at)]].map(([label, value]) => <div key={label}><dt className="text-foreground-500">{label}</dt><dd className="mt-1 break-words text-foreground-900">{value}</dd></div>)}</dl></section>
       <MonthlyReport userId={userId} mp={mp} txs={txs} />
       <AdminExchange userId={userId} />
       {/* Verification documents */}
