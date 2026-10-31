@@ -1,195 +1,43 @@
 import { useState, useEffect } from "react";
+import { Link } from "@/lib/router-compat";
+import { ArrowRight, ArrowDownLeft, ArrowUpRight, Link2, Braces } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
-import { JsonLd } from "@/components/base/JsonLd";
 import HeroSection from "./components/HeroSection";
-import QuickActionsSection from "./components/QuickActionsSection";
-import PaymentMethodsSection from "./components/PaymentMethodsSection";
-import FeaturesSection from "./components/FeaturesSection";
-import HowItWorksSection from "./components/HowItWorksSection";
-import RealStoriesSection from "./components/RealStoriesSection";
-import StatsSection from "./components/StatsSection";
-import TestimonialsSection from "./components/TestimonialsSection";
-import FAQSection from "./components/FAQSection";
-import CTASection from "./components/CTASection";
-import ContactSection from "./components/ContactSection";
-import TrustSection from "./components/TrustSection";
-import PartnersSection from "./components/PartnersSection";
-import InstallPWA from "./components/InstallPWA";
-import ComplianceSection from "./components/ComplianceSection";
-import WhatsappFloatingButton from "@/components/feature/WhatsappFloatingButton";
 import CountriesSection from "./components/CountriesSection";
 import { ServiceDirectory } from "@/pages/services/page";
 
+const products = [
+  { number: "01", name: "Accept payments", icon: ArrowDownLeft, detail: "Request payment from a customer's mobile-money account. Track each collection by reference, amount and status.", link: "/docs#collections", label: "Collections" },
+  { number: "02", name: "Send payouts", icon: ArrowUpRight, detail: "Pay recipients on supported networks. Review the recipient amount, charges and wallet deduction before confirming.", link: "/docs#payouts", label: "Payouts" },
+  { number: "03", name: "Share a payment link", icon: Link2, detail: "Create a checkout link from your account and send it to your customer. Keep the payment alongside your other transactions.", link: "/register", label: "Payment links" },
+];
+
 export default function Home() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
-
   useEffect(() => {
-    const saved = localStorage.getItem("obpay-theme") as "light" | "dark" | null;
-    if (saved) {
-      setTheme(saved);
-      document.documentElement.classList.toggle("dark", saved === "dark");
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
-    }
+    const saved = localStorage.getItem("obpay-theme");
+    const dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    setTheme(dark ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", dark);
   }, []);
-
   const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-    localStorage.setItem("obpay-theme", newTheme);
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next); document.documentElement.classList.toggle("dark", next === "dark"); localStorage.setItem("obpay-theme", next);
   };
-
-  return (
-    <div className="min-h-screen bg-background-50">
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "ObPay",
-          url: import.meta.env.VITE_SITE_URL,
-          description: "ObPay operates internationally with separate currency wallets and country-specific payment methods.",
-          logo: "https://storage.readdy-site.link/project_files/f591f50b-9b67-4c2e-91b2-e9cd02864c7f/c3af3d6a-4922-444f-b121-d8c41e1841fc_compressed_file_000000001c7471f4988719b77b5ed56d.webp",
-          telephone: ["+256-762-201-984", "+256-745-482-977"],
-          email: "support@obpay.com",
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: "Fortportal Rubona",
-            addressLocality: "Fortportal",
-            addressRegion: "Western Region",
-            addressCountry: "UG",
-          },
-          geo: {
-            "@type": "GeoCoordinates",
-            latitude: "0.6716",
-            longitude: "30.2750",
-          },
-          contactPoint: [
-            {
-              "@type": "ContactPoint",
-              telephone: "+256-762-201-984",
-              contactType: "customer support",
-              availableLanguage: ["English"],
-              areaServed: "UG",
-            },
-            {
-              "@type": "ContactPoint",
-              telephone: "+256-745-482-977",
-              contactType: "WhatsApp support",
-              availableLanguage: ["English"],
-              areaServed: "UG",
-            },
-          ],
-          sameAs: [
-            "https://twitter.com/obpay",
-            "https://linkedin.com/company/obpay",
-          ],
-        }}
-      />
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: [
-            {
-              "@type": "Question",
-              name: "What payment methods does ObPay support?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "ObPay supports MTN Mobile Money, Airtel Money, and direct bank transfers across East Africa. We are connected to major banks including GTBank, Stanbic Bank, Equity Bank, Absa, DFCU Bank, Centenary Bank, PostBank, and Housing Finance Bank.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "How long does it take to integrate the ObPay API?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Most developers complete a basic integration within 2 hours. We provide SDKs for PHP, Laravel, Node.js, JavaScript, and Python, along with comprehensive documentation and a sandbox environment for testing.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "What are the transaction fees?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "ObPay uses simple tiered pricing on payouts and withdrawals: a flat 2,000 UGX for amounts 500–70,000 UGX, and 3% for 70,001–5M UGX. Receiving payments has a small platform fee shown before each payment. No setup fees or monthly minimums.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "How do I get verified as a merchant?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "After registration, you will be redirected to the KYC page where you provide your company name, country, business address, and national ID number. Our team reviews applications within 24-48 hours.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "Is my data and my customers' data secure?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Absolutely. ObPay uses bank-level AES-256 encryption for all data in transit and at rest. We are PCI DSS compliant, implement two-factor authentication, advanced fraud detection, and regular security audits.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "Can I create payment links without writing code?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Yes! Our Payment Links feature lets you create secure payment URLs directly from your dashboard in seconds. Simply enter the amount, currency, description, and optional redirect URL. Share the link via WhatsApp, email, SMS, or social media. No coding required.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "How do webhooks work on ObPay?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Webhooks allow your application to receive real-time notifications when events occur, such as successful payments, failed transactions, or completed payouts. You configure a webhook URL in your dashboard, and we send signed POST requests with event data.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "How does ObPay handle compliance and anti-money laundering (AML)?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "ObPay has a comprehensive compliance framework. Every merchant must complete mandatory KYC verification — including national ID upload and business address confirmation — before processing any transactions. All documents are manually reviewed by our compliance team. We run automated AML monitoring on every transaction to detect suspicious patterns, maintain complete audit trails of all financial activity, and operate in alignment with Bank of Uganda AML/CFT guidelines and FATF recommendations for payment service providers.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "What currencies does ObPay support?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "ObPay supports UGX, KES, RWF, NGN, XOF, USD, ZMW, SLE and CDF and XAF wallets. Payment methods and availability vary by country.",
-              },
-            },
-          ],
-        }}
-      />
-      <Navbar onToggleTheme={toggleTheme} theme={theme} />
-      <main>
-        <HeroSection />
-        <CountriesSection />
-        <section className="px-4 py-12 max-w-7xl mx-auto space-y-6"><div><h2 className="text-2xl font-semibold text-foreground">Payments and everyday services</h2><p className="text-muted-foreground mt-2">Uganda airtime, data, electricity, water, TV and card payments. Bank transfers are customer-service assisted.</p></div><ServiceDirectory/></section>
-        <QuickActionsSection />
-        <PaymentMethodsSection />
-        <FeaturesSection />
-        <HowItWorksSection />
-        <RealStoriesSection />
-        <StatsSection />
-        <TrustSection />
-        <ComplianceSection />
-        <PartnersSection />
-        <TestimonialsSection />
-        <CTASection />
-        <FAQSection />
-        <ContactSection />
-      </main>
-      <Footer />
-      <InstallPWA />
-      <WhatsappFloatingButton />
-    </div>
-  );
+  return <div className="min-h-screen bg-background">
+    <Navbar onToggleTheme={toggleTheme} theme={theme} />
+    <main className="pt-[72px]">
+      <HeroSection />
+      <section id="features" className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-24">
+        <div className="mb-12 grid gap-5 md:grid-cols-2"><h2 className="max-w-lg text-3xl font-semibold leading-tight md:text-4xl">Your payments.<br />One operational account.</h2><p className="max-w-lg self-end text-base leading-7 text-muted-foreground">Collections, payouts and payment links with a record of every transaction. Manage payments from your account or connect ObPay to your own application.</p></div>
+        <div className="grid md:grid-cols-3">{products.map(p => <article key={p.number} className="border-t border-border py-8 md:pr-10"><div className="mb-7 flex items-center gap-4"><p.icon className="h-6 w-6 text-primary" /><span className="font-mono text-xs text-muted-foreground">{p.number}</span></div><h3 className="text-xl font-semibold">{p.name}</h3><p className="mt-4 max-w-sm text-sm leading-7 text-muted-foreground">{p.detail}</p><Link to={p.link} className="mt-6 inline-flex items-center gap-3 text-sm font-medium text-primary">{p.label}<ArrowRight className="h-4 w-4" /></Link></article>)}</div>
+      </section>
+      <CountriesSection />
+      <section className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-24"><div className="mb-10 flex flex-wrap items-end justify-between gap-6"><div><p className="mb-3 text-sm font-medium text-primary">Day-to-day operations</p><h2 className="text-3xl font-semibold md:text-4xl">More than a payment.</h2><p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">Airtime, data and bill payments for Uganda, alongside card collections. Bank transfers are arranged through customer service.</p></div><Link to="/services" className="inline-flex items-center gap-3 text-sm font-medium text-primary">All services <ArrowRight className="h-4 w-4" /></Link></div><ServiceDirectory /></section>
+      <section className="bg-inverse text-on-inverse"><div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-2 md:px-10 md:py-20"><div><Braces className="mb-6 h-8 w-8 text-inverse-accent" /><p className="mb-3 text-sm text-inverse-accent">For developers</p><h2 className="text-3xl font-semibold leading-tight md:text-4xl">Payments inside<br />your application.</h2><p className="mt-5 max-w-md text-base leading-7 text-on-inverse/75">Use the API to initiate collections, submit payouts and retrieve balances by currency. Follow a payment from request to confirmed outcome.</p><Button asChild variant="outline" className="mt-8 border-on-inverse/30 bg-transparent text-on-inverse hover:bg-on-inverse/10 hover:text-on-inverse"><Link to="/docs">Read the documentation <ArrowRight /></Link></Button></div><div className="self-center border-y border-on-inverse/20 font-mono text-sm"><div className="border-b border-on-inverse/20 py-4 text-on-inverse/60">API reference</div>{[{ method:"POST",path:"/v1/collect",desc:"Request a collection"},{method:"POST",path:"/v1/payout",desc:"Submit a payout"},{method:"GET",path:"/v1/balance?currency=UGX",desc:"Read a currency balance"}].map(r=><div key={r.path} className="py-5"><div className="flex flex-wrap gap-4"><span className="text-inverse-accent">{r.method}</span><span className="break-all">{r.path}</span></div><p className="mt-2 font-sans text-xs text-on-inverse/60">{r.desc}</p></div>)}</div></div></section>
+      <section id="contact" className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-6 py-16 md:flex-row md:items-center md:px-10 md:py-20"><div><h2 className="text-3xl font-semibold">Put ObPay to work.</h2><p className="mt-4 text-muted-foreground">Create an account or speak with our team about your business.</p></div><div className="flex flex-wrap gap-3"><Button asChild size="lg"><Link to="/register">Create an account <ArrowRight /></Link></Button><Button asChild variant="outline" size="lg"><Link to="/support">Contact support</Link></Button></div></section>
+    </main><Footer />
+  </div>;
 }

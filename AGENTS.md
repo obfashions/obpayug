@@ -45,3 +45,5 @@
 - Secondary service purchases reserve funds atomically before submission, reuse UUID references, verify terminal outcomes, and retain uncertain reservations; bank creation stays blocked without exact pre-submit fees/idempotency — why: avoid double spending and losses.
 - Secondary card credits use a service-only one-time RPC into a restricted card balance, never mobile-money funds — why: the provider card rail is separate.
 - Merchant directory is service-only, paged; balance refresh scopes current IDs. Business statements keep currencies separate and disable incomplete exports — why: scalable, truthful records.
+
+- Public pages use original task-focused copy and shared semantic presentation tokens; account layouts keep navigation fixed and content scrollable — why: credible, consistent payment-product presentation without changing financial behavior.

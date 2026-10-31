@@ -86,7 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ObPay (PawaPay Ptn) — Powering Business Payments Across East Africa" },
+      { title: "ObPay — Business Payments" },
       {
         name: "description",
         content:
@@ -121,7 +121,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
       },
       {
         rel: "stylesheet",
@@ -149,7 +149,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <style
           dangerouslySetInnerHTML={{
             __html:
-              "html{-webkit-text-size-adjust:100%}body{margin:0;background:#ffffff;color:#0f172a;font-family:Inter,'Plus Jakarta Sans',system-ui,-apple-system,sans-serif}",
+              "html{-webkit-text-size-adjust:100%}body{margin:0;background:#ffffff;color:#0f172a;font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif}",
           }}
         />
         <HeadContent />

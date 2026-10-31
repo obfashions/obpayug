@@ -20,33 +20,23 @@ export default function Footer() {
   }, []);
 
   const productLinks = [
-    { label: "Collections", href: "#features" },
-    { label: "Payouts", href: "#features" },
-    { label: "Payment Links", href: "#features" },
-    { label: "API Documentation", href: "/docs" },
+    { label: "Payment services", href: "/services" },
     { label: "Pricing", href: "/pricing" },
+    { label: "Create an account", href: "/register" },
   ];
-
   const developerLinks = [
-    { label: "API Reference", href: "/docs" },
-    { label: "SDKs", href: "/docs/sdk" },
-    { label: "Webhooks", href: "/docs#webhooks" },
-    { label: "Status Page", href: "#" },
-    { label: "Changelog", href: "#" },
+    { label: "API documentation", href: "/docs" },
+    { label: "API keys", href: "/dashboard/api-keys" },
+    { label: "API sandbox", href: "/dashboard/api-sandbox" },
   ];
-
   const companyLinks = [
-    { label: "About Us", href: "#" },
-    { label: "Careers", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Contact", href: "#contact" },
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
+    { label: "Contact support", href: "/support" },
+    { label: "Sign in", href: "/login" },
   ];
 
   return (
     <footer className="bg-background-100 border-t border-background-200/70">
-      <div className="w-full px-4 md:px-6 lg:px-8 py-12 md:py-16">
+      <div className="max-w-7xl mx-auto px-6 md:px-10 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 md:gap-8">
           {/* Brand */}
           <div className="lg:col-span-4">
@@ -57,41 +47,12 @@ export default function Footer() {
                 </span>
               </div>
               <span className="font-heading font-bold text-lg text-foreground-900">
-                ObPay <span className="font-medium text-sm opacity-80">(PawaPay Ptn)</span>
+                ObPay.
               </span>
             </Link>
             <p className="text-sm text-foreground-600 leading-relaxed max-w-xs">
-              Powering business payments across East Africa. Collect payments, send payouts, and integrate secure APIs with a single platform.
+              Business payments across supported markets. Collections, payouts and separate currency wallets.
             </p>
-            <div className="flex items-center gap-3 mt-5">
-              <a
-                href="https://twitter.com/obpay"
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="w-9 h-9 rounded-full bg-background-200/70 flex items-center justify-center text-foreground-600 hover:text-primary-500 hover:bg-primary-100 transition-colors"
-                aria-label="Twitter"
-              >
-                <i className="ri-twitter-x-line text-base" />
-              </a>
-              <a
-                href="https://linkedin.com/company/obpay"
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="w-9 h-9 rounded-full bg-background-200/70 flex items-center justify-center text-foreground-600 hover:text-primary-500 hover:bg-primary-100 transition-colors"
-                aria-label="LinkedIn"
-              >
-                <i className="ri-linkedin-fill text-base" />
-              </a>
-              <a
-                href="https://github.com/obpay"
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="w-9 h-9 rounded-full bg-background-200/70 flex items-center justify-center text-foreground-600 hover:text-primary-500 hover:bg-primary-100 transition-colors"
-                aria-label="GitHub"
-              >
-                <i className="ri-github-fill text-base" />
-              </a>
-            </div>
             {supportEmail && (
               <div className="mt-4 space-y-1">
                 <a href={`mailto:${supportEmail}`} className="flex items-center gap-2 text-sm text-foreground-600 hover:text-primary-500 transition-colors">
@@ -99,12 +60,12 @@ export default function Footer() {
                   {supportEmail}
                 </a>
                 {supportWhatsApp && (
-                  <a href={`https://wa.me/${supportWhatsApp.replace(/\+/g, "")}`} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-2 text-sm text-foreground-600 hover:text-emerald-500 transition-colors">
+                  <a href={`https://wa.me/${supportWhatsApp.replace(/\+/g, "")}`} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-2 text-sm text-foreground-600 hover:text-primary transition-colors">
                     <i className="ri-whatsapp-line text-foreground-400" />
                     {supportWhatsApp}
                   </a>
                 )}
-                <a href="https://chat.whatsapp.com/HDHGlZLMsOsCGjKvjQyAx5?s=cl&p=a&mlu=1" target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-2 text-sm text-foreground-600 hover:text-emerald-500 transition-colors">
+                <a href="https://chat.whatsapp.com/HDHGlZLMsOsCGjKvjQyAx5?s=cl&p=a&mlu=1" target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-2 text-sm text-foreground-600 hover:text-primary transition-colors">
                   <i className="ri-group-line text-foreground-400" />
                   Join our WhatsApp Community
                 </a>
@@ -179,21 +140,9 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-background-200/70 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-foreground-500">
-            &copy; 2026 ObPay (PawaPay Ptn). All rights reserved.
+            &copy; 2026 ObPay. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-xs text-foreground-500">
-            <Link to="#" className="hover:text-foreground-700 transition-colors">
-              Privacy
-            </Link>
-            <span className="text-foreground-300">|</span>
-            <Link to="#" className="hover:text-foreground-700 transition-colors">
-              Terms
-            </Link>
-            <span className="text-foreground-300">|</span>
-            <Link to="#" className="hover:text-foreground-700 transition-colors">
-              Cookies
-            </Link>
-          </div>
+          <Link to="/support" className="text-xs text-foreground-500 hover:text-primary">Customer support</Link>
         </div>
       </div>
     </footer>
