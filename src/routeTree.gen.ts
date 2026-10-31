@@ -14,10 +14,12 @@ import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as VerifyLoginRouteImport } from './routes/verify-login'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -98,6 +100,11 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -116,6 +123,11 @@ const ServicesRoute = ServicesRouteImport.update({
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
@@ -398,10 +410,12 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
@@ -463,10 +477,12 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
@@ -529,10 +545,12 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
   '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
@@ -596,10 +614,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/services'
     | '/support'
+    | '/terms'
     | '/verify-email'
     | '/verify-login'
     | '/admin/api-monitoring'
@@ -661,10 +681,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/services'
     | '/support'
+    | '/terms'
     | '/verify-email'
     | '/verify-login'
     | '/admin/api-monitoring'
@@ -726,10 +748,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/pricing'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/services'
     | '/support'
+    | '/terms'
     | '/verify-email'
     | '/verify-login'
     | '/admin/api-monitoring'
@@ -792,10 +816,12 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
   SupportRoute: typeof SupportRoute
+  TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   VerifyLoginRoute: typeof VerifyLoginRoute
   AdminApiMonitoringRoute: typeof AdminApiMonitoringRoute
@@ -889,6 +915,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -915,6 +948,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify-email': {
@@ -1304,10 +1344,12 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
   SupportRoute: SupportRoute,
+  TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   VerifyLoginRoute: VerifyLoginRoute,
   AdminApiMonitoringRoute: AdminApiMonitoringRoute,

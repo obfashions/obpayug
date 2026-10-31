@@ -46,4 +46,5 @@
 - Secondary card credits use a service-only one-time RPC into a restricted card balance, never mobile-money funds — the provider card rail is separate.
 - Merchant directory is service-only, paged; balance refresh scopes current IDs. Business statements keep currencies separate and disable incomplete exports — scalable, truthful records.
 
-- Public copy is original and task-focused; shared tokens style pages, with fixed account navigation and scrollable content — consistent UI, unchanged finances.
+- Public copy is original; shared tokens and fixed account navigation keep presentation consistent without changing finances.
+- Terms and Privacy have separate public routes and a shared PolicyLayout; signup opens them in new tabs to preserve entered details.

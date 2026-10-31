@@ -32,6 +32,8 @@ export default function Footer() {
   const companyLinks = [
     { label: "Contact support", href: "/support" },
     { label: "Sign in", href: "/login" },
+    { label: "Terms of Service", href: "/terms" },
+    { label: "Privacy Policy", href: "/privacy" },
   ];
 
   return (

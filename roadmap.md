@@ -1,4 +1,5 @@
-- [ ] Add ObPay Terms and Privacy pages and replace signup policy placeholders; awaiting confirmed legal operator, address, policy contact, governing jurisdiction and reviewed documents or approval to prepare drafts for legal review.
+- [x] Add simple ObPay Terms and Privacy pages using confirmed Fort Portal, Uganda location and policy contact; signup links open new tabs without losing entries, footer links added, desktop/330px layouts verified, no runtime errors and build clean.
+- [ ] Obtain external legal review and complete operator identity, full street address and retention disclosures; owner has not supplied these details or reviewed documents. Policies are not represented as legally reviewed.
 - [x] Refresh homepage, shared merchant/admin layouts, services, pricing, sign-in/registration and support copy. Public desktop/mobile navigation, dark mode and seven pages verified; no overflow/runtime errors; 36 existing fee/balance/permission tests passed.
 - [ ] Visually verify refreshed merchant/admin screens signed in: requesting account redirects to login (previously deactivated); no access controls bypassed or account status changed.
 - [x] Strengthen growing-account management: service-only paged directory, checked status/onboarding writes, current-page balance refresh every 30 seconds with overlapping/hidden requests blocked.
