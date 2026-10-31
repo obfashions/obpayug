@@ -21,6 +21,14 @@ export function collectionFee(amount: number, currency: string, platformPercent:
   return Math.min(fee, amount);
 }
 
+/** One total deduction: the verified partner cost plus ObPay's retained margin. */
+export function collectionMarginFee(amount: number, currency: string, marginPercent: number, partnerFee: number) {
+  if (!Number.isFinite(partnerFee) || partnerFee < 0 || partnerFee > amount) throw new Error("Collection charge could not be verified.");
+  const total = roundUp(partnerFee, currency) + roundUp(amount * clampPercent(marginPercent) / 100, currency);
+  if (total >= amount) throw new Error("Collection fees leave no available funds. Please contact customer service.");
+  return roundUp(total, currency);
+}
+
 /** Read only trusted gateway responses; an explicit zero fee is not missing data. */
 export function reportedCollectionFee(data: { fee?: unknown; net_amount?: unknown; amount?: unknown } | null | undefined): number | undefined {
   if (!data) return undefined;
@@ -41,8 +49,9 @@ function clampPercent(value: number) {
 }
 
 /** Admin-set per-currency fee override from platform_settings.currency_fees, e.g. {"RWF":{"withdraw":1}}. */
-export function currencyFeeOverride(currencyFees: unknown, currency: string, kind: "collect" | "withdraw"): number | undefined {
+export function currencyFeeOverride(currencyFees: unknown, currency: string, kind: "collect" | "withdraw" | "collect_margin"): number | undefined {
   const row = (currencyFees as Record<string, Record<string, unknown>> | null)?.[String(currency || "").toUpperCase()];
+  if (row?.[kind] == null || row[kind] === "") return undefined;
   const v = Number(row?.[kind]);
   return Number.isFinite(v) && v >= 0 && v <= 100 ? v : undefined;
 }

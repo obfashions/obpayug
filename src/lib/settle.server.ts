@@ -30,7 +30,7 @@ export interface SettleResult {
 }
 
 export async function collectionFeeFor(record: Record<string, any>, verifiedPartnerFee?: number) {
-  const { collectionFee, collectFeePercent, PARTNER_COLLECTION_PERCENT } = await import("./platform-fees");
+  const { collectionFee, collectionMarginFee, currencyFeeOverride, collectFeePercent, PARTNER_COLLECTION_PERCENT } = await import("./platform-fees");
   const amount = Number(record.amount) || 0;
   const currency = String(record.currency || "UGX");
   if (amount <= 0) return 0;
@@ -40,6 +40,10 @@ export async function collectionFeeFor(record: Record<string, any>, verifiedPart
   }
   const stored = record.metadata?.partner_fee;
   const reported = verifiedPartnerFee ?? (stored == null ? undefined : Number(stored));
+  const margin = currencyFeeOverride(ps.currency_fees, currency, "collect_margin");
+  if (margin != null && (reported == null || !Number.isFinite(reported) || reported < 0 || reported > amount)) {
+    throw new Error("This payment is awaiting confirmation of its collection charge. No funds have been credited yet.");
+  }
   const partner = reported != null && Number.isFinite(reported) && reported >= 0
     ? reported : amount * PARTNER_COLLECTION_PERCENT / 100;
   // Fee-exempt merchants pay only the partner's own charge.
@@ -48,6 +52,7 @@ export async function collectionFeeFor(record: Record<string, any>, verifiedPart
     ? await db().from("merchant_fee_exemptions").select("merchant_id").eq("merchant_id", merchantId).maybeSingle()
     : { data: null, error: null };
   if (exemptError) throw new Error("Deposit fees are temporarily unavailable. Please try again shortly.");
+  if (!exempt && margin != null) return collectionMarginFee(amount, currency, margin, partner);
   const pct = exempt ? 0 : collectFeePercent(currency, Number(ps.platform_fee_percent), ps.currency_fees);
   return collectionFee(amount, currency, pct, partner);
 }

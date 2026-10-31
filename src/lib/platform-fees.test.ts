@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { collectionFee, reportedCollectionFee, payoutPlatformFee, minimumFeeInclusivePayout, payoutFeePercent } from "./platform-fees";
+import { collectionFee, collectionMarginFee, currencyFeeOverride, reportedCollectionFee, payoutPlatformFee, minimumFeeInclusivePayout, payoutFeePercent } from "./platform-fees";
 
 describe("platform fees", () => {
+  for (const currency of ["UGX", "KES", "RWF", "NGN", "XOF", "USD", "ZMW", "SLL", "CDF", "XAF"]) {
+    it(`retains 2% above the partner charge once in ${currency}`, () => {
+      expect(collectionMarginFee(10000, currency, 2, 600)).toBe(800);
+      expect(payoutPlatformFee(10000, currency, 2)).toBe(200);
+    });
+  }
+  it("does not interpret missing or empty currency overrides as zero", () => {
+    expect(currencyFeeOverride({ RWF: { collect: null } }, "RWF", "collect")).toBeUndefined();
+    expect(currencyFeeOverride({ RWF: { withdraw: "" } }, "RWF", "withdraw")).toBeUndefined();
+    expect(currencyFeeOverride({ RWF: { withdraw: 0 } }, "RWF", "withdraw")).toBe(0);
+  });
+  it("refuses charges that cannot cover the partner and margin", () => {
+    expect(() => collectionMarginFee(100, "RWF", 2, 99)).toThrow("leave no available funds");
+  });
   it("reads the documented KES 36.75 charge on a 2450 deposit", () => {
     expect(reportedCollectionFee({ amount: 2450, fee: 36.75, net_amount: 2413.25 })).toBe(36.75);
     expect(reportedCollectionFee({ amount: 2450, net_amount: 2413.25 })).toBe(36.75);
