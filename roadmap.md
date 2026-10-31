@@ -1,6 +1,7 @@
-- [ ] Strengthen growing-account management: bounded reads, truthful action errors and targeted balance refresh.
-- [ ] Add business account workspace and clearer merchant tracking.
-- [ ] Research partner fees, configure a 2% ObPay margin without double charges, preserve exemptions and test fee rules.
+- [x] Strengthen growing-account management: service-only paged directory, checked status/onboarding writes, current-page balance refresh every 30 seconds with overlapping/hidden requests blocked.
+- [x] Add business workspace, currency-separated monthly CSV statements, verification and integration links; admin business filters, review details, API use and aging-pending tracking.
+- [x] Verify live payout fees for ten currencies and actual recent UGX/RWF/ZMW collection charges; configure 2% collection margin/payout rate across all currencies, preserve exemptions, defer credits with unknown charges. 105 regression checks passed; website validation clean.
+- [ ] Verify new business and admin pages signed in: requesting account remains deactivated, so restored session is correctly rejected. No privileges or account status changed; no real payment sent.
 - [x] Connect Marz secondary services; live airtime/bill catalogs and subscriptions verified, nine service routes plus homepage/docs/admin monitor added; 45 safety checks pass. Payza payments unchanged.
 - [ ] Activate automatic bank transfers: blocked by missing pre-submit exact fee and client-idempotency contract; customer-service path remains available.
 - [ ] Verify funded Marz purchases, card settlement and admin service panel end to end: requesting account is deactivated; no authorized funded recipient or active admin session supplied. No real purchase sent.
