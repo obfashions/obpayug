@@ -693,7 +693,7 @@ export default function AdminMerchants() {
               {/* Balance Controls */}
               <button
                 onClick={async () => {
-                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken(), userIds: [selected.id] } });
                   const b: any = (all as any)[selected.id] || {};
                   const main = b.currency || "UGX";
                   setBalanceModal({ type: "add", merchantId: selected.id, merchantName: selected.full_name, currentBalance: b.wallets?.[main] || 0, currency: main, mainCurrency: main, wallets: b.wallets || { [main]: 0 } });
@@ -704,7 +704,7 @@ export default function AdminMerchants() {
               </button>
               <button
                 onClick={async () => {
-                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken() } });
+                  const all = await adminAccountBalances({ data: { accessToken: await getAccessToken(), userIds: [selected.id] } });
                   const b: any = (all as any)[selected.id] || {};
                   const main = b.currency || "UGX";
                   setBalanceModal({ type: "deduct", merchantId: selected.id, merchantName: selected.full_name, currentBalance: b.wallets?.[main] || 0, currency: main, mainCurrency: main, wallets: b.wallets || { [main]: 0 } });
