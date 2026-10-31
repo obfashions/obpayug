@@ -9,8 +9,8 @@ import CountriesSection from "./components/CountriesSection";
 import { ServiceDirectory } from "@/pages/services/page";
 
 const products = [
-  { number: "01", name: "Accept payments", icon: ArrowDownLeft, detail: "Request payment from a customer's mobile-money account. Track each collection by reference, amount and status.", link: "/docs#collections", label: "Collections" },
-  { number: "02", name: "Send payouts", icon: ArrowUpRight, detail: "Pay recipients on supported networks. Review the recipient amount, charges and wallet deduction before confirming.", link: "/docs#payouts", label: "Payouts" },
+  { number: "01", name: "Accept payments", icon: ArrowDownLeft, detail: "Request payment from a customer's mobile-money account. Track each collection by reference, amount and status.", link: "/docs", label: "Collections" },
+  { number: "02", name: "Send payouts", icon: ArrowUpRight, detail: "Pay recipients on supported networks. Review the recipient amount, charges and wallet deduction before confirming.", link: "/docs", label: "Payouts" },
   { number: "03", name: "Share a payment link", icon: Link2, detail: "Create a checkout link from your account and send it to your customer. Keep the payment alongside your other transactions.", link: "/register", label: "Payment links" },
 ];
 

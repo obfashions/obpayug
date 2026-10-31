@@ -8,7 +8,7 @@ export default function HeroSection() {
     <section className="payment-hero relative isolate overflow-hidden">
       <img src={businessImage} alt="Shop owner reviewing a payment at her counter" width={1920} height={1024} fetchPriority="high" className="absolute inset-0 -z-20 h-full w-full object-cover object-right" />
       <div className="hero-shade absolute inset-0 -z-10" />
-      <div className="mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+      <div className="mx-auto max-w-7xl px-6 py-12 md:px-10 md:py-28">
         <div className="max-w-xl">
           <p className="mb-6 text-sm font-medium text-on-inverse/80">Business payments, across borders</p>
           <h1 className="text-5xl font-semibold leading-none text-on-inverse md:text-7xl">ObPay</h1>
