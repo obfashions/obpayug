@@ -77,7 +77,7 @@ export default function SupportPage() {
         is_read: false,
       });
       if (error) throw error;
-      setSubmitStatus({ ok: true, message: "Ticket created! Our team will respond shortly. Check back here for replies." });
+      setSubmitStatus({ ok: true, message: "Your support request has been submitted." });
 
       // Send support ticket confirmation email
       if (user.email) {
@@ -109,11 +109,11 @@ export default function SupportPage() {
     },
     {
       q: "How long do payouts take?",
-      a: "Payouts to mobile money are usually instant once confirmed. If pending, they auto-sync every 5 seconds. Bank transfers may take 1-2 business days."
+      a: "Payout timing depends on the payment network. Check the transaction status in your account and contact support if it remains pending."
     },
     {
       q: "What are the fees?",
-      a: "ObPay charges a platform fee on collections (default 5%, set by admin). The fee is taken from each payment you receive, and payouts carry a withdrawal fee set by admin."
+      a: "Collection charges include the verified payment-network cost and your account’s ObPay fee. Payout charges are shown in the quote. Account-specific exemptions apply."
     },
     {
       q: "How do I integrate ObPay into my website?",
@@ -129,7 +129,7 @@ export default function SupportPage() {
     },
     {
       q: "Is my money safe?",
-      a: "Yes. ObPay uses SSL encryption, PCI DSS Level 1 compliance, and all funds are held in regulated financial accounts. Your API keys should never be shared."
+      a: "Keep your password, verification codes and API keys private. Contact support with questions about a payment or how funds are handled."
     },
   ];
 
@@ -155,9 +155,9 @@ export default function SupportPage() {
             <span className="text-sm text-foreground-500">/</span>
             <span className="text-sm font-medium text-foreground-700">Support</span>
           </div>
-          <h1 className="font-heading font-bold text-2xl md:text-3xl text-foreground-900 mb-2">How can we help?</h1>
+          <h1 className="font-heading font-bold text-2xl md:text-3xl text-foreground-900 mb-2">Customer support</h1>
           <p className="text-sm text-foreground-600 max-w-lg">
-            Choose how you'd like to reach us — WhatsApp, live chat, or create a support ticket. We usually respond within minutes.
+            Contact our team about your account, a transaction or an integration.
           </p>
         </div>
       </div>
@@ -379,7 +379,7 @@ export default function SupportPage() {
 
         {/* Footer note */}
         <p className="text-center text-xs text-foreground-400 pt-4 border-t border-background-200/70">
-          Support hours: Monday — Friday, 8:00 AM — 6:00 PM EAT. We aim to respond within 1 hour during business hours.
+          Include your transaction reference when asking about a payment. Never send passwords, PINs or API secrets.
         </p>
       </div>
     </div>

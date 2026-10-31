@@ -62,7 +62,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.375rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
@@ -97,7 +97,7 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }
 
-.dark {
+:root.dark {
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
@@ -208,21 +208,21 @@
 }
 
 :root {
-  --font-heading-stack: "Sora", system-ui, sans-serif;
-  --font-body-stack: "Manrope", system-ui, sans-serif;
-  --font-label-stack: "Manrope", system-ui, sans-serif;
+  --font-heading-stack: "IBM Plex Sans", system-ui, sans-serif;
+  --font-body-stack: "IBM Plex Sans", system-ui, sans-serif;
+  --font-label-stack: "IBM Plex Sans", system-ui, sans-serif;
 
-  --background-50: 0.98 0.005 80;
-  --background-100: 0.96 0.01 80;
-  --background-200: 0.93 0.015 80;
-  --background-300: 0.88 0.02 80;
-  --background-400: 0.8 0.02 80;
-  --background-500: 0.7 0.03 80;
-  --background-600: 0.6 0.03 80;
-  --background-700: 0.5 0.03 80;
-  --background-800: 0.4 0.03 80;
-  --background-900: 0.3 0.03 80;
-  --background-950: 0.18 0.02 80;
+  --background-50: 0.98 0 0;
+  --background-100: 0.96 0 0;
+  --background-200: 0.93 0 0;
+  --background-300: 0.88 0 0;
+  --background-400: 0.8 0 0;
+  --background-500: 0.7 0 0;
+  --background-600: 0.6 0 0;
+  --background-700: 0.5 0 0;
+  --background-800: 0.4 0 0;
+  --background-900: 0.3 0 0;
+  --background-950: 0.18 0 0;
 
   --primary-50: 0.97 0.03 160;
   --primary-100: 0.94 0.06 160;
@@ -260,31 +260,31 @@
   --secondary-900: 0.26 0.02 260;
   --secondary-950: 0.16 0.02 260;
 
-  --foreground-50: 0.97 0.01 80;
-  --foreground-100: 0.93 0.02 80;
-  --foreground-200: 0.86 0.03 80;
-  --foreground-300: 0.76 0.04 80;
-  --foreground-400: 0.66 0.04 80;
-  --foreground-500: 0.55 0.04 80;
-  --foreground-600: 0.45 0.04 80;
-  --foreground-700: 0.35 0.04 80;
-  --foreground-800: 0.25 0.03 80;
-  --foreground-900: 0.18 0.02 80;
-  --foreground-950: 0.1 0.01 80;
+  --foreground-50: 0.97 0 0;
+  --foreground-100: 0.93 0 0;
+  --foreground-200: 0.86 0 0;
+  --foreground-300: 0.76 0 0;
+  --foreground-400: 0.66 0 0;
+  --foreground-500: 0.55 0 0;
+  --foreground-600: 0.45 0 0;
+  --foreground-700: 0.35 0 0;
+  --foreground-800: 0.25 0 0;
+  --foreground-900: 0.18 0 0;
+  --foreground-950: 0.1 0 0;
 }
 
-.dark {
-  --background-50: 0.15 0.02 80;
-  --background-100: 0.18 0.02 80;
-  --background-200: 0.22 0.03 80;
-  --background-300: 0.28 0.03 80;
-  --background-400: 0.35 0.03 80;
-  --background-500: 0.45 0.03 80;
-  --background-600: 0.55 0.03 80;
-  --background-700: 0.65 0.03 80;
-  --background-800: 0.75 0.03 80;
-  --background-900: 0.85 0.02 80;
-  --background-950: 0.95 0.01 80;
+:root.dark {
+  --background-50: 0.15 0 0;
+  --background-100: 0.18 0 0;
+  --background-200: 0.22 0 0;
+  --background-300: 0.28 0 0;
+  --background-400: 0.35 0 0;
+  --background-500: 0.45 0 0;
+  --background-600: 0.55 0 0;
+  --background-700: 0.65 0 0;
+  --background-800: 0.75 0 0;
+  --background-900: 0.85 0 0;
+  --background-950: 0.95 0 0;
 
   --primary-50: 0.2 0.08 160;
   --primary-100: 0.25 0.1 160;
@@ -322,17 +322,17 @@
   --secondary-900: 0.88 0.02 260;
   --secondary-950: 0.95 0.01 260;
 
-  --foreground-50: 0.1 0.01 80;
-  --foreground-100: 0.15 0.02 80;
-  --foreground-200: 0.22 0.03 80;
-  --foreground-300: 0.32 0.03 80;
-  --foreground-400: 0.42 0.04 80;
-  --foreground-500: 0.52 0.04 80;
-  --foreground-600: 0.62 0.04 80;
-  --foreground-700: 0.72 0.04 80;
-  --foreground-800: 0.82 0.03 80;
-  --foreground-900: 0.9 0.02 80;
-  --foreground-950: 0.97 0.01 80;
+  --foreground-50: 0.1 0 0;
+  --foreground-100: 0.15 0 0;
+  --foreground-200: 0.22 0 0;
+  --foreground-300: 0.32 0 0;
+  --foreground-400: 0.42 0 0;
+  --foreground-500: 0.52 0 0;
+  --foreground-600: 0.62 0 0;
+  --foreground-700: 0.72 0 0;
+  --foreground-800: 0.82 0 0;
+  --foreground-900: 0.9 0 0;
+  --foreground-950: 0.97 0 0;
 }
 
 @layer base {
@@ -415,7 +415,7 @@ pre code {
   animation: account-grid-drift 5s linear infinite;
 }
 
-.dark {
+:root.dark {
   color-scheme: dark;
 }
 
@@ -435,3 +435,64 @@ pre code {
   width: 0;
 }
 
+
+/* Payment-product presentation: quiet surfaces, precise typography. */
+@theme inline {
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-inverse-accent: var(--inverse-accent);
+}
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.23 0.006 160);
+  --primary: oklch(0.43 0.1 160);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0.003 160);
+  --secondary-foreground: oklch(0.24 0.006 160);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.49 0.005 160);
+  --border: oklch(0.89 0.003 160);
+  --input: oklch(0.85 0.003 160);
+  --ring: oklch(0.43 0.1 160);
+  --inverse: oklch(0.24 0.025 160);
+  --on-inverse: oklch(0.99 0 0);
+  --inverse-accent: oklch(0.82 0.12 160);
+}
+:root.dark {
+  --background: oklch(0.17 0.005 160);
+  --foreground: oklch(0.96 0 0);
+  --primary: oklch(0.76 0.12 160);
+  --primary-foreground: oklch(0.17 0.005 160);
+  --secondary: oklch(0.24 0.005 160);
+  --secondary-foreground: oklch(0.96 0 0);
+  --muted: oklch(0.24 0.005 160);
+  --muted-foreground: oklch(0.73 0.005 160);
+  --border: oklch(0.32 0.005 160);
+  --input: oklch(0.4 0.005 160);
+  --ring: oklch(0.76 0.12 160);
+}
+body { letter-spacing: 0; }
+h1, h2, h3, h4, h5, h6 { letter-spacing: 0; }
+.payment-hero { background: var(--inverse); }
+.hero-shade { background: linear-gradient(90deg, color-mix(in oklab, var(--inverse) 82%, transparent), transparent 80%); }
+.account-workspace { height: 100dvh; overflow: hidden; }
+.account-workspace > aside { height: 100dvh; flex-shrink: 0; }
+.account-workspace > div:last-child { height: 100dvh; overflow: hidden; }
+.account-workspace header { flex-shrink: 0; }
+.account-workspace main { min-height: 0; }
+.account-workspace :is(.rounded-3xl, .rounded-2xl, .rounded-xl) { border-radius: 6px; }
+.account-workspace h1 { font-size: 28px; }
+.account-workspace :is(h2,h3) { letter-spacing: 0; }
+.account-workspace .account-card { background: var(--inverse); box-shadow: none; }
+.account-workspace .account-card-grid { display: none; }
+.account-workspace .font-heading { font-variant-numeric: tabular-nums; }
+@media (max-width: 767px) {
+  .payment-hero > img { object-position: 65% center; }
+  .hero-shade { background: color-mix(in oklab, var(--inverse) 80%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+body { color: var(--foreground); background-color: var(--background); }
