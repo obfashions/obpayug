@@ -6,9 +6,18 @@ export interface NoticeTemplate {
   label: string;
   subject: string;
   body: string;
+  /** Send only to merchants whose identity verification is approved. */
+  verifiedOnly?: boolean;
 }
 
 export const NOTICE_TEMPLATES: NoticeTemplate[] = [
+  {
+    id: "kyc-welcome",
+    label: "Verified: welcome & guide",
+    verifiedOnly: true,
+    subject: "Your ObPay account is verified",
+    body: "Dear {name},\n\nCongratulations. Your identity verification is complete and your ObPay account is now fully active.\n\nHow to use ObPay:\n1. Receive payments - request a mobile-money payment from your dashboard; your customer approves it with their PIN on their own phone.\n2. Payment links - create a link and share it on WhatsApp, social media or your website to get paid without code.\n3. Payouts - send money to mobile-money numbers. The fee and the amount the recipient gets are shown before you confirm.\n4. Wallets - each currency has its own wallet. Balances are kept separate and are never combined.\n5. API - developers can connect a website or app using the keys and documentation in your dashboard.\n6. Statements - your transaction history and monthly statements are available at any time.\n\nKeep your account safe: ObPay will never ask for your password, PIN or verification codes. Do not share them with anyone.\n\nFor assistance, or if you would like a service added to your account, contact ObPay support on 0745 482977.\n\nThank you for choosing ObPay.\n\nThe ObPay Team",
+  },
   {
     id: "service-restored",
     label: "Service fully restored",
