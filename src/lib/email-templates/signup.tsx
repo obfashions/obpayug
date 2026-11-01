@@ -35,14 +35,14 @@ export const SignupEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Confirm your email</Heading>
-        {!code && <Text style={text}>
+        <Text style={text}>
           Thanks for signing up for{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
           !
         </Text>
-        <Text style={text}>
+        {!code && <Text style={text}>
           Please confirm your email address (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
