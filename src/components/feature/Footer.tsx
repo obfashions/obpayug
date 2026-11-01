@@ -1,11 +1,15 @@
 import { Link } from "@/lib/router-compat";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { getSiteSetting } from "@/lib/site-settings.functions";
+
+const WHATSAPP_UPDATES_FALLBACK = "https://chat.whatsapp.com/HKBWYaui63M3mQxmu7ciLh";
 
 export default function Footer() {
   const [supportEmail, setSupportEmail] = useState("support@obpay.com");
   const [supportPhone, setSupportPhone] = useState("+256762201984");
   const [supportWhatsApp, setSupportWhatsApp] = useState("+256745482977");
+  const [updatesUrl, setUpdatesUrl] = useState(WHATSAPP_UPDATES_FALLBACK);
 
   useEffect(() => {
     const fetchContact = async () => {
@@ -17,6 +21,9 @@ export default function Footer() {
       } catch { /* silent */ }
     };
     fetchContact();
+    getSiteSetting({ data: { key: "whatsapp_group_url" } })
+      .then((r) => { if (r?.value) setUpdatesUrl(r.value); })
+      .catch(() => {});
   }, []);
 
   const productLinks = [
@@ -67,9 +74,9 @@ export default function Footer() {
                     {supportWhatsApp}
                   </a>
                 )}
-                <a href="https://chat.whatsapp.com/HDHGlZLMsOsCGjKvjQyAx5?s=cl&p=a&mlu=1" target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-2 text-sm text-foreground-600 hover:text-primary transition-colors">
-                  <i className="ri-group-line text-foreground-400" />
-                  Join our WhatsApp Community
+                <a href={updatesUrl} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-2 text-sm text-foreground-600 hover:text-primary transition-colors">
+                  <i className="ri-whatsapp-line text-foreground-400" />
+                  Get updates on WhatsApp
                 </a>
                 {supportPhone && (
                   <a href={`tel:${supportPhone}`} className="flex items-center gap-2 text-sm text-foreground-600 hover:text-primary-500 transition-colors">

@@ -30,9 +30,9 @@ export default function WhatsappLinkCard() {
     <div className="bg-background-50 rounded-xl border border-background-200/70 p-6">
       <h3 className="font-heading font-semibold text-foreground-900 mb-1">
         <i className="ri-whatsapp-line mr-1.5" />
-        Home Page WhatsApp Button
+        WhatsApp updates link
       </h3>
-      <p className="text-xs text-foreground-500 mb-4">The link opened by the green WhatsApp button on the home page.</p>
+      <p className="text-xs text-foreground-500 mb-4">The channel or group opened by the "Get updates" button on the home page and the footer link.</p>
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="url"
