@@ -7,6 +7,7 @@ import { WALLET_CURRENCIES } from "@/lib/countries";
 import { getCurrencyInfo } from "@/lib/currency";
 import WhatsappLinkCard from "./WhatsappLinkCard";
 import ExchangeFeeCard from "./ExchangeFeeCard";
+import VerificationSenderCard from "./VerificationSenderCard";
 import FeePolicyPanel, { type CurrencyFees } from "./FeePolicyPanel";
 import { Button } from "@/components/ui/button";
 
@@ -206,7 +207,7 @@ export default function AdminSettings() {
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div><p className="text-sm font-medium text-foreground-900">Require Login Verification</p><p className="text-xs text-foreground-500 mt-0.5">Send email verification codes on login. Turn OFF when Resend quota is exhausted — merchants log in without codes.</p></div>
+                  <div><p className="text-sm font-medium text-foreground-900">Require Login Verification</p><p className="text-xs text-foreground-500 mt-0.5">Require an email code when merchants sign in.</p></div>
                   <button onClick={() => setSettings({ ...settings, require_login_verification: !settings.require_login_verification })} className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${settings.require_login_verification ? "bg-primary-500" : "bg-background-300"}`}>
                     <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-background-50 transition-transform ${settings.require_login_verification ? "left-[22px]" : "left-0.5"}`} />
                   </button>
@@ -268,6 +269,7 @@ export default function AdminSettings() {
         <FeePolicyPanel fees={settings.currency_fees || {}} withdrawDefault={settings.withdraw_fee_percent} onChange={(currency_fees) => setSettings({ ...settings, currency_fees })} />
         <WhatsappLinkCard />
         <ExchangeFeeCard />
+        <VerificationSenderCard />
 
         {/* Danger Zone */}
         <div className="bg-background-50 rounded-xl border border-accent-200/70 p-6">
