@@ -10,11 +10,13 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   vite: {
     resolve: {
-      alias: {
-        "entities/lib/decode.js": fileURLToPath(new URL("./node_modules/entities/lib/decode.js", import.meta.url)),
-        "entities/lib/encode.js": fileURLToPath(new URL("./node_modules/entities/lib/encode.js", import.meta.url)),
-        entities: fileURLToPath(new URL("./node_modules/entities", import.meta.url)),
-      },
+      alias: [
+        { find: "entities/lib/decode.js", replacement: fileURLToPath(new URL("./node_modules/entities/lib/esm/decode.js", import.meta.url)) },
+        { find: "entities/lib/encode.js", replacement: fileURLToPath(new URL("./node_modules/entities/lib/esm/encode.js", import.meta.url)) },
+        { find: "entities/escape", replacement: fileURLToPath(new URL("./node_modules/entities/lib/esm/escape.js", import.meta.url)) },
+        { find: "entities/decode", replacement: fileURLToPath(new URL("./node_modules/entities/lib/esm/decode.js", import.meta.url)) },
+        { find: /^entities$/, replacement: fileURLToPath(new URL("./node_modules/entities/lib/esm/index.js", import.meta.url)) },
+      ],
     },
   },
   tanstackStart: {
