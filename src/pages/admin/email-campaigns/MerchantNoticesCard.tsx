@@ -5,12 +5,24 @@ import { sendMerchantNotice } from "@/lib/mailjet.functions";
 import { getAccessToken } from "@/lib/session-token";
 import { supabase } from "@/lib/supabase";
 
-async function loadRecipients() {
+async function loadVerifiedIds() {
+  const ids = new Set<string>();
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data, error } = await supabase.from("merchant_profiles").select("user_id, verification_status").range(from, from + 999);
+    if (error) throw new Error(error.message);
+    for (const r of (data as any[]) || []) if (r?.verification_status === "approved") ids.add(r.user_id);
+    if (!data || data.length < 1000) break;
+  }
+  return ids;
+}
+
+async function loadRecipients(verifiedOnly = false) {
+  const verified = verifiedOnly ? await loadVerifiedIds() : null;
   const all: Array<{ email: string; name: string | null }> = [];
   for (let from = 0; from < 10000; from += 1000) {
-    const { data, error } = await supabase.from("profiles").select("email, full_name, status").range(from, from + 999);
+    const { data, error } = await supabase.from("profiles").select("id, email, full_name, status").range(from, from + 999);
     if (error) throw new Error(error.message);
-    for (const r of (data as any[]) || []) if (r?.email && r.status !== "deactivated") all.push({ email: r.email, name: r.full_name || null });
+    for (const r of (data as any[]) || []) if (r?.email && r.status !== "deactivated" && (!verified || verified.has(r.id))) all.push({ email: r.email, name: r.full_name || null });
     if (!data || data.length < 1000) break;
   }
   return all;
@@ -25,14 +37,15 @@ export default function MerchantNoticesCard() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  const verifiedOnly = !!NOTICE_TEMPLATES.find((t) => t.id === active)?.verifiedOnly;
   const run = async (test: boolean) => {
-    if (!test && !window.confirm("Send this email to EVERY registered ObPay account now?")) return;
+    if (!test && !window.confirm(verifiedOnly ? "Send this email to every VERIFIED ObPay merchant now?" : "Send this email to EVERY registered ObPay account now?")) return;
     setBusy(true);
     setMsg(null);
     try {
       const accessToken = await getAccessToken();
-      const recipients = test ? [] : await loadRecipients();
-      if (!test && !recipients.length) throw new Error("No registered emails found.");
+      const recipients = test ? [] : await loadRecipients(verifiedOnly);
+      if (!test && !recipients.length) throw new Error("No matching merchant emails found.");
       const r: any = await send({ data: { accessToken, subject, body, testTo: test ? testTo : "", recipients } });
       setMsg(
         r.success
@@ -68,7 +81,7 @@ export default function MerchantNoticesCard() {
         <input value={testTo} onChange={(e) => setTestTo(e.target.value)} type="email" placeholder="Your email for a test" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         <button disabled={busy || !testTo} onClick={() => run(true)} className="px-4 py-2 rounded-lg border border-gray-300 text-sm disabled:opacity-50">Send test</button>
         <button disabled={busy} onClick={() => run(false)} className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm disabled:opacity-50">
-          {busy ? "Sending…" : "Send to all merchants"}
+          {busy ? "Sending…" : verifiedOnly ? "Send to verified merchants" : "Send to all merchants"}
         </button>
       </div>
       {msg && <p className={`text-sm ${msg.ok ? "text-green-700" : "text-red-600"}`}>{msg.text}</p>}
