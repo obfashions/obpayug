@@ -9,7 +9,7 @@ import { EmailChangeEmail } from '@/lib/email-templates/email-change'
 import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
 // Configuration
-const SITE_NAME = "Obpay"
+const SITE_NAME = "ObPay"
 const SENDER_DOMAIN = "notify.obpay.online"
 const ROOT_DOMAIN = "obpay.online"
 const FROM_DOMAIN = "obpay.online"

@@ -31,6 +31,7 @@
 - Deposit credits use collectionFeeFor: collect_margin adds ObPay's earning to verified partner cost once; legacy collect includes partner cost. Missing evidence defers margin credits — no guessed fees, double charges or unbacked funds.
 - Member permissions live in protected member_roles and user_roles; role assignment uses an audited auth RPC, while profile tags are display-only — merchants cannot grant themselves staff privileges.
 - Registration codes can be requested before a session exists; the server resolves recipients from Auth and atomically rate-limits and consumes hashed codes — confirmed-email signup intentionally returns no session.
+- Verification-code emails use the managed sender and scaffolded signup template with a code-claim idempotency key; keep Mailjet campaigns separate so their daily cap cannot block registration or login.
 - Sierra Leone is stored and sent to the partner as SLL but displayed as SLE — the partner rejects SLE in API requests after the 2022 redenomination.
 - Currency fees in platform_settings.currency_fees use collect_margin, legacy collect and withdraw via platform-fees.ts — admin pricing without code changes.
 - Admin payout confirmations reverify matching partner evidence and use service-only confirm_payout_status with finance authorization, merchant locks and original debit allocations — corrected outcomes must reverse prior refunds once, preserve currency separation and retain an audit trail without resending money.

@@ -17,6 +17,7 @@ interface SignupEmailProps {
   siteUrl: string
   recipient: string
   confirmationUrl: string
+  code?: string
 }
 
 export const SignupEmail = ({
@@ -24,6 +25,7 @@ export const SignupEmail = ({
   siteUrl,
   recipient,
   confirmationUrl,
+  code,
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head>
@@ -33,7 +35,7 @@ export const SignupEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Confirm your email</Heading>
-        <Text style={text}>
+        {!code && <Text style={text}>
           Thanks for signing up for{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
@@ -46,10 +48,14 @@ export const SignupEmail = ({
             {recipient}
           </Link>
           ) by clicking the button below:
-        </Text>
-        <Button className="dm-btn" style={button} href={confirmationUrl}>
+        </Text>}
+        {code ? <>
+          <Text style={text}>Enter this code on the ObPay verification page:</Text>
+          <Text style={{ ...h1, fontSize: '30px', letterSpacing: '6px' }}>{code}</Text>
+          <Text style={text}>This code expires in 10 minutes. Never share it with anyone, including support.</Text>
+        </> : <Button className="dm-btn" style={button} href={confirmationUrl}>
           Verify Email
-        </Button>
+        </Button>}
         <Text style={footer}>
           If you didn't create an account, you can safely ignore this email.
         </Text>
