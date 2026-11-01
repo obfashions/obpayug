@@ -21,9 +21,10 @@ export const sendRegistrationCode = createServerFn({ method: "POST" })
     });
     if (claimError) return { success: false, error: "We couldn't prepare your code. Please try again shortly." };
     if (!claim) return { success: true };
-    const { sendMailjet, brandedHtml } = await import("./mailjet.server");
-    const result = await sendMailjet([{ to: found.user.email, subject: "Verify your ObPay email", html: brandedHtml("Verify your email", `<p>Your ObPay verification code is:</p><p style="font-size:30px;font-weight:700">${code}</p><p>This code expires in 10 minutes.</p>`) }]);
-    if (!result.sent) {
+    try {
+      const { sendCodeEmail } = await import("./verification-email.server");
+      await sendCodeEmail(found.user.email, code, String(claim));
+    } catch {
       await admin.from("verification_codes").delete().eq("id", String(claim));
       return { success: false, error: "Your code email couldn't be sent. Please try again shortly." };
     }

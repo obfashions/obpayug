@@ -15,7 +15,7 @@ async function hash(code: string, userId: string) {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Emails a 6-digit code (valid 10 minutes) to the signed-in user via Mailjet. */
+/** Emails a 6-digit code (valid 10 minutes) to the signed-in user. */
 export const sendVerificationCode = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ accessToken: z.string().min(10), type: Type }).parse(d))
   .handler(async ({ data }) => {
@@ -44,21 +44,11 @@ export const sendVerificationCode = createServerFn({ method: "POST" })
     }).select("id").single();
     if (error) return { success: false, error: "We couldn't create a code right now. Please try again." };
 
-    const { sendMailjet, brandedHtml } = await import("./mailjet.server");
-    const purpose = data.type === "login" ? "finish signing in" : "verify your email";
-    const res = await sendMailjet([
-      {
-        to: email,
-        subject: `Your ObPay verification code: ${code}`,
-        html: brandedHtml(
-          "Your verification code",
-          `<p>Use this code to ${purpose}:</p>
-<p style="font-size:30px;font-weight:700;letter-spacing:8px;margin:18px 0;">${code}</p>
-<p>It expires in 10 minutes. If you didn't try to sign in, change your password.</p>`,
-        ),
-      },
-    ]);
-    if (!res.sent) {
+    try {
+      if (!savedCode?.id) throw new Error("Code was not saved");
+      const { sendCodeEmail } = await import("./verification-email.server");
+      await sendCodeEmail(email, code, savedCode.id);
+    } catch {
       if (savedCode?.id) await me.admin.from("verification_codes").delete().eq("id", savedCode.id);
       return { success: false, error: "We couldn't send the code email right now. Please try again shortly." };
     }
