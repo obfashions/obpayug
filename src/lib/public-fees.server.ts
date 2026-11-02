@@ -31,7 +31,6 @@ export function resolvePublicFees(
   exchangeValue: unknown,
 ): PublicFees {
   const exchangeFeePercent = clampPercent(exchangeValue, 1.5, 20);
-  const { WALLET_CURRENCIES, MONEY_COUNTRIES } = require("./countries") as typeof import("./countries");
   return {
     available: true,
     exchangeFeePercent,
