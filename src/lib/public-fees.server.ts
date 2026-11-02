@@ -17,9 +17,9 @@ export interface PublicFees {
   currencies: PublicCurrencyFee[];
 }
 
-function clampPercent(value: unknown, fallback: number) {
+function clampPercent(value: unknown, fallback: number, max = 100) {
   const n = Number(value);
-  return Number.isFinite(n) && n >= 0 && n <= 100 ? n : fallback;
+  return Number.isFinite(n) && n >= 0 && n <= max ? n : fallback;
 }
 
 export const getPublicFees = createServerFn({ method: "GET" }).handler(async (): Promise<PublicFees> => {
