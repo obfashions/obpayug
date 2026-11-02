@@ -37,7 +37,7 @@ export const getPublicFees = createServerFn({ method: "GET" }).handler(async ():
     ]);
     if (!ps) return { available: false, exchangeFeePercent: 1.5, currencies: [] };
     const overrides = (ps.currency_fees ?? {}) as Record<string, Record<string, unknown>>;
-    const exchangeFeePercent = clampPercent((exchange as { value?: unknown } | null)?.value, 1.5);
+    const exchangeFeePercent = clampPercent((exchange as { value?: unknown } | null)?.value, 1.5, 20);
     return {
       available: true,
       exchangeFeePercent,
