@@ -1576,6 +1576,15 @@ export type Database = {
         Args: { p_roles: string[]; p_user_id: string }
         Returns: undefined
       }
+      settle_dashboard_collection: {
+        Args: {
+          p_fee: number
+          p_provider_reference?: string
+          p_status: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       settle_payment_record_and_balance: {
         Args: {
           p_fee?: number

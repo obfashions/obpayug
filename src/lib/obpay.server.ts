@@ -157,6 +157,21 @@ async function resolveTransaction(token: string, txn: any) {
 
   const now = new Date().toISOString();
   const { status, fee } = state;
+  // A terminal status and its wallet credit must commit together. Never claim
+  // success first and leave an unchecked, separate wallet write behind.
+  if (txn.type === "collection") {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("settle_dashboard_collection", {
+      p_transaction_id: txn.id,
+      p_status: status,
+      p_fee: fee,
+      p_provider_reference: state.providerRef || undefined,
+    });
+    if (error) throw new Error("The payment balance could not be updated. Please try syncing again.");
+    const result = data as { claimed?: boolean } | null;
+    if (!result?.claimed) return null;
+    return { id: txn.id, reference: txn.reference, status };
+  }
   const updates: Record<string, unknown> = {
     status,
     fee_amount: fee,
@@ -709,6 +724,7 @@ export async function applyCallbackToDashboard(
   const rows = await restWrite("", `/transactions?reference=eq.${encodeURIComponent(reference)}&select=*`);
   const txn = first(rows);
   if (!txn || txn.status !== "pending") return false;
+  if (txn.type === "collection") return Boolean(await resolveTransaction("", txn));
   const patched = await resolveTransactionWithStatus(txn, status);
   return patched;
 }
