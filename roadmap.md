@@ -1,3 +1,4 @@
+- [ ] Fix merchant Settings phone-number persistence, show the registered number, reject invalid input, and verify save/readback without changing account privileges or finances.
 - [x] Restore Gaston's two network-verified collections: 1,845 + 461 = 2,306 UGX net, original fees preserved, original histories marked and audit recorded; live repeated settlement added nothing. Missing-wallet callback and sync now use one service-only atomic credit; 55 tests passed, build clean.
 - [ ] Verify repaired balance through signed-in merchant/admin UI: requesting session still redirects to login; database readback and live duplicate RPC verified. Publish the callback/sync code fix for future collections.
 - [ ] Review the other missing-wallet collection (awalibinahmed2022@gmail.com, 2,000 UGX from August): it belongs to a removed legacy payment rail and has no current partner verification evidence; do not assume it is uncredited or restore it without evidence.
