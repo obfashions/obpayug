@@ -1,6 +1,7 @@
 // Public ObPay fee summary for the pricing page. Returns only fee percentages,
 // never credentials or partner secrets.
 import { createServerFn } from "@tanstack/react-start";
+import { WALLET_CURRENCIES, MONEY_COUNTRIES } from "./countries";
 
 export interface PublicCurrencyFee {
   currency: string;
