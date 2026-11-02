@@ -19,6 +19,7 @@ export interface PublicFees {
 }
 
 function clampPercent(value: unknown, fallback: number, max = 100) {
+  if (value == null || value === "") return fallback;
   const n = Number(value);
   return Number.isFinite(n) && n >= 0 && n <= max ? n : fallback;
 }
