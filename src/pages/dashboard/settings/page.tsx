@@ -5,16 +5,20 @@ import CurrencyWalletsCard from "./CurrencyWalletsCard";
 import PayoutFees from "./PayoutFees";
 import { supabase } from "@/lib/supabase";
 import { getProviderConnectionStatus, testProviderConnection } from "@/services/obpay";
+import { supabase as profileClient } from "@/integrations/supabase/client";
+import { saveMerchantPhone } from "@/lib/merchant-phone";
+import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || "",
     email: profile?.email || "",
-    phone_number: "",
+    phone_number: profile?.phone_number || "",
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Payment Provider state
   const [lpStatus, setLpStatus] = useState<{ connected: boolean; status: string | null }>({ connected: false, status: null });
@@ -65,13 +69,26 @@ export default function SettingsPage() {
     }
   }, [profile, fetchConnectionStatus, fetchPlatformSettings]);
 
-  const handleSave = () => {
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, phone_number: profile?.phone_number || "" }));
+  }, [profile?.id, profile?.phone_number]);
+
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (saving || !profile) return;
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    setSaved(false);
+    setSaveError(null);
+    try {
+      const phone = await saveMerchantPhone(profileClient, formData.phone_number);
+      setFormData((prev) => ({ ...prev, phone_number: phone }));
+      await refreshProfile();
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    }, 1000);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Your phone number could not be saved. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleTestConnection = async () => {
@@ -273,6 +290,7 @@ export default function SettingsPage() {
           <h3 className="font-heading font-semibold text-base text-foreground-900 mb-5">
             Profile Information
           </h3>
+          <form onSubmit={handleSave}>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-foreground-700 mb-1.5">
@@ -281,7 +299,7 @@ export default function SettingsPage() {
               <input
                 type="text"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                readOnly
                 className="w-full px-4 py-2.5 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             </div>
@@ -292,26 +310,32 @@ export default function SettingsPage() {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                readOnly
                 className="w-full px-4 py-2.5 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground-700 mb-1.5">
+              <label htmlFor="contact-phone" className="block text-sm font-medium text-foreground-700 mb-1.5">
                 Phone Number
               </label>
               <input
                 type="tel"
+                id="contact-phone"
+                autoComplete="tel"
+                required
+                disabled={saving || !profile}
+                aria-invalid={Boolean(saveError)}
+                aria-describedby={saveError ? "phone-save-error" : undefined}
                 value={formData.phone_number}
-                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                onChange={(e) => { setFormData({ ...formData, phone_number: e.target.value }); setSaved(false); setSaveError(null); }}
                 className="w-full px-4 py-2.5 rounded-lg border border-background-300/60 bg-background-100 text-sm text-foreground-900 focus:outline-none focus:ring-2 focus:ring-primary-400"
               />
             </div>
           </div>
           <div className="mt-5 flex items-center gap-3">
-            <button
-              onClick={handleSave}
-              disabled={saving}
+            <Button
+              type="submit"
+              disabled={saving || !profile}
               className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 text-background-50 font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors cursor-pointer whitespace-nowrap"
             >
               {saving ? (
@@ -325,14 +349,16 @@ export default function SettingsPage() {
                   Save Changes
                 </>
               )}
-            </button>
+            </Button>
             {saved && (
-              <span className="text-sm text-primary-600 flex items-center gap-1">
+              <span role="status" className="text-sm text-primary-600 flex items-center gap-1">
                 <i className="ri-check-line" />
                 Saved successfully
               </span>
             )}
           </div>
+          {saveError && <p id="phone-save-error" role="alert" className="mt-3 text-sm text-accent-700">{saveError}</p>}
+          </form>
         </div>
 
         {/* Security */}
