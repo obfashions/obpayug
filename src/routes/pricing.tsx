@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Page from "@/pages/pricing/page";
+import { getPublicFees } from "@/lib/public-fees.server";
 
 export const Route = createFileRoute("/pricing")({
+  loader: () => getPublicFees(),
   head: () => ({
     meta: [
       { title: "ObPay Pricing & Fees" },
@@ -12,5 +14,8 @@ export const Route = createFileRoute("/pricing")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Page,
+  component: function PricingRoute() {
+    const fees = Route.useLoaderData();
+    return <Page fees={fees} />;
+  },
 });
