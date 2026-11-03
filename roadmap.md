@@ -1,3 +1,4 @@
+- [ ] Address PesaSuite integration gaps: distinguish sandbox from live testing, document Uganda consent-based subscriptions, settlement and signed callbacks, verify safe testing and draft merchant reply.
 - [x] Fix merchant Settings phone-number persistence: load registered number, owner-scoped phone-only write, checked returned row and shared-profile refresh; five validation/persistence tests pass, build clean. Name/email are read-only rather than pretending to save identity changes.
 - [ ] Verify phone settings save/reload in an active signed-in account: requesting user's minted session redirects to /login; no account protections bypassed or real contact changed.
 - [x] Restore Gaston's two network-verified collections: 1,845 + 461 = 2,306 UGX net, original fees preserved, original histories marked and audit recorded; live repeated settlement added nothing. Missing-wallet callback and sync now use one service-only atomic credit; 55 tests passed, build clean.
