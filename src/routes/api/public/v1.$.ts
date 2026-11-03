@@ -68,7 +68,9 @@ async function handle(request: Request, params: Record<string, string>) {
     const raw = await request.text();
     if (raw.trim()) {
       try {
-        body = JSON.parse(raw) as Record<string, any>;
+        const parsed: unknown = JSON.parse(raw);
+        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return json({ success: false, error: "Request body must be a JSON object." }, 400);
+        body = parsed as Record<string, any>;
       } catch {
         return json({ success: false, error: "Request body must be valid JSON." }, 400);
       }

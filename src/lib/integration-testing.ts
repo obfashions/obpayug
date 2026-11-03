@@ -3,7 +3,7 @@ export type DemoRecord = { reference: string; type: "collection" | "payout"; sta
 export const DEMO_BALANCE = 100000;
 
 export function isTestApiSecret(secret: string) {
-  return secret.trim().startsWith("sk_test_");
+  return /^(sk_test_|sk_sandbox_)/.test(secret.trim());
 }
 
 export function simulateIntegration(path: string, method: "GET" | "POST", body: Record<string, unknown>, records: DemoRecord[]) {

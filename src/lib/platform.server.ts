@@ -100,10 +100,10 @@ export async function merchantForSecret(secret: string): Promise<string | null> 
   if (!clean.startsWith("sk_")) return null;
   const { data } = await db()
     .from("merchant_api_keys")
-    .select("id, merchant_id, status")
+    .select("id, merchant_id, status, environment")
     .eq("secret_hash", await sha256(clean))
     .maybeSingle();
-  if (!data || data.status !== "active") return null;
+  if (!data || data.status !== "active" || data.environment !== "live") return null;
   await db().from("merchant_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
   return data.merchant_id as string;
 }
@@ -350,6 +350,7 @@ export async function dispatchWebhook(merchantId: string, event: string, payload
       // response, so every delivery is capped at 8 seconds.
       const resp = await fetch(endpoint.url, {
         method: "POST",
+        redirect: "manual",
         signal: AbortSignal.timeout(8000),
         headers: {
           "Content-Type": "application/json",

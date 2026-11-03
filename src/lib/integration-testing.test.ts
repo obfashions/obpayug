@@ -4,6 +4,7 @@ import { DEMO_BALANCE, isTestApiSecret, simulateIntegration } from "./integratio
 describe("safe integration demonstration", () => {
   it("recognizes test keys separately from live keys", () => {
     expect(isTestApiSecret(" sk_test_example ")).toBe(true);
+    expect(isTestApiSecret("sk_sandbox_example")).toBe(true);
     expect(isTestApiSecret("sk_live_example")).toBe(false);
   });
   it("simulates initiation and confirmation without network submission", () => {
