@@ -3,6 +3,7 @@ import { Link } from "@/lib/router-compat";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { JsonLd } from "@/components/base/JsonLd";
+import IntegrationDemo from "@/components/feature/IntegrationDemo";
 
 const BASE = "https://obpay.online/api/public/v1";
 
@@ -365,6 +366,7 @@ export default function DocsPage() {
 
           {active === "testing" && <section className="space-y-4">
             <Header icon="ri-flask-line" label="Testing & technical demonstration" />
+            <IntegrationDemo />
             <p className={P}>Open <Link to="/dashboard/api-sandbox" className="text-primary underline">Dashboard → Integration testing</Link>. Simulation is the default and needs no credentials. It demonstrates pending initiation and successful reference lookup locally; it does not call a payment network, send signed webhooks, calculate real charges or credit any wallet. Its sample balance is fixed demonstration data.</p>
             <p className={P}>There is no external no-money sandbox API at present. A test key is not a live credential. Create your own live key and webhook signing secret in <Link to="/dashboard/api-keys" className="text-primary underline">API Keys</Link>; keep both on your server and never share them by email or support chat.</p>
             <ol className="list-decimal pl-5 space-y-3 text-sm text-foreground-600">
