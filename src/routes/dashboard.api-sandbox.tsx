@@ -4,10 +4,10 @@ import Page from "@/pages/dashboard/api-sandbox/page";
 export const Route = createFileRoute("/dashboard/api-sandbox")({
   head: () => ({
     meta: [
-      { title: "API Sandbox · ObPay" },
-      { name: "description", content: "Try ObPay payment API requests." },
-      { property: "og:title", content: "API Sandbox · ObPay" },
-      { property: "og:description", content: "Try ObPay payment API requests." },
+      { title: "Integration testing · ObPay" },
+      { name: "description", content: "Simulate Uganda payment flows without moving money, or explicitly approve live ObPay API requests." },
+      { property: "og:title", content: "Integration testing · ObPay" },
+      { property: "og:description", content: "No-money simulation and approved live API testing for ObPay merchants." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },

@@ -11,6 +11,9 @@ type SectionId =
   | "services"
   | "operating"
   | "quickstart"
+  | "subscriptions"
+  | "testing"
+  | "settlement"
   | "authentication"
   | "collect"
   | "payouts"
@@ -285,9 +288,8 @@ export default function DocsPage() {
                 </li>
                 <li>
                   <strong>Wait for confirmation.</strong> Every payment starts as <code className={C}>pending</code> and
-                  becomes <code className={C}>success</code> or <code className={C}>failed</code> — usually within a
-                  minute, sometimes a little longer on busy networks. The money is credited to your wallet only when it
-                  turns <code className={C}>success</code>, and you and your admin both receive a receipt email.
+                  becomes <code className={C}>success</code> or <code className={C}>failed</code> after network verification.
+                  Wallet credit requires verified success and confirmed fees. A pending response or receipt alone is not proof of available funds.
                 </li>
                 <li>
                   <strong>Connect your website (optional).</strong> Create a secret key on{" "}
@@ -300,8 +302,8 @@ export default function DocsPage() {
                   <Link to="/dashboard/transactions" className="text-primary-600 font-semibold hover:underline">Dashboard → Transactions</Link>.
                   To withdraw, open{" "}
                   <Link to="/dashboard/payouts" className="text-primary-600 font-semibold hover:underline">Withdrawals</Link>{" "}
-                  and send to MTN or Airtel mobile money — the transfer fee is taken from the amount you enter, and the
-                  transfer usually completes within 7–20 minutes.
+                  and send to MTN or Airtel mobile money. Your saved fee choice determines whether fees are added to the
+                  wallet debit or deducted from the submitted amount. Completion depends on network confirmation; no fixed delivery time is guaranteed.
                 </li>
               </ol>
               <Note>
@@ -314,7 +316,8 @@ export default function DocsPage() {
 
           {active === "quickstart" && (
             <section className="space-y-3">
-              <Header icon="ri-flashlight-line" label="Quick start (5 minutes)" />
+              <Header icon="ri-flashlight-line" label="Quick start" />
+              <p className={P}>Start with the no-money simulation in <Link to="/dashboard/api-sandbox" className="text-primary underline">Integration testing</Link>. The public API is live; test keys cannot access it.</p>
               <ol className="list-decimal pl-5 space-y-2 text-sm text-foreground-600">
                 <li>Sign in and open <strong>Dashboard → API Keys</strong>. Create a <strong>live</strong> key and copy the secret (<code className={C}>sk_live_…</code>). It is shown only once.</li>
                 <li>On the same page copy your <strong>Webhook signing secret</strong> (<code className={C}>whsec_…</code>).</li>
@@ -346,6 +349,45 @@ export default function DocsPage() {
             </section>
           )}
 
+          {active === "subscriptions" && <section className="space-y-4">
+            <Header icon="ri-calendar-check-line" label="Subscriptions & customer consent" />
+            <p className={P}>Uganda mobile-money collections require the customer to approve each payment on the MTN or Airtel SIM. ObPay does not currently offer an unattended recurring debit, saved mobile-money mandate or subscription scheduling endpoint.</p>
+            <ol className="list-decimal pl-5 space-y-3 text-sm text-foreground-600">
+              <li>Your application stores subscription plans, customer consent, invoice dates and cancellation preferences.</li>
+              <li>Each month, notify the customer and request that month's payment through <code className={C}>POST /collect</code>, using UGX and a distinct invoice reference.</li>
+              <li>The customer approves on their own phone. Never ask for, store or forward a mobile-money PIN.</li>
+              <li>Verify the signed notification and read <code className={C}>GET /transactions/REFERENCE</code>. Match reference, collection type, currency and amount to the invoice; activate the subscription once only after success.</li>
+              <li>Handle declined, pending and timed-out requests without granting paid access. Check an uncertain request using its original reference before attempting another charge; reminders and cancellation remain in your application.</li>
+            </ol>
+            <CodeBlock title="Monthly invoice collection — live API example" code={`POST /collect
+{"reference":"PESA-INV-2026-11-001","amount":5000,"currency":"UGX","phone_number":"256772123456","customer_name":"Jane Nakato","customer_email":"jane@example.com","description":"November subscription invoice","metadata":{"invoice_id":"2026-11-001"},"callback_url":"https://your-domain.example/payments/obpay"}`} />
+          </section>}
+
+          {active === "testing" && <section className="space-y-4">
+            <Header icon="ri-flask-line" label="Testing & technical demonstration" />
+            <p className={P}>Open <Link to="/dashboard/api-sandbox" className="text-primary underline">Dashboard → Integration testing</Link>. Simulation is the default and needs no credentials. It demonstrates pending initiation and successful reference lookup locally; it does not call a payment network, send signed webhooks, calculate real charges or credit any wallet. Its sample balance is fixed demonstration data.</p>
+            <p className={P}>There is no external no-money sandbox API at present. A test key is not a live credential. Create your own live key and webhook signing secret in <Link to="/dashboard/api-keys" className="text-primary underline">API Keys</Link>; keep both on your server and never share them by email or support chat.</p>
+            <ol className="list-decimal pl-5 space-y-3 text-sm text-foreground-600">
+              <li>Simulate a collection with a reference such as PESA-DEMO-001. Check that same reference to demonstrate the transition from pending to success.</li>
+              <li>Prepare an HTTPS callback that verifies the raw-body signature and safely handles duplicates; test invalid signatures and mismatched invoice amounts on your own server.</li>
+              <li>Agree a real test amount and authorised recipient with ObPay support. A live demonstration is chargeable and requires a verified account, customer PIN approval and sufficient funds for payout plus fees.</li>
+              <li>Read current UGX payout rules, then demonstrate a real collection, signed callback, verified transaction, net wallet credit, payout debit, recipient receipt and final status.</li>
+              <li>Reconcile each reference and its gross amount, fees, wallet credit or debit. Check pending and failed outcomes before production use.</li>
+            </ol>
+            <p className={P}>Arrange the demonstration with ObPay Support: <a href="tel:+256745482977" className="text-primary underline">+256 745 482977</a>. A demonstration has not been booked or completed by viewing this guide.</p>
+          </section>}
+
+          {active === "settlement" && <section className="space-y-4">
+            <Header icon="ri-bank-line" label="Uganda settlement, fees & custody" />
+            <p className={P}>UGX collections and payouts support MTN Mobile Money Uganda and Airtel Money Uganda. Use the registered recipient name and the SIM's mobile-money number. Availability is subject to network service and account eligibility.</p>
+            <p className={P}>Collection settlement into the ObPay ledger requires successful network verification, confirmed charges and an atomic wallet credit. A wallet credit is not the same as delivery to an external mobile-money account. Payout funds are reserved before submission; a confirmed failed payout releases the reservation once. An uncertain payout must be investigated, not resent with a new reference.</p>
+            <p className={P}>Current standard ObPay collection and payout rates are listed on the <Link to="/pricing" className="text-primary underline">live transaction-fees page</Link>. Collection credit equals the gross amount minus the verified network charge and ObPay margin, charged once. Merchant-specific exemptions remain applicable. Payouts include the ObPay charge plus the current network quote; the saved sender/recipient fee choice determines the wallet debit and recipient amount.</p>
+            <CodeBlock title="Read current Uganda network minimum and charges" code={`curl "${BASE}/payout-methods?currency=UGX" \\\n+  -H "Authorization: Bearer $OBPAY_SECRET_KEY"`} />
+            <p className={P}>Do not hardcode a minimum or promise instant settlement. Live minimums, fees and whole-amount checks determine whether an entered payout is accepted. The payout response reports fee, recipient_gets, total_debit and fee_mode. Status remains pending until verified; delays can occur during network outages, review or insufficient settlement funding.</p>
+            <Note tone="warn">This API guide does not establish the legal custody entity, licence holder, safeguarding account, insurance or insolvency protection arrangements. Obtain written confirmation and supporting documents from ObPay's business team before production integration. Neither a wallet balance nor technical verification proves a segregated bank deposit or deposit insurance.</Note>
+            <p className={P}>For custody and licensing documentation, contact ObPay Support on +256 745 482977 or obsfashions@zohomail.com. Do not treat undocumented processing-partner arrangements as a financial guarantee.</p>
+          </section>}
+
           {active === "authentication" && (
             <section className="space-y-3">
               <Header icon="ri-shield-keyhole-line" label="Authentication" />
@@ -353,7 +395,7 @@ export default function DocsPage() {
               <CodeBlock title="Headers" code={`Authorization: Bearer sk_live_xxxxxxxxxxxxxxxx\n# or\nX-API-Key: sk_live_xxxxxxxxxxxxxxxx\n\nContent-Type: application/json`} />
               <p className={P}>
                 A missing or wrong key returns <code className={C}>401</code>. Revoked keys stop working immediately. There is
-                no IP whitelist — your server can call from any address.
+                no IP whitelist — your server can call from any address. Test keys are refused by the live API with HTTP 403.
               </p>
             </section>
           )}
@@ -598,7 +640,7 @@ print(r.json())`}
               <h2 className="font-heading font-bold text-xl">Countries, crypto & rates</h2>
               <p className="text-sm">Pass <code>currency</code> on <code>/collect</code> and <code>/payouts</code>. Amounts are whole numbers (USD collections allow cents). Always check live payout rules and your saved fee choice.</p>
               <ul className="text-sm list-disc pl-5 space-y-1">
-                <li><b>UGX</b> Uganda – MTN, Airtel (<code>network: "mtn" | "airtel"</code>), phone <code>2567XXXXXXXX</code>. Payout min 10,000.</li>
+                <li><b>UGX</b> Uganda – MTN, Airtel (<code>network: "mtn" | "airtel"</code>), phone <code>2567XXXXXXXX</code>. Read the current payout minimum from <code>GET /payout-methods?currency=UGX</code>.</li>
                 <li><b>KES</b> Kenya – M-Pesa PIN prompt (<code>network: "mpesa"</code>), phone <code>2547XXXXXXXX</code>. Payout min 500.</li>
                 <li><b>RWF</b> Rwanda – MTN, Airtel, phone <code>2507XXXXXXXX</code>. Payout min 500.</li>
                 <li><b>ZMW</b> Zambia – Airtel, MTN or Zamtel (<code>network: "airtel" | "mtn" | "zamtel"</code>), phone <code>2609XXXXXXXX</code>. Payout min 30, mobile money only. Whole amounts only.</li>
@@ -737,7 +779,7 @@ def obpay_callback():
               <Note tone="warn">
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Your callback URL must be public <strong>https://</strong> and must <strong>not redirect</strong> (a 301/302 counts as failed).</li>
-                  <li>Reply with HTTP 200 within 8 seconds. Failed deliveries are retried up to 3 times.</li>
+                  <li>Reply with HTTP 200 within 8 seconds. Delivery makes up to three total attempts; this is not a guaranteed background delivery queue. Use transaction lookup as a fallback.</li>
                   <li>Expect duplicates — check whether the order is already paid.</li>
                   <li>Verify the signature on the <strong>raw</strong> body, before parsing JSON.</li>
                 </ul>
@@ -775,7 +817,7 @@ def obpay_callback():
                 <li>Create a live API key and copy your webhook signing secret into your server's environment.</li>
                 <li>Call <code className={C}>GET /ping</code> from your server.</li>
                 <li>Make a callback endpoint that verifies <code className={C}>X-ObPay-Signature</code> and returns 200 without redirecting.</li>
-                <li>Run one small real collection (e.g. UGX 1,000) and one payout of at least UGX 10,000.</li>
+                <li>Start with no-money simulation, then agree a small real collection and a payout meeting the current UGX minimum, fees and whole-amount rules.</li>
                 <li>Handle pending, success and failed in your code, and confirm with <code className={C}>{'GET /transactions/{reference}'}</code> before delivering.</li>
               </ol>
               <Note>Need help? Contact support from your dashboard and include the payment reference.</Note>
