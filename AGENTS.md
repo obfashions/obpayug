@@ -11,10 +11,10 @@
 
 - Primary mobile-money partner remains Payza in gateway.server.ts; secondary Uganda services use marz-services.server.ts via the server connector — keep existing payments unchanged.
 - Collections trigger the PIN prompt server-side and settle only after /api/v1/verify confirms — white-label UX and never trust unsigned/unchecked notices.
-- Accounts/auth/ledgers use this backend; legacy-migrate.server.ts imports old accounts on first login (same ID/password; first admin imports merchants) — one system of record.
+- Auth and ledgers use this backend; legacy migration imports on first login — one system of record.
 - Password resets (merchant and admin) email a Mailjet link built from generateLink recovery hashed_token → /reset-password — no dependency on the old system's email sender.
 - Payout mode lives in owner-protected merchant_payout_preferences; payoutQuote uses payoutAmounts to reserve the exact debit and submit that quote, with full refunds — both fees are accounted for without re-quoting.
-- Payouts and account Settings reuse PayoutFees and notify live minimum hooks after a successful save; non-Uganda New Payout opens IntlMoneyPanel with required recipient name — fee guidance must follow the persisted choice and selected wallets must never silently submit UGX.
+- Payouts and Settings share PayoutFees and refresh live minimums after saving; non-Uganda uses IntlMoneyPanel with recipient name — follow saved fee mode and never submit a different wallet currency.
 - Payouts reject fractional gross or net amounts for zero-decimal currencies and offer a compatible entered amount for explicit merchant approval — the partner calculates fees independently, so silently rounding locally cannot make the payout rail safe.
 - Payout error presentation preserves payment-network validation and uncertain-submission instructions verbatim — a payment-network rule is not an internet failure, and hiding no-retry instructions risks duplicate payments.
 - Payout forms read uncached currency-specific partner minimums and ObPay rates (payoutFeePercent in platform-fees.ts) via use-payout-minimum, using the same rounded fee math as the gateway — displayed minimums must match live limits per currency and never reuse Uganda limits elsewhere.
@@ -49,3 +49,4 @@
 
 - Use original copy, shared tokens/navigation and separate policy routes; signup opens policies in new tabs.
 - Phone settings update only the signed-in owner's number through RLS, verify the returned row and refresh the shared profile; identity and financial fields stay unchanged.
+- Testing defaults to local no-money simulation; only live-environment keys access the API and tester writes need approval — no accidental payments.

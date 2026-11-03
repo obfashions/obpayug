@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isTestApiSecret } from "@/lib/integration-testing";
 
 /**
  * ObPay public merchant API (v1).
@@ -53,7 +54,9 @@ async function handle(request: Request, params: Record<string, string>) {
   const api = await import("@/lib/public-api.server");
   const { logApiRequest } = await import("@/lib/platform.server");
 
-  const authenticatedMerchantId = await api.merchantForSecret(secretFrom(request));
+  const suppliedSecret = secretFrom(request);
+  if (isTestApiSecret(suppliedSecret)) return json({ success: false, error: "Test keys cannot access the live API. Use the dashboard simulation for no-money testing, or a live key for an approved real transaction." }, 403);
+  const authenticatedMerchantId = await api.merchantForSecret(suppliedSecret);
   if (!authenticatedMerchantId) return json({ success: false, error: "Invalid or missing API secret key." }, 401);
   const merchantId: string = authenticatedMerchantId;
   if (rateLimited(merchantId)) {
@@ -65,7 +68,9 @@ async function handle(request: Request, params: Record<string, string>) {
     const raw = await request.text();
     if (raw.trim()) {
       try {
-        body = JSON.parse(raw) as Record<string, any>;
+        const parsed: unknown = JSON.parse(raw);
+        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return json({ success: false, error: "Request body must be a JSON object." }, 400);
+        body = parsed as Record<string, any>;
       } catch {
         return json({ success: false, error: "Request body must be valid JSON." }, 400);
       }
