@@ -11,4 +11,4 @@ Disallow: /dashboard
 Disallow: /admin
 Disallow: /*.json$
 Disallow: /*.xml$
-Sitemap: https://example.com/sitemap.xml
+Sitemap: https://obpay.online/sitemap.xml

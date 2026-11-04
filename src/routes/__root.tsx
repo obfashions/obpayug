@@ -86,12 +86,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ObPay — Business Payments" },
-      {
-        name: "description",
-        content:
-          "ObPay enables businesses across East Africa to collect payments, send payouts, create payment links, and integrate secure payment APIs.",
-      },
       {
         name: "keywords",
         content:
