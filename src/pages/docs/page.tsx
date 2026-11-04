@@ -4,6 +4,10 @@ import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { JsonLd } from "@/components/base/JsonLd";
 import IntegrationDemo from "@/components/feature/IntegrationDemo";
+import { MONEY_COUNTRIES } from "@/lib/countries";
+const COUNTRY_NAMES = MONEY_COUNTRIES.map((c) => c.country);
+const COUNTRY_AND = `${COUNTRY_NAMES.slice(0, -1).join(", ")} and ${COUNTRY_NAMES[COUNTRY_NAMES.length - 1]}`;
+const COUNTRY_OR = `${COUNTRY_NAMES.slice(0, -1).join(", ")} or ${COUNTRY_NAMES[COUNTRY_NAMES.length - 1]}`;
 
 const BASE = "https://obpay.online/api/public/v1";
 
@@ -126,7 +130,7 @@ const endpointList: Array<{ m: string; p: string; d: string }> = [
   { m: "GET", p: "/account", d: "Your merchant id and counts." },
   { m: "GET", p: "/balance", d: "Collected, paid out and available balance." },
   { m: "POST", p: "/collect", d: "Send a PIN prompt to a customer's MTN or Airtel phone." },
-  { m: "POST", p: "/payouts", d: "Send money to a mobile money number in Uganda, Kenya, Rwanda or Zambia." },
+  { m: "POST", p: "/payouts", d: `Send money to a mobile money number in ${COUNTRY_OR}.` },
   { m: "GET", p: "/transactions", d: "List with filters and pagination." },
   { m: "GET", p: "/transactions/{reference}", d: "One transaction, re-checked live." },
   { m: "GET", p: "/payment-links", d: "List your payment links." },
@@ -179,7 +183,7 @@ export default function DocsPage() {
           "@context": "https://schema.org",
           "@type": "TechArticle",
           headline: "ObPay API documentation",
-          description: "Receive and send mobile money in Uganda, Kenya, Rwanda and Zambia with the ObPay REST API.",
+          description: `Receive and send mobile money in ${COUNTRY_AND} with the ObPay REST API.`,
         }}
       />
       <Navbar />
@@ -231,7 +235,7 @@ export default function DocsPage() {
             <section className="space-y-4">
               <Header icon="ri-home-4-line" label="ObPay API" subtitle={`Base URL: ${BASE}`} />
               <p className={P}>
-                Receive and send mobile money in Uganda, Kenya, Rwanda and Zambia from your own website or app. Every
+                Receive and send mobile money in {COUNTRY_AND} from your own website or app. Every
                 request is JSON over HTTPS, authenticated with your secret key. Every response looks like{" "}
                 <code className={C}>{'{ "success": true, "data": {…} }'}</code> or{" "}
                 <code className={C}>{'{ "success": false, "error": "…" }'}</code>.
@@ -521,7 +525,7 @@ print(r.json())`}
             <section className="space-y-3">
               <Header icon="ri-upload-cloud-line" label="Send money" subtitle={`POST ${BASE}/payouts`} />
               <p className={P}>
-                Sends money from your ObPay balance to a mobile money number in Uganda, Kenya, Rwanda or Zambia. The response
+                Sends money from your ObPay balance to a mobile money number in {COUNTRY_OR}. The response
                 shows <code>fee</code>, <code>recipient_gets</code>, <code>total_debit</code> and <code>fee_mode</code>.
                 By default your wallet pays both fees on top; the recipient gets the entered amount. If you choose recipient-paid
                 fees in account Settings or Payouts, both fees come out of the entered amount instead. API payouts use that saved choice.

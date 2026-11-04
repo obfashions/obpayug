@@ -6,10 +6,10 @@ export const Route = createFileRoute("/pricing")({
   loader: () => getPublicFees(),
   head: () => ({
     meta: [
-      { title: "ObPay Pricing & Fees" },
-      { name: "description", content: "Transparent per-transaction pricing for collections, payouts and payment links." },
-      { property: "og:title", content: "ObPay Pricing & Fees" },
-      { property: "og:description", content: "Transparent per-transaction pricing for collections, payouts and payment links." },
+      { title: "Mobile Money Payment Gateway Fees Uganda — ObPay Pricing" },
+      { name: "description", content: "ObPay fees per currency: 2% to collect and 2% to pay out mobile money, plus the network charge. 1.5% currency exchange. No setup or monthly fee shown here." },
+      { property: "og:title", content: "Mobile Money Payment Gateway Fees Uganda — ObPay Pricing" },
+      { property: "og:description", content: "ObPay fees per currency: 2% to collect and 2% to pay out mobile money, plus the network charge. 1.5% currency exchange. No setup or monthly fee shown here." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
