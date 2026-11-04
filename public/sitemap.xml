@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://example.com/</loc>
+    <loc>https://obpay.online/</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -12,19 +12,19 @@
     </image:image>
   </url>
   <url>
-    <loc>https://example.com/docs</loc>
+    <loc>https://obpay.online/docs</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://example.com/pricing</loc>
+    <loc>https://obpay.online/pricing</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://example.com/support</loc>
+    <loc>https://obpay.online/support</loc>
     <lastmod>2026-06-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
