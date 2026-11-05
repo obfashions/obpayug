@@ -1,5 +1,5 @@
 /** Local demonstration only. Never calls a payment network or changes a wallet. */
-import { MONEY_COUNTRIES, WALLET_CURRENCIES } from "@/lib/countries";
+import { MONEY_COUNTRIES, WALLET_CURRENCIES } from "./countries";
 export type DemoRecord = { reference: string; type: "collection" | "payout"; status: "pending" | "success" | "failed"; amount: number; currency: string };
 const decimalsFor = (c: string) => MONEY_COUNTRIES.find((m) => m.currency === c)?.decimals ?? 2;
 export const DEMO_BALANCE = 100000;
