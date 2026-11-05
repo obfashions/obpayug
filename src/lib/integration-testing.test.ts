@@ -31,3 +31,11 @@ describe("safe integration demonstration", () => {
     expect(simulateIntegration("/balance", "GET", {}, confirmed.records).response).toMatchObject({ simulated: true, data: { available_balance: 100000 } });
   });
 });
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+import { simulateIntegration as sim } from "./integration-testing";
+d2("simulation wallets", () => {
+  i2("simulates a KES collection and rejects unknown currency", () => {
+    e2(sim("/collect", "POST", { reference: "K1", amount: 500, currency: "KES" }, []).response.success).toBe(true);
+    e2(sim("/collect", "POST", { reference: "K2", amount: 500, currency: "EUR" }, []).response.success).toBe(false);
+  });
+});
