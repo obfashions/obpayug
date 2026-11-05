@@ -92,6 +92,7 @@ export default function PayoutsPage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawNetwork, setWithdrawNetwork] = useState("mtn");
   const [withdrawDesc, setWithdrawDesc] = useState("");
+  const [withdrawName, setWithdrawName] = useState("");
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
@@ -316,6 +317,8 @@ export default function PayoutsPage() {
     setWithdrawSubmitting(true); setWithdrawStatus(null); setWithdrawSuggestion(null);
     try {
       const amount = parseFloat(withdrawAmount);
+      const recipientName = (withdrawName || withdrawVerifiedName || profile.full_name || "").trim();
+      if (recipientName.length < 2) { setWithdrawStatus({ ok: false, message: "Enter the name registered on this mobile money number." }); setWithdrawSubmitting(false); return; }
       if (ugandaMinimum.minimum == null) { setWithdrawStatus({ ok: false, message: "Withdrawal minimum is unavailable. Please try again shortly." }); return; }
       if (isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
         setWithdrawStatus({ ok: false, message: "Please enter a whole UGX amount." });
@@ -349,7 +352,7 @@ export default function PayoutsPage() {
         payout_type: "withdraw",
         destinationType: "mobile",
         phoneNumber: profile.phone_number,
-        customerName: profile.full_name || "Account holder",
+        customerName: recipientName,
         customerEmail: user.email || "",
         amount,
         currency: "UGX",
@@ -616,6 +619,10 @@ export default function PayoutsPage() {
                       <i className="ri-smartphone-line text-accent-500" />
                       {profile.phone_number}
                     </div>
+                  </div>
+                  <div>
+                    <label htmlFor="withdraw-name" className="block text-xs font-medium text-foreground-600 mb-1">Customer name (registered on this number) *</label>
+                    <input id="withdraw-name" type="text" required autoComplete="name" value={withdrawName} onChange={(e) => setWithdrawName(e.target.value)} placeholder={withdrawVerifiedName || profile.full_name || "Full name"} className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>

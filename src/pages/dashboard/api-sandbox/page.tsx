@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import { Link } from "@/lib/router-compat";
 import { Button } from "@/components/ui/button";
+import { MONEY_COUNTRIES, WALLET_CURRENCIES } from "@/lib/countries";
 import { simulateIntegration, type DemoRecord } from "@/lib/integration-testing";
 
 type Method = "GET" | "POST";
@@ -11,13 +12,13 @@ interface Endpoint { id: string; label: string; method: Method; path: string; de
 const ENDPOINTS: Endpoint[] = [
   { id: "ping", label: "Ping", method: "GET", path: "/ping", description: "Check that your secret key works.", icon: "ri-pulse-line", fields: [] },
   { id: "account", label: "Account", method: "GET", path: "/account", description: "Your merchant account details.", icon: "ri-user-line", fields: [] },
-  { id: "balance", label: "Balance", method: "GET", path: "/balance", description: "Available and pending balance in UGX.", icon: "ri-wallet-3-line", fields: [] },
+  { id: "balance", label: "Balance", method: "GET", path: "/balance", description: "Available and pending balance for the selected wallet.", icon: "ri-wallet-3-line", fields: [] },
   {
     id: "collect", label: "Collect money", method: "POST", path: "/collect",
-    description: "Sends a PIN prompt to the customer's MTN or Airtel phone.", icon: "ri-download-cloud-line",
+    description: "Sends a PIN prompt to the customer's mobile-money phone.", icon: "ri-download-cloud-line",
     fields: [
       { key: "phone_number", label: "Customer phone", placeholder: "0772123456" },
-      { key: "amount", label: "Amount (UGX, whole number)", placeholder: "1000", type: "number" },
+      { key: "amount", label: "Amount", placeholder: "1000", type: "number" },
       { key: "customer_name", label: "Customer name", placeholder: "Jane Doe" },
       { key: "customer_email", label: "Customer email", placeholder: "jane@example.com" },
       { key: "description", label: "Description", placeholder: "Order #1001", optional: true },
@@ -27,10 +28,10 @@ const ENDPOINTS: Endpoint[] = [
   },
   {
     id: "payout", label: "Send money", method: "POST", path: "/payouts",
-    description: "Pays out to MTN or Airtel Uganda. Check current minimums and fees before a live request.", icon: "ri-upload-cloud-line",
+    description: "Pays out to mobile money in the selected wallet currency. Check current minimums and fees before a live request.", icon: "ri-upload-cloud-line",
     fields: [
       { key: "phone_number", label: "Recipient phone", placeholder: "0772123456" },
-      { key: "amount", label: "Amount (UGX, whole number)", placeholder: "10000", type: "number" },
+      { key: "amount", label: "Amount", placeholder: "10000", type: "number" },
       { key: "customer_name", label: "Recipient name", placeholder: "John Doe" },
       { key: "description", label: "Description", placeholder: "Supplier payment", optional: true },
       { key: "reference", label: "Your reference", placeholder: "PAY-1001", optional: true },
@@ -44,7 +45,7 @@ const ENDPOINTS: Endpoint[] = [
   },
   { id: "transactions", label: "List transactions", method: "GET", path: "/transactions", description: "Your most recent transactions.", icon: "ri-list-check-2", fields: [] },
   { id: "links", label: "Payment links", method: "GET", path: "/payment-links", description: "All your payment links.", icon: "ri-links-line", fields: [] },
-  { id: "rules", label: "Live payout rules", method: "GET", path: "/payout-methods?currency=UGX", description: "Current Uganda network minimums and charges. Available in live mode only.", icon: "ri-information-line", fields: [] },
+  { id: "rules", label: "Live payout rules", method: "GET", path: "/payout-methods", description: "Current network minimums and charges for the selected wallet. Available in live mode only.", icon: "ri-information-line", fields: [] },
   { id: "deliveries", label: "Webhook deliveries", method: "GET", path: "/webhook-deliveries", description: "Recent signed notifications to your server. Simulation does not deliver webhooks.", icon: "ri-webhook-line", fields: [] },
 ];
 
@@ -57,6 +58,7 @@ export default function ApiSandboxPage() {
   const [confirmedLive, setConfirmedLive] = useState(false);
   const [demoRecords, setDemoRecords] = useState<DemoRecord[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
+  const [currency, setCurrency] = useState<string>("UGX");
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const base = typeof window !== "undefined" ? `${window.location.origin}/api/public/v1` : "https://obpay.online/api/public/v1";
@@ -69,8 +71,10 @@ export default function ApiSandboxPage() {
       if (f.path) path = path.replace(`{${f.key}}`, encodeURIComponent(v || `{${f.key}}`));
       else if (v) body[f.key] = f.type === "number" ? Number(v) : v;
     }
+    if (active.method === "POST") body.currency = currency;
+    if (active.id === "rules" || active.id === "balance") path += `?currency=${currency}`;
     return { url: `${base}${path}`, body };
-  }, [active, values, base]);
+  }, [active, values, base, currency]);
 
   const curl = useMemo(() => {
     const lines = [`curl -X ${active.method} "${built.url}"`, `  -H "Authorization: Bearer ${secret ? "sk_live_…" : "YOUR_SECRET_KEY"}"`];
@@ -84,7 +88,7 @@ export default function ApiSandboxPage() {
     if (missing.length) return setResult({ status: 0, ms: 0, url: built.url, body: { error: `Fill in: ${missing.join(", ")}` } });
     if (mode === "simulation") {
       if (active.id === "rules") return setResult({ status: 0, ms: 0, url: built.url, body: { simulated: true, error: "Current network rules require a live authenticated read; no simulated tariff is provided." } });
-      const demo = simulateIntegration(new URL(built.url).pathname.replace("/api/public/v1", ""), active.method, built.body, demoRecords);
+      const demo = simulateIntegration(new URL(built.url).pathname.replace("/api/public/v1", ""), active.method, active.method === "POST" ? built.body : { currency }, demoRecords);
       setDemoRecords(demo.records);
       return setResult({ status: demo.response.success ? 200 : 400, ms: 0, url: "Local simulation — no request sent", body: demo.response });
     }
@@ -155,6 +159,11 @@ export default function ApiSandboxPage() {
                 <p className="font-mono text-xs text-foreground-600 break-all"><span className="font-bold text-primary-600">{active.method}</span> /api/public/v1{active.path}</p>
                 <p className="text-sm text-foreground-700 mt-1">{active.description}</p>
               </div>
+              <label className="block text-xs font-medium text-foreground-600">Wallet currency
+                <select aria-label="Wallet currency" value={currency} onChange={(e) => { setCurrency(e.target.value); setResult(null); }} className={`${input} mt-1`}>
+                  {WALLET_CURRENCIES.map((c) => { const m = MONEY_COUNTRIES.find((x) => x.currency === c); return <option key={c} value={c}>{m ? `${m.flag} ${m.country} — ${c === "SLL" ? "SLE" : c}` : c === "USD" ? "USD — card / crypto" : c}</option>; })}
+                </select>
+              </label>
               {active.fields.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {active.fields.map((f) => (
