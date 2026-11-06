@@ -5,7 +5,7 @@ const reference = "550e8400-e29b-41d4-a716-446655440000";
 const rpc = vi.fn();
 vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: { rpc } }));
 vi.mock("./settle.server", () => ({ settlePaymentRecord: vi.fn(async (r, status) => ({ record: { ...r, status } })), collectionFeeFor: vi.fn(async () => 250) }));
-import { refreshSecondaryRecord, secondaryAction } from "./marz-services.server";
+import { refreshSecondaryRecord, secondaryAction, secondaryErrorMessage } from "./marz-services.server";
 
 beforeEach(() => {
   vi.stubEnv("LOVABLE_API_KEY", "test-only");
@@ -13,6 +13,14 @@ beforeEach(() => {
   rpc.mockReset();
 });
 describe("secondary service rules", () => {
+  it("distinguishes bank validation rejection from a connection outage", () => {
+    expect(secondaryErrorMessage("VALIDATION_FAILED", 400)).toBe("The bank could not verify this account. Check the bank and account number with the recipient.");
+    expect(secondaryErrorMessage("BANK_NOT_SUPPORTED", 400)).toBe("This bank is not supported. Select a bank from the current list.");
+  });
+  it("reads an enabled bank connection without inventing fee settings", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { bank_transfer_available: true } }))));
+    expect(await secondaryAction("bank-services", null, {})).toEqual({ success: true, data: { bank_transfer_available: true, bank_transfer_settings: null } });
+  });
   it("accepts 500 UGX airtime and rejects 499 and fractional amounts", () => {
     expect(airtimeInput.parse({ reference, purchase_type: "airtime", msisdn: "0771234567", amount: 500 }).msisdn).toBe("256771234567");
     for (const amount of [499, 500.5]) expect(airtimeInput.safeParse({ reference, purchase_type: "airtime", msisdn: "0771234567", amount }).success).toBe(false);
