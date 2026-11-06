@@ -33,7 +33,7 @@ type SectionId =
   | "going-live";
 
 const sections: Array<{ id: SectionId; label: string; icon: string }> = [
-  { id: "services", label: "Bills, airtime & cards", icon: "ri-apps-line" },
+  { id: "services", label: "Banks, bills & cards", icon: "ri-apps-line" },
   { id: "overview", label: "Overview", icon: "ri-home-4-line" },
   { id: "operating", label: "How ObPay works", icon: "ri-compass-3-line" },
   { id: "quickstart", label: "Quick start", icon: "ri-flashlight-line" },
@@ -125,7 +125,18 @@ const endpointList: Array<{ m: string; p: string; d: string }> = [
   { m: "POST", p: "/services/bills", d: "Pay a verified Uganda utility account." },
   { m: "POST", p: "/services/cards", d: "Create a hosted card collection in UGX." },
   { m: "GET", p: "/services/status/{reference}", d: "Reverify a service payment." },
-  { m: "GET", p: "/services/history", d: "Your service payments and restricted card balance." },
+  { m: "GET", p: "/services/history", d: "Latest 30 service payments and restricted card balance." },
+  { m: "GET", p: "/services/airtime/network?msisdn=256771234567", d: "Detect the recipient mobile network." },
+  { m: "GET", p: "/services/bills/areas", d: "Current NWSC areas." },
+  { m: "GET", p: "/services/bills/packages?utility_code=DSTV", d: "Current DSTV or GOTV packages and prices." },
+  { m: "POST", p: "/services/bills/verify", d: "Look up a utility account before confirming payment." },
+  { m: "GET", p: "/services/banks", d: "Current supported banks." },
+  { m: "GET", p: "/services/banks/catalog", d: "Bank-transfer availability and exact fee settings, if supplied." },
+  { m: "POST", p: "/services/banks/validate", d: "Verify an active bank account and registered name." },
+  { m: "POST", p: "/services/banks/transfers", d: "Submit an outgoing bank transfer with confirmed recipient and fee." },
+  { m: "GET", p: "/services/banks/accounts", d: "List your saved receiving bank accounts." },
+  { m: "POST", p: "/services/banks/accounts", d: "Network-verify and save a receiving bank account; no wallet credit." },
+  { m: "DELETE", p: "/services/banks/accounts/{id}", d: "Remove one of your saved bank accounts." },
   { m: "GET", p: "/ping", d: "Check that your key works." },
   { m: "GET", p: "/account", d: "Your merchant id and counts." },
   { m: "GET", p: "/balance", d: "Collected, paid out and available balance." },
@@ -210,24 +221,51 @@ export default function DocsPage() {
 
         <main className="bg-white rounded-2xl border border-background-200 p-4 sm:p-8 min-w-0 space-y-4">
           {active === "services" && <section className="space-y-4">
-            <Header icon="ri-apps-line" label="Bills, airtime, data & card payments"/>
-            <p className={P}>These additional services currently use UGX in Uganda. Existing mobile-money collections and payouts keep their current endpoints and fee rules. Bank transfers are customer-service assisted; no automatic bank-transfer endpoint is enabled.</p>
+            <Header icon="ri-apps-line" label="Bank accounts, transfers, bills, airtime & cards"/>
+            <p className={P}>These additional services currently use UGX in Uganda. Existing mobile-money collections and payouts keep their current endpoints and fee rules. Bank transfers use a separate outgoing-transfer endpoint and require a live exact fee and a verified recipient. Saved receiving accounts do not create automatic incoming-payment collection or ObPay wallet credits. All service endpoints use the same live merchant secret; purchases require an active, identity-verified account.</p>
             <Table rows={[
               {name:"Airtime",type:"MTN / Airtel / Lyca",required:"UGX",desc:"Live network minimum; Lyca supports airtime only."},
               {name:"Data",type:"MTN / Airtel",required:"UGX",desc:"Use a live catalog product_id. Airtel delivery may remain pending."},
               {name:"Bills",type:"LIGHT / NWSC / DSTV / GOTV",required:"UGX",desc:"NWSC requires area. TV amount must match the live package price."},
               {name:"Cards",type:"Card collections",required:"UGX",desc:"Hosted checkout, 500–10,000,000 UGX. Card proceeds are restricted and separate; no card issuing."},
+              {name:"Bank transfers",type:"Outgoing payments",required:"UGX",desc:"Verified account holder and exact live fee required. Unknown fee blocks submission."},
+              {name:"Receiving accounts",type:"Saved bank details",required:"UGX",desc:"Verified accounts belonging to your merchant record; direct bank receipts do not credit the ObPay wallet."},
             ]}/>
-            <CodeBlock title="Buy airtime" code={`curl -X POST "${BASE}/services/airtime" \\\n+  -H "Authorization: Bearer $OBPAY_SECRET_KEY" \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"reference":"550e8400-e29b-41d4-a716-446655440000","purchase_type":"airtime","msisdn":"256771234567","amount":5000}'`}/>
+            <CodeBlock title="Buy airtime" code={`curl -X POST "${BASE}/services/airtime" \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"reference":"550e8400-e29b-41d4-a716-446655440000","purchase_type":"airtime","msisdn":"256771234567","amount":5000}'`}/>
             <CodeBlock title="Buy a data bundle" code={`POST /services/airtime
 {"reference":"660e8400-e29b-41d4-a716-446655440000","purchase_type":"bundle","msisdn":"256771234567","bundle_id":"RACT_UG_Data_201","expected_amount":1000}`}/>
             <p className={P}>Read <code className={C}>GET /services/airtime/catalog</code> first. Use the current product price as expected_amount; do not send amount for bundles. Server-side price checks reject changed prices without sending a purchase.</p>
             <CodeBlock title="Pay an electricity bill" code={`POST /services/bills
-{"reference":"770e8400-e29b-41d4-a716-446655440000","utility_code":"LIGHT","meter_number":"12345678901","phone_number":"256771234567","amount":10000,"expected_fee":1200}`}/>
-            <p className={P}>Read the current bill fee from <code className={C}>GET /services/bills/catalog</code>; 1,200 above is an example, not a fixed guarantee. Minimum bill amount is 1,000 UGX. The wallet pays amount plus the verified service fee. Optional customer_name and email are supported. NWSC requires area; DSTV/GOTV require bouquet_code and its exact current price.</p>
+{"reference":"770e8400-e29b-41d4-a716-446655440000","utility_code":"LIGHT","meter_number":"12345678901","phone_number":"256771234567","amount":10000,"expected_fee":1200,"confirmed_name":"Jane Nakato"}`}/>
+            <p className={P}>First call POST /services/bills/verify with utility_code, meter_number and area for NWSC. Read customer_details.customer_name (or customer_name) and require the customer to confirm it; submit that exact value as confirmed_name. Read the current bill fee from <code className={C}>GET /services/bills/catalog</code>; 1,200 above is an example, not a fixed guarantee. Minimum bill amount is 1,000 UGX. The wallet pays amount plus the verified service fee. Optional customer_name and email are supported. NWSC requires area; DSTV/GOTV require bouquet_code and its exact current price.</p>
             <CodeBlock title="Create a card collection" code={`POST /services/cards
 {"reference":"880e8400-e29b-41d4-a716-446655440000","amount":5000,"description":"Order payment"}`}/>
             <p className={P}>Redirect the customer to the returned checkout_url. Never collect card numbers or PINs in your own form. Check <code className={C}>GET /services/status/REFERENCE</code> for verified confirmation. Card funds appear as card_balance in service history, not in the mobile-money balance endpoint. Contact customer service to withdraw card proceeds to a bank.</p>
+            <Header icon="ri-bank-line" label="Bank integration" />
+            <p className={P}>Read GET /services/banks for bank names, then GET /services/banks/catalog for bank_transfer_available and bank_transfer_settings. Fees may be unavailable even when the rail is enabled: do not guess. Fixed settings use fixed_transfer_charge or charge_amount; percentage settings use charge_percentage when amount_type is percentage. The amount plus its exact whole-UGX fee is reserved from your UGX wallet. A changed or fractional fee blocks submission.</p>
+            <CodeBlock title="Verify a bank recipient — no money movement" code={`POST /services/banks/validate
+{"bank_name":"Equity Bank","account_number":"60001256421"}
+
+// Example verified response; never assume this name for a real recipient.
+{"success":true,"data":{"valid":true,"account_name":"Jane Nakato"}}`} />
+            <p className={P}>Only valid=true with a registered name permits saving or sending. A returned name without active registration is not verification. Display the verified name for explicit approval, then submit it as confirmed_name. The account is reverified before sending.</p>
+            <CodeBlock title="Outgoing bank transfer — live, chargeable request" code={`POST /services/banks/transfers
+{"reference":"990e8400-e29b-41d4-a716-446655440000","amount":100000,"description":"Invoice payment","bank_name":"Equity Bank","bank_account_number":"60001256421","bank_branch":"Kampala","confirmed_name":"Jane Nakato","expected_fee":50000}`} />
+            <p className={P}>The 50,000 fee above is illustrative, not a guaranteed charge. Required fields are reference (UUID), amount (positive whole UGX), description (1–500 characters), bank_name (current list, up to 100 characters), bank_account_number (5–30 digits), confirmed_name and expected_fee (nonnegative whole UGX). bank_branch is optional, up to 100 characters. Do not use POST /payouts for bank transfers.</p>
+            <CodeBlock title="Save receiving bank details — no payment or wallet credit" code={`POST /services/banks/accounts
+{"bank_name":"Equity Bank","account_number":"60001256421","branch":"Kampala","currency":"UGX"}
+
+GET /services/banks/accounts
+DELETE /services/banks/accounts/ACCOUNT_UUID`} />
+            <p className={P}>The server verifies the account and stores the bank-returned account_name; a supplied name or merchant_id cannot override it. branch is optional and currency defaults to UGX; other currencies are rejected. Creation returns data.account; listing returns data.accounts. Both include automatic_wallet_credit=false. Deletion returns data.id and removed=true. Your secret can only list or remove accounts belonging to your merchant. A duplicate saved account is rejected.</p>
+            <Note tone="warn">There is no incoming bank-collection, virtual-account, bank-receipt webhook or automatic bank-to-wallet credit endpoint. Customers paying a saved bank account pay the bank directly; verify receipts with your bank. Saving an account does not establish settlement or make an unconfirmed bank account active.</Note>
+            <Header icon="ri-search-eye-line" label="Service status and reconciliation" />
+            <CodeBlock title="Status and history" code={`GET /services/status/990e8400-e29b-41d4-a716-446655440000
+GET /services/history
+
+// Example pending transfer response
+{"success":true,"data":{"reference":"990e8400-e29b-41d4-a716-446655440000","amount":100000,"currency":"UGX","status":"pending","fee":50000,"net_amount":100000,"checkout_url":null}}`} />
+            <p className={P}>Service responses include reference, amount, currency, status, fee, net_amount, description, msisdn, checkout_url and created_at; historical balance snapshots may be unavailable. Bank transfers have no mobile recipient, so msisdn may be null. History returns data.purchases (latest 30) and data.card_balance in UGX. Use the service status endpoint for airtime, bills, cards and bank transfers, not the primary-payment lookup. Status is pending, success or failed after matching network evidence; a successful request envelope is not proof of delivery. Poll with the same UUID, respect HTTP 429, and treat any success=false response as a refusal or uncertainty, even with HTTP 200. These services do not currently send merchant service webhooks or support callback_url; reconcile through status reads.</p>
             <Note tone="warn">Keep the same UUID reference when checking or retrying the same request. A timeout is not proof of failure: do not pay again with a new reference. Funds are reserved before service submission; confirmed failed purchases are refunded once. No unsigned callback credits a wallet. Pending services are rechecked through status and history reads.</Note>
             <p className={P}><Link to="/services" className="text-primary underline">Browse service pages</Link> · <Link to="/dashboard/service-history" className="text-primary underline">Service history</Link></p>
           </section>}
@@ -388,7 +426,7 @@ export default function DocsPage() {
             <p className={P}>UGX collections and payouts support MTN Mobile Money Uganda and Airtel Money Uganda. Use the registered recipient name and the SIM's mobile-money number. Availability is subject to network service and account eligibility.</p>
             <p className={P}>Collection settlement into the ObPay ledger requires successful network verification, confirmed charges and an atomic wallet credit. A wallet credit is not the same as delivery to an external mobile-money account. Payout funds are reserved before submission; a confirmed failed payout releases the reservation once. An uncertain payout must be investigated, not resent with a new reference.</p>
             <p className={P}>Current standard ObPay collection and payout rates are listed on the <Link to="/pricing" className="text-primary underline">live transaction-fees page</Link>. Collection credit equals the gross amount minus the verified network charge and ObPay margin, charged once. Merchant-specific exemptions remain applicable. Payouts include the ObPay charge plus the current network quote; the saved sender/recipient fee choice determines the wallet debit and recipient amount.</p>
-            <CodeBlock title="Read current Uganda network minimum and charges" code={`curl "${BASE}/payout-methods?currency=UGX" \\\n+  -H "Authorization: Bearer $OBPAY_SECRET_KEY"`} />
+            <CodeBlock title="Read current Uganda network minimum and charges" code={`curl "${BASE}/payout-methods?currency=UGX" \\\n  -H "Authorization: Bearer $OBPAY_SECRET_KEY"`} />
             <p className={P}>Do not hardcode a minimum or promise instant settlement. Live minimums, fees and whole-amount checks determine whether an entered payout is accepted. The payout response reports fee, recipient_gets, total_debit and fee_mode. Status remains pending until verified; delays can occur during network outages, review or insufficient settlement funding.</p>
             <Note tone="warn">This API guide does not establish the legal custody entity, licence holder, safeguarding account, insurance or insolvency protection arrangements. Obtain written confirmation and supporting documents from ObPay's business team before production integration. Neither a wallet balance nor technical verification proves a segregated bank deposit or deposit insurance.</Note>
             <p className={P}>For custody and licensing documentation, contact ObPay Support on +256 745 482977 or obsfashions@zohomail.com. Do not treat undocumented processing-partner arrangements as a financial guarantee.</p>

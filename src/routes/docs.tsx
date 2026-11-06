@@ -4,10 +4,10 @@ import Page from "@/pages/docs/page";
 export const Route = createFileRoute("/docs")({
   head: () => ({
     meta: [
-      { title: "MTN & Airtel Mobile Money API Docs — ObPay" },
-      { name: "description", content: "REST API to collect and send MTN Mobile Money, Airtel Money and M-Pesa payments, with webhooks, payouts, balances and a no-money test mode." },
-      { property: "og:title", content: "MTN & Airtel Mobile Money API Docs — ObPay" },
-      { property: "og:description", content: "REST API to collect and send MTN Mobile Money, Airtel Money and M-Pesa payments, with webhooks, payouts, balances and a no-money test mode." },
+      { title: "Payments & Service API Documentation — ObPay" },
+      { name: "description", content: "Integrate ObPay mobile money, bank transfers, verified receiving accounts, airtime, bills and card collections with documented fees, status checks and payment safeguards." },
+      { property: "og:title", content: "Payments & Service API Documentation — ObPay" },
+      { property: "og:description", content: "Integrate ObPay mobile money, bank transfers, verified receiving accounts, airtime, bills and card collections with documented fees, status checks and payment safeguards." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
