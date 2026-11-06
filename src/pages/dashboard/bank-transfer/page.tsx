@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { bankFee } from "@/lib/secondary-service-rules";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "@/lib/router-compat";
+import BankAccounts from "@/pages/dashboard/settings/BankAccounts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Bank {
   code: string;
@@ -87,10 +89,23 @@ export default function BankTransferPage() {
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Bank Transfer</h1>
-          <p className="text-sm text-muted-foreground">Push funds from your ObPay wallet straight to a Ugandan bank account.</p>
+          <h1 className="text-2xl font-bold text-foreground">Bank payments</h1>
+          <p className="text-sm text-muted-foreground">Your receiving bank accounts and outgoing Uganda transfers.</p>
         </div>
-
+        <Tabs defaultValue="receive">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="receive" className="flex-1">Receiving accounts</TabsTrigger>
+            <TabsTrigger value="send" className="flex-1">Send to bank</TabsTrigger>
+          </TabsList>
+          <TabsContent value="receive" className="space-y-4 pt-4">
+            <div className="border-l-2 border-border pl-4 space-y-2">
+              <h2 className="font-semibold">Direct bank payments · UGX</h2>
+              <p className="text-sm text-muted-foreground">Payments sent directly to your bank account remain at your bank. They are not credited to your ObPay wallet.</p>
+              <p className="text-sm text-muted-foreground">Automatic incoming bank payments are not available through the connected payment network.</p>
+            </div>
+            <BankAccounts />
+          </TabsContent>
+          <TabsContent value="send" className="space-y-6 pt-4">
         {settings && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
@@ -237,6 +252,8 @@ export default function BankTransferPage() {
             <pre className="overflow-x-auto rounded-lg bg-muted p-3 text-xs text-foreground">{JSON.stringify(lookup, null, 2)}</pre>
           )}
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

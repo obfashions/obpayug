@@ -38,7 +38,7 @@ const navItems: Array<{ label: string; href: string; icon: LucideIcon; group: st
   { label: "Overview", href: "/dashboard", icon: Gauge, group: "main" },
   { label: "Collections", href: "/dashboard/collections", icon: BanknoteArrowDown, group: "main" },
   { label: "Payouts", href: "/dashboard/payouts", icon: BanknoteArrowUp, group: "main" },
-  { label: "Bank Transfer", href: "/dashboard/bank-transfer", icon: Building2, group: "services" },
+  { label: "Bank Payments", href: "/dashboard/bank-transfer", icon: Building2, group: "services" },
   { label: "Bill Payments", href: "/dashboard/bill-payments", icon: ReceiptText, group: "services" },
   { label: "Airtime & Data", href: "/dashboard/airtime-data", icon: Smartphone, group: "services" },
   { label: "Card Payments", href: "/dashboard/cards", icon: CreditCard, group: "services" },
