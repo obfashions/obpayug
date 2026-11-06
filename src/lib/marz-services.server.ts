@@ -142,7 +142,7 @@ export async function verifiedIdentity(userId: string): Promise<{ ok: true; name
   return { ok: true, name };
 }
 
-export async function secondaryPurchase(userId: string, kind: "airtime" | "bill" | "card" | "bank", body: any) {
+export async function secondaryPurchase(userId: string, kind: "airtime" | "bill" | "card" | "bank", body: any, source: "dashboard" | "api" = "dashboard") {
   let reserved = false;
   try {
     const payload: any = (kind === "bank" ? bankInput : kind === "airtime" ? airtimeInput : kind === "bill" ? billInput : cardInput).parse(body);
@@ -202,12 +202,12 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
     const metadata: any = { provider: "marz", service, partner_fee: partnerFee, obpay_fee: 0, total_debit: amount + partnerFee, fee_mode: "account", payer_name: identity.name, ...(kind === "bill" ? { account_name: payload.customer_name } : {}) };
     let row: any;
     if (kind === "card") {
-      const { data, error } = await client.from("payment_records").insert({ merchant_id: userId, reference: payload.reference, amount, currency: "UGX", type: "collection", source: "dashboard", status: "pending", description: payload.description, metadata }).select("*").single();
+      const { data, error } = await client.from("payment_records").insert({ merchant_id: userId, reference: payload.reference, amount, currency: "UGX", type: "collection", source, status: "pending", description: payload.description, metadata }).select("*").single();
       if (error) return fail("Reference already exists or the payment could not be saved. Check your history before retrying.");
       row = data;
     } else {
       const { data, error } = await client.rpc("reserve_payout_and_balance", { p_merchant_id: userId, p_reference: payload.reference, p_amount: amount, p_currency: "UGX", p_phone: payload.msisdn || payload.phone_number,
-        p_source: "dashboard", p_description: kind === "bank" ? payload.description : kind === "bill" ? `${payload.utility_code} bill payment` : payload.purchase_type === "bundle" ? "Data bundle purchase" : "Airtime purchase", p_metadata: metadata, p_debit: amount + partnerFee });
+        p_source: source, p_description: kind === "bank" ? payload.description : kind === "bill" ? `${payload.utility_code} bill payment` : payload.purchase_type === "bundle" ? "Data bundle purchase" : "Airtime purchase", p_metadata: metadata, p_debit: amount + partnerFee });
       if (error) return fail("The payment could not be reserved. Check your UGX balance and transaction reference; no request was sent.");
       row = data;
       // Persist fees before any external money movement; a failed save retains the reservation for investigation.
@@ -262,6 +262,26 @@ export async function secondaryAction(action: string, userId: string | null, b: 
     }
     // Recipient lookups require identity; public callers cannot enumerate account names.
     if (!userId) return fail("Please sign in to use this service.");
+    if (action === "bank-accounts-list") {
+      const client = await db();
+      const { data, error } = await client.from("merchant_bank_accounts").select("id,bank_name,account_number,account_name,branch,currency,created_at").eq("merchant_id", userId).order("created_at", { ascending: false });
+      return error ? fail("Your saved bank accounts could not be loaded.") : ok({ accounts: data || [], automatic_wallet_credit: false });
+    }
+    if (action === "bank-accounts-create") {
+      const input = z.object({ bank_name: z.string().trim().min(1).max(100), account_number: z.string().regex(/^\d{5,30}$/), branch: z.string().trim().max(100).default(""), currency: z.literal("UGX").default("UGX") }).parse(b);
+      const check = await marzRequest("/bank-transfer/validate", { bank_name: input.bank_name, account_number: input.account_number });
+      const accountName = verifiedBankName(check);
+      if (accountName.length > 120) return fail("The registered account name could not be saved. Please contact support.");
+      const client = await db();
+      const { data, error } = await client.from("merchant_bank_accounts").insert({ ...input, merchant_id: userId, account_name: accountName }).select("id,bank_name,account_number,account_name,branch,currency,created_at").single();
+      return error || !data ? fail("The bank account could not be saved; it may already be listed.") : ok({ account: data, automatic_wallet_credit: false });
+    }
+    if (action === "bank-accounts-delete") {
+      const accountId = z.string().uuid().parse(b.id);
+      const client = await db();
+      const { data, error } = await client.from("merchant_bank_accounts").delete().eq("id", accountId).eq("merchant_id", userId).select("id");
+      return error || !data?.length ? fail("The bank account was not found or could not be removed.") : ok({ id: accountId, removed: true });
+    }
     if (action === "bank-transfer") return secondaryPurchase(userId, "bank", { reference: b.reference, amount: b.amount, description: b.description, bank_name: b.bankName, bank_account_number: b.accountNumber, bank_branch: b.bankBranch, confirmed_name: b.confirmedName, expected_fee: b.expectedFee });
     if (action === "bank-validate") {
       const input = z.object({ bank_name: z.string().min(1).max(100), account_number: z.string().regex(/^\d{5,30}$/) }).parse({ bank_name: b.bankName || b.bankCode, account_number: b.accountNumber });
@@ -291,7 +311,7 @@ export async function secondaryAction(action: string, userId: string | null, b: 
     }
     return fail("This action is not available.");
   } catch (error) {
-    if (error instanceof z.ZodError) return fail("Check the bank and account number. Account numbers must contain 5–30 digits.");
+    if (error instanceof z.ZodError) return fail(error.issues[0]?.message || "Check your request details.");
     return fail(error instanceof Error ? error.message : UNAVAILABLE);
   }
 }

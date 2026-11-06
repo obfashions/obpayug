@@ -103,15 +103,9 @@ async function handle(request: Request, params: Record<string, string>) {
 
     // Secondary-provider services never replace primary mobile-money routes.
     if (seg[0] === "services") {
-      const { secondaryAction, secondaryPurchase } = await import("@/lib/marz-services.server");
-      if (seg.length === 1 && method === "GET") return { payload: await secondaryAction("svc-list", merchantId, {}) };
-      if (path === "services/airtime/catalog" && method === "GET") return { payload: await secondaryAction("airtime-catalog", merchantId, {}) };
-      if (path === "services/bills/catalog" && method === "GET") return { payload: await secondaryAction("bill-services", merchantId, {}) };
-      if (path === "services/history" && method === "GET") return { payload: await secondaryAction("service-history", merchantId, {}) };
-      if (path === "services/airtime" && method === "POST") return { payload: await secondaryPurchase(merchantId, "airtime", body) };
-      if (path === "services/bills" && method === "POST") return { payload: await secondaryPurchase(merchantId, "bill", body) };
-      if (path === "services/cards" && method === "POST") return { payload: await secondaryPurchase(merchantId, "card", body) };
-      if (seg.length === 3 && seg[1] === "status" && method === "GET") return { payload: await secondaryAction("card-status", merchantId, { reference: seg[2] }) };
+      const { serviceApi } = await import("@/lib/service-api.server");
+      const payload = await serviceApi(method, path, merchantId, body, url.searchParams);
+      if (payload) return { payload };
     }
 
     // money movement
