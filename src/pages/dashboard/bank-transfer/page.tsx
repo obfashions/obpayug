@@ -3,6 +3,8 @@ import DashboardLayout from "@/components/feature/DashboardLayout";
 import { invokeObpay } from "@/lib/edge-function";
 import { Button } from "@/components/ui/button";
 import { bankFee } from "@/lib/secondary-service-rules";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "@/lib/router-compat";
 
 interface Bank {
   code: string;
@@ -22,6 +24,7 @@ export default function BankTransferPage() {
   const [available, setAvailable] = useState(false);
   const [lookupRef, setLookupRef] = useState("");
   const [lookup, setLookup] = useState<any>(null);
+  const [savedAccounts, setSavedAccounts] = useState<any[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -36,6 +39,7 @@ export default function BankTransferPage() {
 
   useEffect(() => {
     load();
+    void supabase.from("merchant_bank_accounts").select("id,bank_name,account_number,account_name").then(({ data }) => setSavedAccounts(data || []));
   }, [load]);
 
   const amount = Number(form.amount || 0);
@@ -105,13 +109,22 @@ export default function BankTransferPage() {
 
         {!loading && !available && <p role="alert" className="text-sm text-destructive">Bank transfers are currently unavailable for this account.</p>}
         <form onSubmit={submit} className="border-y border-border py-5 space-y-4">
+          <div>
+            <label htmlFor="saved-bank-account" className="block text-sm mb-1">Saved receiving account</label>
+            <select id="saved-bank-account" className="w-full rounded-md border border-border bg-background p-2.5 text-sm" disabled={!!reference} defaultValue="" onChange={e => {
+              const account = savedAccounts.find(a => a.id === e.target.value);
+              if (account) { setForm(f => ({ ...f, bankName: account.bank_name, accountNumber: account.account_number, accountName: account.account_name })); setValidated(null); }
+            }}><option value="">Enter recipient details below</option>{savedAccounts.map(a => <option key={a.id} value={a.id}>{a.bank_name} · {a.account_name} · ending {a.account_number.slice(-4)}</option>)}</select>
+            <Link to="/dashboard/settings" className="text-sm text-primary underline">Manage receiving bank accounts</Link>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1 text-foreground">Bank</label>
               <select
                 required
                 value={form.bankName}
-                onChange={(e) => { setForm({ ...form, bankName: e.target.value }); setValidated(null); setReference(""); }}
+                disabled={!!reference}
+                onChange={(e) => { setForm({ ...form, bankName: e.target.value }); setValidated(null); }}
                 className="w-full rounded-lg border border-border bg-background p-2.5 text-sm"
               >
                 <option value="">{loading ? "Loading banks…" : "Select bank"}</option>
@@ -128,7 +141,8 @@ export default function BankTransferPage() {
                 <input
                   required
                   value={form.accountNumber}
-                  onChange={(e) => { setForm({ ...form, accountNumber: e.target.value }); setValidated(null); setReference(""); }}
+                  disabled={!!reference}
+                  onChange={(e) => { setForm({ ...form, accountNumber: e.target.value }); setValidated(null); }}
                   className="flex-1 min-w-0 rounded-lg border border-border bg-background p-2.5 text-sm"
                   placeholder="60001256421"
                 />

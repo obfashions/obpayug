@@ -267,6 +267,13 @@
       "when": 1793618622507,
       "tag": "0037_atomic_dashboard_collection_credit",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793947014684,
+      "tag": "0038_merchant_receiving_bank_accounts",
+      "breakpoints": true
     }
   ]
 }

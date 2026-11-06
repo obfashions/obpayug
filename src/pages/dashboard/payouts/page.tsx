@@ -352,6 +352,7 @@ export default function PayoutsPage() {
         payout_type: "withdraw",
         destinationType: "mobile",
         phoneNumber: profile.phone_number,
+        customer_name: recipientName,
         customerName: recipientName,
         customerEmail: user.email || "",
         amount,
