@@ -75,3 +75,6 @@
 - [ ] Confirm bank-transfer live fee settings: published availability documentation omits the fee fields; no guessed charge or live money sent.
 - [x] Add verified owner-only receiving bank accounts in Settings and saved recipient selection on bank transfers; unify payout recipient-name aliases and send the explicit name on own-number withdrawals.
 - [ ] Apply requested secondary-provider 2.5% total deposit rate: published Uganda costs are 3% mobile money and 5% card; requires a confirmed discounted network rate to avoid losses. Primary-provider pricing and historical transactions unchanged.
+
+- [x] Add receiving-account section under Bank Payments using existing network validation and owner-only account storage; explicitly separate direct bank receipts from ObPay wallet credits.
+- [ ] Connect automatic incoming bank payments: Marz documents outgoing disbursements only; requires official incoming-bank API, settlement verification and fee contract. No incoming endpoint or wallet credits invented.
