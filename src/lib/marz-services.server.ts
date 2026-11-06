@@ -116,6 +116,16 @@ async function existing(userId: string, reference: string) {
 const cleanName = (v: unknown) => String(v ?? "").trim().replace(/\s+/g, " ");
 const sameName = (a: unknown, b: unknown) => cleanName(a).toLowerCase() === cleanName(b).toLowerCase() && cleanName(a).length > 0;
 
+function verifiedBankName(check: any): string {
+  const name = cleanName(check?.account_name);
+  if (check?.valid !== true) {
+    if (name && check?.status_code === 0) throw new Error("The bank found this account, but has not confirmed it is active. Ask your bank to confirm its registration for bank-network transfers, then try verification again. No money has been moved.");
+    throw new Error("The bank could not verify this account. Check the bank and account number with the recipient.");
+  }
+  if (!name) throw new Error("The bank has not supplied the account holder's name. Try verification again before saving or sending money.");
+  return name;
+}
+
 /** Approved identity may live in the current KYC table or the migrated merchant profile; both need a verified name. */
 export async function verifiedIdentity(userId: string): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
   const client = await db();
@@ -156,8 +166,9 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
       partnerFee = fee;
       if (payload.expected_fee !== fee) return fail("The transfer fee changed. Refresh and confirm the new fee.");
       const check = await marzRequest("/bank-transfer/validate", { bank_name: payload.bank_name, account_number: payload.bank_account_number });
-      if (check.valid !== true || !sameName(payload.confirmed_name, check.account_name)) return fail("Verify the recipient account and confirm its registered name before sending.");
-      payload.bank_account_name = cleanName(check.account_name);
+      const accountName = verifiedBankName(check);
+      if (!sameName(payload.confirmed_name, accountName)) return fail("Verify the recipient account and confirm its registered name before sending.");
+      payload.bank_account_name = accountName;
     }
     if (kind === "airtime") {
       const [catalog, detected] = await Promise.all([marzRequest("/airtime-data/catalog"), marzRequest(`/airtime-data/detect-network?msisdn=${payload.msisdn}`)]);
@@ -255,7 +266,7 @@ export async function secondaryAction(action: string, userId: string | null, b: 
     if (action === "bank-validate") {
       const input = z.object({ bank_name: z.string().min(1).max(100), account_number: z.string().regex(/^\d{5,30}$/) }).parse({ bank_name: b.bankName || b.bankCode, account_number: b.accountNumber });
       const d = await marzRequest("/bank-transfer/validate", input);
-      return ok({ account_name: d.account_name, valid: d.valid });
+      return ok({ account_name: verifiedBankName(d), valid: true });
     }
     if (action === "bill-verify") {
       const input = z.object({ utility_code: z.enum(["LIGHT", "UMEME", "NWSC", "DSTV", "GOTV"]), meter_number: z.string().min(5).max(40), area: z.string().max(80).optional() }).parse({ utility_code: b.utilityCode, meter_number: b.meterNumber, area: b.area });

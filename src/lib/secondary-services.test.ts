@@ -13,6 +13,15 @@ beforeEach(() => {
   rpc.mockReset();
 });
 describe("secondary service rules", () => {
+  it("does not call a named but unconfirmed Bank of Africa account verified", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: false, is_registered: "", status_code: 0, status_description: "SUCCESS" } }))));
+    expect(await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).toEqual({ success: false, error: "The bank found this account, but has not confirmed it is active. Ask your bank to confirm its registration for bank-network transfers, then try verification again. No money has been moved." });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+  it("accepts network-confirmed active bank accounts with a registered name", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: true, is_registered: "ACTIVE", status_code: 0 } }))));
+    expect(await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).toEqual({ success: true, data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: true } });
+  });
   it("distinguishes bank validation rejection from a connection outage", () => {
     expect(secondaryErrorMessage("VALIDATION_FAILED", 400)).toBe("The bank could not verify this account. Check the bank and account number with the recipient.");
     expect(secondaryErrorMessage("BANK_NOT_SUPPORTED", 400)).toBe("This bank is not supported. Select a bank from the current list.");
