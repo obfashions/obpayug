@@ -31,6 +31,18 @@ export const billInput = z.object({
   if (["DSTV", "GOTV"].includes(v.utility_code) && !v.bouquet_code) ctx.addIssue({ code: "custom", message: "Choose a TV package." });
 });
 export const cardInput = z.object({ reference: serviceReference, amount: z.number().int().min(500).max(10000000), description: z.string().trim().min(1).max(500) });
+export const bankInput = z.object({ reference: serviceReference, amount: z.number().int().positive(), description: z.string().trim().min(1).max(500), bank_name: z.string().trim().min(1).max(100), bank_account_number: z.string().regex(/^\d{5,30}$/), bank_branch: z.string().trim().max(100).optional(), confirmed_name: z.string().trim().min(2), expected_fee: z.number().int().nonnegative() });
+export function bankFee(settings: any, amount: number): number | null {
+  if (!settings || !Number.isInteger(amount) || amount <= 0) return null;
+  if (String(settings.amount_type).toLowerCase() === "percentage") {
+    const rate = moneyRaw(settings.charge_percentage);
+    if (rate == null || rate > 100) return null;
+    const fee = amount * rate / 100;
+    return Number.isInteger(fee) ? fee : null;
+  }
+  const fee = moneyRaw(settings.fixed_transfer_charge ?? settings.charge_amount);
+  return fee != null && Number.isInteger(fee) ? fee : null;
+}
 export function moneyRaw(value: unknown): number | null {
   const raw = typeof value === "object" && value !== null ? (value as { raw?: unknown }).raw : value;
   if (raw == null || raw === "") return null;
