@@ -8,6 +8,7 @@ import { getProviderConnectionStatus, testProviderConnection } from "@/services/
 import { supabase as profileClient } from "@/integrations/supabase/client";
 import { saveMerchantPhone } from "@/lib/merchant-phone";
 import { Button } from "@/components/ui/button";
+import BankAccounts from "./BankAccounts";
 
 export default function SettingsPage() {
   const { profile, refreshProfile } = useAuth();
@@ -205,6 +206,7 @@ export default function SettingsPage() {
 
         <CurrencyWalletsCard />
         <PayoutFees />
+        <BankAccounts />
 
         {/* Payment engine status — Admin Only */}
         {profile?.role === "admin" && (

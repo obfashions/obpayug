@@ -287,7 +287,8 @@ export async function apiPayout(merchantId: string, body: Record<string, any>, s
   const rawAcct = pick(body, "phone_number", "phoneNumber", "account_number");
   const accountNumber = currency === "UGX" ? walletNumber(rawAcct) : intlPhone(rawAcct, currency);
   if (!accountNumber) return err(`\`phone_number\` must be a ${countryFor(currency)?.country} mobile money number, e.g. ${countryFor(currency)?.example}.`);
-  const recipientName = pick(body, "customer_name", "customerName", "recipient_name");
+  const { payoutRecipientName } = await import("./payout-recipient");
+  const recipientName = payoutRecipientName(body);
   if (!recipientName) return err("`customer_name` is required for every payout.");
   const recipientEmail = pick(body, "customer_email", "customerEmail");
   if (recipientEmail && !/^\S+@\S+\.\S+$/.test(recipientEmail)) return err("`customer_email` must be a valid email address.");
