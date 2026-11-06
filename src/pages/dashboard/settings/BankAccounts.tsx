@@ -15,11 +15,11 @@ export default function BankAccounts() {
     const { data, error } = await supabase.from("merchant_bank_accounts").select("id,bank_name,account_number,account_name").order("created_at", { ascending: false });
     if (error) setMessage("Your saved bank accounts could not be loaded."); else setAccounts(data || []);
   }
-  useEffect(() => { void load(); void invokeObpay({ action: "bank-banks" }).then(r => { if (r.success) setBanks(r.data.banks); }); }, []);
+  useEffect(() => { void load(); void invokeObpay({ action: "bank-banks" }).then(r => { if (r.success) setBanks(r.data?.banks || []); else setMessage(r.error || "The current bank list could not be loaded. Please try again."); }); }, []);
   async function save(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setMessage("");
     try {
-      const check = await invokeObpay({ action: "bank-validate", bankName: bank, accountNumber: number });
+      const check = await invokeObpay({ action: "bank-validate", bankName: bank, accountNumber: number.trim() });
       if (!check.success || check.data?.valid !== true || !check.data?.account_name) throw new Error(check.error || "The bank account could not be verified.");
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth.user) throw new Error("Please sign in again.");

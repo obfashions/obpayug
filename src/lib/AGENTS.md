@@ -1,3 +1,4 @@
 - Secondary services reserve funds atomically, reuse UUIDs, verify outcomes and retain uncertain reservations; bank submission requires exact live fees and an atomic local reference reservation; never retry uncertain provider calls, which have no documented client idempotency key — prevent losses.
 - Receiving bank accounts are owner-scoped records, network-validated before saving and revalidated before payment; saving never moves money or creates automatic settlement.
+- Bank lookups use one shared validity-and-name guard for saving and sending; a successful name lookup with valid=false is not confirmed registration — prevents misleading receiving-account verification and unsafe transfers.
 - All payout callers resolve recipient-name aliases through payout-recipient.ts; never infer a recipient identity from a phone number.
