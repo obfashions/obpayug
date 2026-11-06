@@ -396,6 +396,47 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_bank_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          branch: string
+          created_at: string
+          currency: string
+          id: string
+          merchant_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_name: string
+          branch?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          merchant_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_name?: string
+          branch?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          merchant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_bank_accounts_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_card_balances: {
         Row: {
           available_balance: number
