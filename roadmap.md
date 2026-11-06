@@ -70,3 +70,6 @@
 - Payouts page shows a "Recipient gets" column.
 - Admin account position shows per-currency ObPay earnings (collection margin + ObPay payout fees only).
 - Admin Settings: new Currency Exchange Fee card (default 1.5%).
+
+- [x] Bank-transfer recipient form and validation enabled without a linked business bank account; exact live fee required, UUID reserved before submission, uncertain requests cannot resubmit.
+- [ ] Confirm bank-transfer live fee settings: published availability documentation omits the fee fields; no guessed charge or live money sent.

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { airtimeInput, billInput, cardInput, moneyRaw, serviceState } from "./secondary-service-rules";
+import { airtimeInput, billInput, cardInput, moneyRaw, serviceState, bankFee, bankInput } from "./secondary-service-rules";
 
 const reference = "550e8400-e29b-41d4-a716-446655440000";
 const rpc = vi.fn();
@@ -39,10 +39,18 @@ describe("secondary service rules", () => {
     expect(serviceState("completed")).toBe("success");
     expect(serviceState("successful")).toBe("success");
   });
-  it("keeps automatic bank transfers blocked before moving money", async () => {
+  it("rejects incomplete bank transfers before moving money", async () => {
     const out = await secondaryAction("bank-transfer", "merchant", { amount: 1000 });
     expect(out.success).toBe(false);
     expect(rpc).not.toHaveBeenCalled();
+  });
+  it("requires an exact bank fee rather than guessing the documentation example", () => {
+    expect(bankFee(null, 100000)).toBeNull();
+    expect(bankFee({ amount_type: "fixed", fixed_transfer_charge: 50000 }, 100000)).toBe(50000);
+    expect(bankFee({ amount_type: "percentage", charge_percentage: 2 }, 100000)).toBe(2000);
+  });
+  it("accepts recipient bank details without a linked business bank account", () => {
+    expect(bankInput.safeParse({ reference, amount: 100000, description: "Services", bank_name: "Equity Bank", bank_account_number: "60001256421", confirmed_name: "John Doe", expected_fee: 50000 }).success).toBe(true);
   });
   it("does not settle a mismatched card amount", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { status: "completed", amount: { raw: 4000 }, charge: { raw: 200 } } }))));
