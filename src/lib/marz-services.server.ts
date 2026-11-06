@@ -1,6 +1,6 @@
 // Secondary-provider boundary. Never route primary mobile-money payments here.
 import { z } from "zod";
-import { airtimeInput, billInput, cardInput, moneyRaw, serviceReference, serviceState, ugPhone } from "./secondary-service-rules";
+import { airtimeInput, billInput, cardInput, bankInput, bankFee, moneyRaw, serviceReference, serviceState, ugPhone } from "./secondary-service-rules";
 import { requireAdmin } from "./identity.server";
 
 const db = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin as any;
@@ -48,7 +48,7 @@ export async function secondaryCatalog() {
     { code: "bill_payment", name: "Bill payments", status: bills.status === "fulfilled" ? "active" : "unavailable" },
     { code: "airtime_data", name: "Airtime & data", status: airtime.status === "fulfilled" ? "active" : "unavailable" },
     { code: "card_payments", name: "Card payments", status: enabledCard ? "active" : "unavailable" },
-    { code: "bank_transfer", name: "Bank transfers", status: bank.status === "fulfilled" ? "manual_review" : "unavailable" },
+    { code: "bank_transfer", name: "Bank transfers", status: bank.status === "fulfilled" && bank.value.bank_transfer_available === true ? "active" : "unavailable" },
   ];
 }
 
@@ -62,17 +62,17 @@ function publicOrder(row: any) {
 export async function refreshSecondaryRecord(row: any) {
   if (row.status !== "pending" || row.metadata?.provider !== "marz") return row;
   const service = row.metadata?.service;
-  const root = service === "card_payments" ? "/collect-money" : service === "bill_payment" ? "/bill-payment" : "/airtime-data";
-  // Bank-transfer submissions are disabled: no documented quote/idempotency contract.
+  const root = service === "bank_transfer" ? "/bank-transfer" : service === "card_payments" ? "/collect-money" : service === "bill_payment" ? "/bill-payment" : "/airtime-data";
+  if (service === "bank_transfer" && !row.metadata?.lookup_reference) return row;
   let details = await marzRequest(`${root}/${encodeURIComponent(row.metadata?.lookup_reference || row.reference)}`);
   // The collection-detail contract can omit charges; transaction lookup includes them.
   if (service === "card_payments" && moneyRaw(details.collection?.charge ?? details.transaction?.charge) == null && details.transaction?.uuid) {
     details = await marzRequest(`/transactions/${encodeURIComponent(details.transaction.uuid)}`);
   }
-  const txn = details.transaction || details;
+  const txn = details.bank_transfer_request || details.bank_transfer || details.transaction || details;
   const next = serviceState(txn.status);
   if (next === "pending") return row;
-  const detail = details.bill_payment || details;
+  const detail = details.bank_transfer_request || details.bank_transfer || details.bill_payment || details;
   const evidenceAmount = detail.amount ?? txn.amount ?? details.collection?.amount;
   const evidenceCurrency = evidenceAmount?.currency;
   if (evidenceCurrency !== "UGX") return row;
@@ -80,7 +80,7 @@ export async function refreshSecondaryRecord(row: any) {
   if (reported !== Number(row.amount)) return row;
   const evidenceReference = txn.reference || txn.uuid || details.reference;
   if (![row.reference, row.metadata?.lookup_reference].includes(evidenceReference) && ![row.reference, row.metadata?.lookup_reference].includes(txn.uuid)) return row;
-  const partnerFee = moneyRaw(detail.charge ?? txn.charge ?? details.collection?.charge);
+  const partnerFee = moneyRaw(detail.charge_amount ?? detail.charge ?? txn.charge ?? details.collection?.charge);
   if (service === "card_payments") {
     if (next === "success" && partnerFee == null) return row;
     const { collectionFeeFor } = await import("./settle.server");
@@ -123,13 +123,13 @@ export async function verifiedIdentity(userId: string): Promise<{ ok: true; name
   return { ok: true, name };
 }
 
-export async function secondaryPurchase(userId: string, kind: "airtime" | "bill" | "card", body: any) {
+export async function secondaryPurchase(userId: string, kind: "airtime" | "bill" | "card" | "bank", body: any) {
   let reserved = false;
   try {
-    const payload: any = (kind === "airtime" ? airtimeInput : kind === "bill" ? billInput : cardInput).parse(body);
+    const payload: any = (kind === "bank" ? bankInput : kind === "airtime" ? airtimeInput : kind === "bill" ? billInput : cardInput).parse(body);
     const prior = await existing(userId, payload.reference);
     if (prior) {
-      if (prior.metadata?.service !== (kind === "airtime" ? "airtime_data" : kind === "bill" ? "bill_payment" : "card_payments")) return fail("Reference belongs to another service.");
+      if (prior.metadata?.service !== (kind === "bank" ? "bank_transfer" : kind === "airtime" ? "airtime_data" : kind === "bill" ? "bill_payment" : "card_payments")) return fail("Reference belongs to another service.");
       return ok(publicOrder(await refreshSecondaryRecord(prior).catch(() => prior)));
     }
     const client = await db();
@@ -138,7 +138,18 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
     const identity = await verifiedIdentity(userId);
     if (!identity.ok) return fail(identity.error);
     let amount = payload.amount, partnerFee = 0;
-    const service = kind === "airtime" ? "airtime_data" : kind === "bill" ? "bill_payment" : "card_payments";
+    const service = kind === "bank" ? "bank_transfer" : kind === "airtime" ? "airtime_data" : kind === "bill" ? "bill_payment" : "card_payments";
+    if (kind === "bank") {
+      const available = await marzRequest("/bank-transfer/services");
+      if (available.bank_transfer_available !== true) return fail("Bank transfers are currently unavailable. No money has been moved.");
+      const fee = bankFee(available.bank_transfer_settings, amount);
+      if (fee == null) return fail("The payment network has not supplied an exact transfer fee. No money has been moved.");
+      partnerFee = fee;
+      if (payload.expected_fee !== fee) return fail("The transfer fee changed. Refresh and confirm the new fee.");
+      const check = await marzRequest("/bank-transfer/validate", { bank_name: payload.bank_name, account_number: payload.bank_account_number });
+      if (check.valid !== true || !sameName(payload.confirmed_name, check.account_name)) return fail("Verify the recipient account and confirm its registered name before sending.");
+      payload.bank_account_name = cleanName(check.account_name);
+    }
     if (kind === "airtime") {
       const [catalog, detected] = await Promise.all([marzRequest("/airtime-data/catalog"), marzRequest(`/airtime-data/detect-network?msisdn=${payload.msisdn}`)]);
       const network = catalog.networks?.find((n: any) => n.code === detected.network);
@@ -176,7 +187,7 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
       row = data;
     } else {
       const { data, error } = await client.rpc("reserve_payout_and_balance", { p_merchant_id: userId, p_reference: payload.reference, p_amount: amount, p_currency: "UGX", p_phone: payload.msisdn || payload.phone_number,
-        p_source: "dashboard", p_description: kind === "bill" ? `${payload.utility_code} bill payment` : payload.purchase_type === "bundle" ? "Data bundle purchase" : "Airtime purchase", p_metadata: metadata, p_debit: amount + partnerFee });
+        p_source: "dashboard", p_description: kind === "bank" ? payload.description : kind === "bill" ? `${payload.utility_code} bill payment` : payload.purchase_type === "bundle" ? "Data bundle purchase" : "Airtime purchase", p_metadata: metadata, p_debit: amount + partnerFee });
       if (error) return fail("The payment could not be reserved. Check your UGX balance and transaction reference; no request was sent.");
       row = data;
       // Persist fees before any external money movement; a failed save retains the reservation for investigation.
@@ -186,10 +197,11 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
       row = { ...row, fee_amount: partnerFee, net_amount: amount };
     }
     reserved = true;
-    const request = kind === "card" ? { reference: payload.reference, amount, method: "card", country: "UG", description: payload.description }
+    const request = kind === "bank" ? { amount, description: payload.description, bank_name: payload.bank_name, bank_account_number: payload.bank_account_number, bank_account_name: payload.bank_account_name, bank_branch: payload.bank_branch, wallet_source: "main" } : kind === "card" ? { reference: payload.reference, amount, method: "card", country: "UG", description: payload.description }
       : kind === "bill" ? { ...payload, expected_fee: undefined, phone_number: `+${payload.phone_number}` } : payload;
-    const out = await marzRequest(kind === "card" ? "/collect-money" : kind === "bill" ? "/bill-payment" : "/airtime-data", request);
-    const lookup = kind === "card" ? out.transaction?.uuid || out.uuid || payload.reference : payload.reference;
+    const out = await marzRequest(kind === "bank" ? "/bank-transfer" : kind === "card" ? "/collect-money" : kind === "bill" ? "/bill-payment" : "/airtime-data", request);
+    const lookup = kind === "bank" ? out.bank_transfer?.reference : kind === "card" ? out.transaction?.uuid || out.uuid || payload.reference : payload.reference;
+    if (!lookup) throw new Error("Transfer confirmation needs review. Do not send again.");
     const checkout = kind === "card" ? out.redirect_url : null;
     if (checkout && !/^https:\/\//.test(checkout)) throw new Error("The checkout address could not be verified.");
     const { error: saveError } = await client.from("payment_records").update({ metadata: { ...row.metadata, lookup_reference: lookup, checkout_url: checkout, submission_state: "accepted" }, provider_reference: lookup }).eq("id", row.id);
@@ -224,10 +236,13 @@ export async function secondaryAction(action: string, userId: string | null, b: 
       const d = await marzRequest("/bank-transfer/banks");
       return ok({ banks: (d.banks || []).map((bank: any) => ({ code: bank.code || bank.name, name: bank.name })) });
     }
-    if (action === "bank-services") return ok({ bank_transfer_available: (await marzRequest("/bank-transfer/services")).bank_transfer_available, manual_review: true });
+    if (action === "bank-services") {
+      const d = await marzRequest("/bank-transfer/services");
+      return ok({ bank_transfer_available: d.bank_transfer_available === true, bank_transfer_settings: d.bank_transfer_settings || null });
+    }
     // Recipient lookups require identity; public callers cannot enumerate account names.
     if (!userId) return fail("Please sign in to use this service.");
-    if (action === "bank-transfer") return fail("Bank transfers are handled by customer service until the exact network fee and safe submission can be confirmed. No money has been moved.");
+    if (action === "bank-transfer") return secondaryPurchase(userId, "bank", { reference: b.reference, amount: b.amount, description: b.description, bank_name: b.bankName, bank_account_number: b.accountNumber, bank_branch: b.bankBranch, confirmed_name: b.confirmedName, expected_fee: b.expectedFee });
     if (action === "bank-validate") {
       const input = z.object({ bank_name: z.string().min(1).max(100), account_number: z.string().regex(/^\d{5,30}$/) }).parse({ bank_name: b.bankName || b.bankCode, account_number: b.accountNumber });
       const d = await marzRequest("/bank-transfer/validate", input);
@@ -241,7 +256,7 @@ export async function secondaryAction(action: string, userId: string | null, b: 
     if (action === "bill-pay") return secondaryPurchase(userId, "bill", { reference: b.reference, utility_code: b.utilityCode, meter_number: b.meterNumber, phone_number: b.phoneNumber, amount: b.amount, area: b.area, bouquet_code: b.bouquetCode, customer_name: b.customerName, email: b.email, expected_fee: b.expectedFee, confirmed_name: b.confirmedName });
     if (action === "card-create") return secondaryPurchase(userId, "card", b);
     const client = await db();
-    if (["airtime-status", "bill-status", "card-status"].includes(action)) {
+    if (["airtime-status", "bill-status", "card-status", "bank-status"].includes(action)) {
       const reference = serviceReference.parse(b.reference);
       const row = await existing(userId, reference);
       if (!row) return fail("Payment not found.");
@@ -262,5 +277,5 @@ export async function secondaryAdmin(accessToken: string) {
   await requireAdmin(accessToken, "settings");
   const [services, account] = await Promise.all([secondaryCatalog(), marzRequest("/balance")]);
   return ok({ services, connected: true, main_float: moneyRaw(account.account?.available_balance), card_float: moneyRaw(account.account?.card_balance), currency: "UGX",
-    note: "Bank transfer creation remains blocked: documentation supplies no pre-submit fee quote or client idempotency key. Cards collect payments; card issuing is not documented." });
+    note: "Bank transfers require a live exact fee and verified recipient. Uncertain submissions stay reserved and are never automatically retried. Cards collect payments; card issuing is not documented." });
 }

@@ -1,0 +1,1 @@
+- Secondary services reserve funds atomically, reuse UUIDs, verify outcomes and retain uncertain reservations; bank submission requires exact live fees and an atomic local reference reservation; never retry uncertain provider calls, which have no documented client idempotency key — prevent losses.

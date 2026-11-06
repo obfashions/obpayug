@@ -43,7 +43,7 @@
 - Payout settlement preserves the recipient net saved at acceptance; never recompute it as amount minus fee (account mode pays the entered amount).
 - Admin account position shows per-currency earnings = collection margin above partner charge + ObPay payout fees; partner charges are never earnings.
 - The exchange fee % is an admin site setting (exchange_fee_percent, 0-20) with a Settings card; default 1.5 when unset.
-- Secondary services reserve funds atomically, reuse UUIDs, verify outcomes and retain uncertain reservations; bank submission requires exact fees/idempotency — prevent losses.
+- Secondary-service money safeguards are documented in src/lib/AGENTS.md.
 - Secondary card credits use a service-only one-time RPC into a restricted card balance, never mobile-money funds — the provider card rail is separate.
 - Merchant directory is service-only, paged; balance refresh scopes current IDs. Business statements keep currencies separate and disable incomplete exports — scalable, truthful records.
 
