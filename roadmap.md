@@ -80,3 +80,4 @@
 - [ ] Connect automatic incoming bank payments: Marz documents outgoing disbursements only; requires official incoming-bank API, settlement verification and fee contract. No incoming endpoint or wallet credits invented.
 - [x] Diagnose Bank of Africa receiving verification: live response finds the registered name but returns valid=false and empty registration; shared saving/sending guard now explains this instead of a vague error. 17 checks pass; build clean; no money moved.
 - [ ] Complete Bank of Africa receiving-account activation and signed-in save/read verification: bank network must confirm active registration (currently valid=false); requesting session returns to login. No verification bypass or automatic wallet credits.
+- [ ] Expose supported secondary-service and receiving-account actions through the authenticated merchant API; document requests, live fees, name confirmation, status and incoming-payment limitations; verify without moving money.
