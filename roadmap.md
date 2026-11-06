@@ -78,4 +78,5 @@
 
 - [x] Add receiving-account section under Bank Payments using existing network validation and owner-only account storage; explicitly separate direct bank receipts from ObPay wallet credits.
 - [ ] Connect automatic incoming bank payments: Marz documents outgoing disbursements only; requires official incoming-bank API, settlement verification and fee contract. No incoming endpoint or wallet credits invented.
-- [ ] Diagnose receiving-account verification for Bank of Africa: distinguish a successful name lookup from network-confirmed active registration, test both receiving and outgoing validation, and retain verification safeguards.
+- [x] Diagnose Bank of Africa receiving verification: live response finds the registered name but returns valid=false and empty registration; shared saving/sending guard now explains this instead of a vague error. 17 checks pass; build clean; no money moved.
+- [ ] Complete Bank of Africa receiving-account activation and signed-in save/read verification: bank network must confirm active registration (currently valid=false); requesting session returns to login. No verification bypass or automatic wallet credits.
