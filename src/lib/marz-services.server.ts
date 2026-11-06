@@ -7,6 +7,15 @@ const db = async () => (await import("@/integrations/supabase/client.server")).s
 const fail = (error: string) => ({ success: false, error });
 const ok = (data: any) => ({ success: true as const, data });
 const UNAVAILABLE = "This service is temporarily unavailable. No money has been moved. Please contact ObPay support.";
+export function secondaryErrorMessage(code: unknown, status: number): string {
+  switch (String(code || "")) {
+    case "BANK_NOT_SUPPORTED": return "This bank is not supported. Select a bank from the current list.";
+    case "VALIDATION_FAILED": return "The bank could not verify this account. Check the bank and account number with the recipient.";
+    case "SERVICE_NOT_AVAILABLE": return "Bank transfers are not enabled on the payment network account.";
+    case "INSUFFICIENT_BALANCE": return "The payment network has insufficient funds for this transfer. No further transfer should be submitted.";
+    default: return status === 401 || status === 403 ? "The payment network connection could not authorise this request. No further payment should be submitted." : UNAVAILABLE;
+  }
+}
 
 export async function marzRequest(path: string, body?: Record<string, unknown>): Promise<any> {
   const key = process.env["UDC_MARZPAY_SERVICES_2_API_KEY"];
@@ -24,7 +33,7 @@ export async function marzRequest(path: string, body?: Record<string, unknown>):
   if (!response.ok || (out.status !== "success" && !(path.startsWith("/transactions/") && out.transaction && out.event_type))) {
     // Never relay upstream branding, credentials, or customer data to merchants.
     console.error("Secondary service request refused", response.status, String(out.error_code || "unknown"));
-    throw new Error(UNAVAILABLE);
+    throw new Error(secondaryErrorMessage(out.error_code, response.status));
   }
   return out.data || out;
 }
@@ -270,7 +279,10 @@ export async function secondaryAction(action: string, userId: string | null, b: 
       return ok({ purchases: rows.map(publicOrder), card_balance: Number(cardWallet?.available_balance || 0), currency: "UGX" });
     }
     return fail("This action is not available.");
-  } catch { return fail(UNAVAILABLE); }
+  } catch (error) {
+    if (error instanceof z.ZodError) return fail("Check the bank and account number. Account numbers must contain 5–30 digits.");
+    return fail(error instanceof Error ? error.message : UNAVAILABLE);
+  }
 }
 
 export async function secondaryAdmin(accessToken: string) {
