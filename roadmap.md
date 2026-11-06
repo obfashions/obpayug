@@ -78,3 +78,4 @@
 
 - [x] Add receiving-account section under Bank Payments using existing network validation and owner-only account storage; explicitly separate direct bank receipts from ObPay wallet credits.
 - [ ] Connect automatic incoming bank payments: Marz documents outgoing disbursements only; requires official incoming-bank API, settlement verification and fee contract. No incoming endpoint or wallet credits invented.
+- [ ] Diagnose receiving-account verification for Bank of Africa: distinguish a successful name lookup from network-confirmed active registration, test both receiving and outgoing validation, and retain verification safeguards.
