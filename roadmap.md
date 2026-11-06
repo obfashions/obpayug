@@ -73,3 +73,5 @@
 
 - [x] Bank-transfer recipient form and validation enabled without a linked business bank account; exact live fee required, UUID reserved before submission, uncertain requests cannot resubmit.
 - [ ] Confirm bank-transfer live fee settings: published availability documentation omits the fee fields; no guessed charge or live money sent.
+- [x] Add verified owner-only receiving bank accounts in Settings and saved recipient selection on bank transfers; unify payout recipient-name aliases and send the explicit name on own-number withdrawals.
+- [ ] Apply requested secondary-provider 2.5% total deposit rate: published Uganda costs are 3% mobile money and 5% card; requires a confirmed discounted network rate to avoid losses. Primary-provider pricing and historical transactions unchanged.
