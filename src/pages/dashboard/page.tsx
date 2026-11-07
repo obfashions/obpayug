@@ -59,6 +59,7 @@ export default function DashboardPage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawNetwork, setWithdrawNetwork] = useState("mtn");
   const [withdrawDesc, setWithdrawDesc] = useState("");
+  const [withdrawName, setWithdrawName] = useState("");
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [withdrawFeePercent, setWithdrawFeePercent] = useState(9);
@@ -283,6 +284,12 @@ export default function DashboardPage() {
         setWithdrawSubmitting(false); return;
       }
 
+      const recipientName = (withdrawName || profile?.full_name || "").trim();
+      if (!recipientName) {
+        setWithdrawStatus({ ok: false, message: "Please enter the name registered on the mobile money number." });
+        setWithdrawSubmitting(false); return;
+      }
+
       const ref = `W${Date.now().toString(36).toUpperCase()}`.slice(0, 30);
 
       const apiData = await invokeObpay({
@@ -292,6 +299,7 @@ export default function DashboardPage() {
         amount,
         currency: activeCurrency,
         network: withdrawNetwork,
+        customer_name: recipientName,
         description: withdrawDesc || "Withdrawal to my mobile",
         reference: ref,
       });
@@ -732,6 +740,18 @@ export default function DashboardPage() {
               </div>
             ) : (
               <form onSubmit={handleWithdraw} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-foreground-600 mb-1">Customer name *</label>
+                  <input
+                    type="text"
+                    value={withdrawName || profile?.full_name || ""}
+                    onChange={(e) => setWithdrawName(e.target.value)}
+                    placeholder="Name registered on the mobile money number"
+                    className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-secondary-400"
+                    required
+                    maxLength={100}
+                  />
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-foreground-600 mb-1">Amount ({activeCurrency}) *</label>
                   <input
