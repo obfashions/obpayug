@@ -60,6 +60,7 @@ export default function DashboardPage() {
   const [withdrawNetwork, setWithdrawNetwork] = useState("mtn");
   const [withdrawDesc, setWithdrawDesc] = useState("");
   const [withdrawName, setWithdrawName] = useState("");
+  useEffect(() => { if (profile?.full_name) setWithdrawName((n) => n || profile.full_name); }, [profile?.full_name]);
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [withdrawFeePercent, setWithdrawFeePercent] = useState(9);
@@ -284,7 +285,7 @@ export default function DashboardPage() {
         setWithdrawSubmitting(false); return;
       }
 
-      const recipientName = (withdrawName || profile?.full_name || "").trim();
+      const recipientName = withdrawName.trim();
       if (!recipientName) {
         setWithdrawStatus({ ok: false, message: "Please enter the name registered on the mobile money number." });
         setWithdrawSubmitting(false); return;
@@ -744,7 +745,7 @@ export default function DashboardPage() {
                   <label className="block text-xs font-medium text-foreground-600 mb-1">Customer name *</label>
                   <input
                     type="text"
-                    value={withdrawName || profile?.full_name || ""}
+                    value={withdrawName}
                     onChange={(e) => setWithdrawName(e.target.value)}
                     placeholder="Name registered on the mobile money number"
                     className="w-full px-3 py-2 rounded-lg border border-background-300/60 bg-background-50 text-sm focus:outline-none focus:ring-2 focus:ring-secondary-400"
