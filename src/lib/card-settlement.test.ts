@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ check: vi.fn(), rpc: vi.fn() }));
-vi.mock("./gateway.server", () => ({ getGatewayCreds: async () => ({}), gatewayCollectionStatus: mocks.check }));
+vi.mock("./gateway.server", () => ({ getGatewayCreds: async () => ({}), gatewayCollectionStatus: mocks.check, gatewayPayoutStatus: vi.fn() }));
 vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: { rpc: mocks.rpc, from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }), limit: () => ({ maybeSingle: async () => ({ data: { currency_fees: { USD: { collect_margin: 2 } } }, error: null }) }) }) }) } }));
 import { refreshPaymentRecord } from "./settle.server";
 const record = { id: "card", merchant_id: "owner", reference: "card-1", type: "collection", status: "pending", amount: 20, currency: "USD", metadata: { payment_method: "card" } };
