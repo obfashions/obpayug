@@ -48,5 +48,6 @@
 - Merchant directory is service-only, paged; balance refresh scopes current IDs. Business statements keep currencies separate and disable incomplete exports — scalable, truthful records.
 
 - Use original copy, shared tokens/navigation and separate policy routes; signup opens policies in new tabs.
+- Share useTheme across pages; inverse panels use on-inverse text for stable contrast.
 - Phone settings update only the signed-in owner's number through RLS, verify the returned row and refresh the shared profile; identity and financial fields stay unchanged.
 - Testing defaults to local no-money simulation; only live-environment keys access the API and tester writes need approval — no accidental payments.

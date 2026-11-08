@@ -58,7 +58,7 @@ function SigningSecretCard() {
 
   const masked = secret ? `whsec_••••••••${secret.slice(-6)}` : "Loading…";
   return (
-    <div className="rounded-xl border border-background-200 bg-white p-4 sm:p-5 space-y-3">
+    <div className="rounded-xl border border-background-200 bg-card text-card-foreground p-4 sm:p-5 space-y-3">
       <div>
         <h2 className="text-sm font-semibold text-foreground-900">Webhook signing secret</h2>
         <p className="text-xs text-foreground-500 mt-1">
@@ -158,7 +158,7 @@ export default function ApiKeysPage() {
             <p className="text-sm font-semibold text-foreground-900">Copy your secret key now</p>
             <p className="text-xs text-foreground-500">This is the only time it will be shown.</p>
             <div className="flex items-center gap-2 min-w-0">
-              <code className="flex-1 truncate rounded-md bg-white px-3 py-2 text-xs font-mono">{freshSecret}</code>
+              <code className="flex-1 truncate rounded-md bg-card text-card-foreground px-3 py-2 text-xs font-mono">{freshSecret}</code>
               <CopyBtn text={freshSecret} label="secret key" />
               <button
                 onClick={() => setFreshSecret(null)}
@@ -170,7 +170,7 @@ export default function ApiKeysPage() {
           </div>
         )}
 
-        <form onSubmit={create} className="rounded-xl border border-background-200 bg-white p-4 sm:p-5 space-y-4">
+        <form onSubmit={create} className="rounded-xl border border-background-200 bg-card text-card-foreground p-4 sm:p-5 space-y-4">
           <h2 className="text-sm font-semibold text-foreground-900">Create a new key</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input
@@ -191,13 +191,13 @@ export default function ApiKeysPage() {
           <button
             type="submit"
             disabled={creating}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 cursor-pointer"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 cursor-pointer"
           >
             {creating ? "Creating…" : "Generate key"}
           </button>
         </form>
 
-        <div className="rounded-xl border border-background-200 bg-white overflow-hidden">
+        <div className="rounded-xl border border-background-200 bg-card text-card-foreground overflow-hidden">
           {loading ? (
             <div className="p-6 text-sm text-foreground-500">Loading your keys…</div>
           ) : keys.length === 0 ? (

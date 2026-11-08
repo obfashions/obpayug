@@ -57,21 +57,21 @@ const sections: Array<{ id: SectionId; label: string; icon: string }> = [
 function CodeBlock({ title, code }: { title?: string; code: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="bg-foreground-900 rounded-xl overflow-hidden my-4">
-      <div className="flex items-center justify-between px-4 py-2.5 bg-foreground-800 border-b border-foreground-700">
-        <span className="text-xs text-background-200 font-mono">{title || "Terminal"}</span>
+    <div className="bg-inverse text-on-inverse rounded-xl overflow-hidden my-4">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-on-inverse/10 border-b border-on-inverse/20">
+        <span className="text-xs text-on-inverse/80 font-mono">{title || "Terminal"}</span>
         <button
           onClick={() => {
             navigator.clipboard.writeText(code);
             setCopied(true);
             setTimeout(() => setCopied(false), 1800);
           }}
-          className="text-xs text-background-200 hover:text-white cursor-pointer"
+          className="text-xs text-on-inverse/80 hover:text-on-inverse cursor-pointer"
         >
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto text-[12.5px] leading-relaxed text-background-100 font-mono whitespace-pre">
+      <pre className="p-4 overflow-x-auto text-[12.5px] leading-relaxed text-on-inverse font-mono whitespace-pre">
         {code}
       </pre>
     </div>
@@ -208,8 +208,8 @@ export default function DocsPage() {
                 onClick={() => go(s.id)}
                 className={`flex items-center gap-2 whitespace-nowrap shrink-0 rounded-lg px-3 py-2 text-xs sm:text-sm cursor-pointer transition-colors ${
                   active === s.id
-                    ? "bg-primary-600 text-white"
-                    : "bg-white text-foreground-600 hover:bg-background-100 border border-background-200"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-card-foreground text-foreground-600 hover:bg-background-100 border border-background-200"
                 }`}
               >
                 <i className={s.icon} />
@@ -219,7 +219,7 @@ export default function DocsPage() {
           </div>
         </aside>
 
-        <main className="bg-white rounded-2xl border border-background-200 p-4 sm:p-8 min-w-0 space-y-4">
+        <main className="bg-card text-card-foreground rounded-2xl border border-background-200 p-4 sm:p-8 min-w-0 space-y-4">
           {active === "services" && <section className="space-y-4">
             <Header icon="ri-apps-line" label="Bank accounts, transfers, bills, airtime & cards"/>
             <p className={P}>These additional services currently use UGX in Uganda. Existing mobile-money collections and payouts keep their current endpoints and fee rules. Bank transfers use a separate outgoing-transfer endpoint and require a live exact fee and a verified recipient. Saved receiving accounts do not create automatic incoming-payment collection or ObPay wallet credits. All service endpoints use the same live merchant secret; purchases require an active, identity-verified account.</p>

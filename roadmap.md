@@ -1,3 +1,7 @@
+## Dark-mode readability
+- [x] Correct shared contrast, inverted wallet labels, documentation and light-only API/admin surfaces; unify saved appearance across pages. Eight public pages and desktop/mobile toggles verified; clean build, no money moved.
+- [ ] Visually verify merchant/admin dark mode signed in: requesting account's restored session redirects to login; no account status or protections changed.
+
 - [x] Address PesaSuite documentation/testing gaps: public no-money pending-to-success demo; dashboard simulation default and live-write approval; stored sandbox keys blocked from live API; consent/settlement guides; registered callbacks refuse redirects; malformed JSON objects rejected. 48 relevant tests passed, public demo and HTTP 403 verified, build clean; no real money sent.
 - [ ] Complete PesaSuite funded Uganda demonstration and production due diligence: needs agreed authorised customer/recipient, funds and verified account, plus written custody/licence/settlement documents from the business team. No live demonstration booked; signed-in tester remains unverified.
 - [ ] Extend production integration reliability with an atomic collection-reference reservation and durable signed notification outbox; these are not implemented in this documentation/testing update. No unattended recurring mandate or external sandbox exists; keep consent and transaction-lookup limitations explicit.

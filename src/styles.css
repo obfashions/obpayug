@@ -326,11 +326,11 @@
   --foreground-100: 0.15 0 0;
   --foreground-200: 0.22 0 0;
   --foreground-300: 0.32 0 0;
-  --foreground-400: 0.42 0 0;
-  --foreground-500: 0.52 0 0;
-  --foreground-600: 0.62 0 0;
-  --foreground-700: 0.72 0 0;
-  --foreground-800: 0.82 0 0;
+  --foreground-400: 0.73 0 0;
+  --foreground-500: 0.77 0 0;
+  --foreground-600: 0.81 0 0;
+  --foreground-700: 0.85 0 0;
+  --foreground-800: 0.9 0 0;
   --foreground-900: 0.9 0 0;
   --foreground-950: 0.97 0 0;
 }
@@ -418,6 +418,7 @@ pre code {
 :root.dark {
   color-scheme: dark;
 }
+:root:not(.dark) { color-scheme: light; }
 
 @media (prefers-reduced-motion: reduce) {
   .bank-ticker,
@@ -466,7 +467,11 @@ pre code {
   --secondary: oklch(0.24 0.005 160);
   --secondary-foreground: oklch(0.96 0 0);
   --muted: oklch(0.24 0.005 160);
-  --muted-foreground: oklch(0.73 0.005 160);
+  --muted-foreground: oklch(0.79 0.005 160);
+  --card: oklch(0.21 0.005 160);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.23 0.005 160);
+  --popover-foreground: var(--foreground);
   --border: oklch(0.32 0.005 160);
   --input: oklch(0.4 0.005 160);
   --ring: oklch(0.76 0.12 160);
@@ -496,3 +501,10 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: 0; }
 }
 
 body { color: var(--foreground); background-color: var(--background); }
+
+/* Native controls must inherit the same readable foreground as custom controls. */
+@layer base {
+  button, input, select, textarea { color: inherit; }
+  input::placeholder, textarea::placeholder { color: var(--muted-foreground); opacity: 1; }
+  select option { background-color: var(--background); color: var(--foreground); }
+}

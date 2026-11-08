@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { staffHome } from "@/lib/member-permissions";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/use-theme";
 import {
   ArrowLeftRight,
   BadgeDollarSign,
@@ -84,25 +85,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   });
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isDark, setIsDark] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, profileLoading, signOut, loginVerified, user, loading, globalVerificationEnabled } = useAuth();
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const saved = localStorage.getItem("obpay_theme");
-    const dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    root.classList.toggle("dark", dark);
-    setIsDark(dark);
-  }, []);
-
-  const toggleTheme = () => {
-    const next = !isDark;
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("obpay_theme", next ? "dark" : "light");
-    setIsDark(next);
-  };
 
   // Auth guard: if session is lost (user closed browser, token expired, etc.)
   // redirect to login so they see a proper login form instead of a broken page.

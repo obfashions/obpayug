@@ -105,7 +105,7 @@ export default function KycReviewPage() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`rounded-lg px-3 py-1.5 text-sm capitalize cursor-pointer ${
-                  filter === f ? "bg-primary-600 text-white" : "bg-background-100 text-foreground-600"
+                  filter === f ? "bg-primary text-primary-foreground" : "bg-background-100 text-foreground-600"
                 }`}
               >
                 {f}
@@ -116,7 +116,7 @@ export default function KycReviewPage() {
 
         {error && <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">{error}</div>}
 
-        <div className="rounded-xl border border-background-200 bg-white overflow-hidden">
+        <div className="rounded-xl border border-background-200 bg-card text-card-foreground overflow-hidden">
           {loading ? (
             <div className="p-6 text-sm text-foreground-500">Loading submissions…</div>
           ) : submissions.length === 0 ? (
@@ -173,7 +173,7 @@ export default function KycReviewPage() {
                       setSelected(s);
                       setNotes(s.review_notes || "");
                     }}
-                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white cursor-pointer"
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground cursor-pointer"
                   >
                     Review
                   </button>
@@ -186,7 +186,7 @@ export default function KycReviewPage() {
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-md rounded-xl bg-card text-card-foreground p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-foreground-900">
               {selected.business_name || selected.email}
             </h2>
