@@ -20,6 +20,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import ErrorBoundary from "@/components/base/ErrorBoundary";
 import SupportChatWidget from "@/components/feature/SupportChatWidget";
+import { useTheme } from "@/hooks/use-theme";
 
 function NotFoundComponent() {
   return (
@@ -159,6 +160,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 
 function RootComponent() {
+  useTheme();
   const { queryClient } = Route.useRouteContext();
 
   return (

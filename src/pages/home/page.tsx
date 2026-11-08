@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Link } from "@/lib/router-compat";
 import { ArrowRight, ArrowDownLeft, ArrowUpRight, Link2, Braces } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,19 +15,8 @@ const products = [
 ];
 
 export default function Home() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  useEffect(() => {
-    const saved = localStorage.getItem("obpay-theme");
-    const dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setTheme(dark ? "dark" : "light");
-    document.documentElement.classList.toggle("dark", dark);
-  }, []);
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next); document.documentElement.classList.toggle("dark", next === "dark"); localStorage.setItem("obpay-theme", next);
-  };
   return <div className="min-h-screen bg-background">
-    <Navbar onToggleTheme={toggleTheme} theme={theme} />
+    <Navbar />
     <main className="pt-[72px]">
       <HeroSection />
       <section id="features" className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-24">

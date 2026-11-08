@@ -2,8 +2,12 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "@/lib/router-compat";
 import { Menu, X, Moon, Sun, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/use-theme";
 interface NavbarProps { onToggleTheme?: () => void; theme?: "light" | "dark"; }
-export default function Navbar({ onToggleTheme, theme = "light" }: NavbarProps) {
+export default function Navbar({ onToggleTheme: customToggle, theme: customTheme }: NavbarProps) {
+  const appearance = useTheme();
+  const onToggleTheme = customToggle ?? appearance.toggleTheme;
+  const theme = customTheme ?? appearance.theme;
   const [open, setOpen] = useState(false);
   const location = useLocation();
   useEffect(() => { setOpen(false); }, [location.pathname]);
