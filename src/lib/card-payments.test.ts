@@ -14,7 +14,7 @@ it("does not offer UGX cards or round incompatible amounts", () => {
   expect(cardPaymentError("NGN", 100.5)).not.toBeNull();
 });
 it.each(["USD", "KES", "NGN"])("returns hosted checkout without a PIN prompt or crypto redirect for %s cards", async currency => {
-  const fetchMock = vi.fn(async () => Response.json({ success: true, data: { reference: "card-1", payment_url: "https://checkout.example/card-1", crypto_payment_url: "https://checkout.example/crypto", stk_sent: true } }));
+  const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => Response.json({ success: true, data: { reference: "card-1", payment_url: "https://checkout.example/card-1", crypto_payment_url: "https://checkout.example/crypto", stk_sent: true } }));
   vi.stubGlobal("fetch", fetchMock);
   const result = await gatewayCollect({ key: "test", secret: "test", basic: "" }, { reference: "card-1", currency, amount: 100, customerName: "Customer", customerEmail: "customer@example.com", phone: "254712345678", card: true });
   expect(result.ok).toBe(true);
