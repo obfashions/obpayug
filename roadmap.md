@@ -1,3 +1,8 @@
+## Jjuma bank integration
+- [ ] Verify official bank collection/disbursement contracts and secure connection requirements.
+- [ ] Update bank pages, merchant/admin fields and ObPay API documentation to supported capabilities only.
+- [ ] Test supported flows without moving real money; identify any credentials or provider-contract blockers.
+
 ## Payza cards and Marz removal
 - [x] Disable new Marz operations at service dispatch and request boundaries; preserve historical records and verification-only reconciliation. Remove active bank/bill/airtime advertising and navigation.
 - [x] Add Payza hosted checkout in documented USD/KES/NGN card currencies with pre-submission reference reservation, exact verification, existing fees and API documentation.
