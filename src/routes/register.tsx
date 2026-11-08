@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import Page from "@/pages/register/page";
 
 export const Route = createFileRoute("/register")({
+  validateSearch: (search: Record<string, unknown>): { next?: string } => ({ next: typeof search.next === "string" ? search.next : undefined }),
   head: () => ({
     meta: [
       { title: "Create your ObPay merchant account" },

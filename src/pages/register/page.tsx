@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { MONEY_COUNTRIES } from "@/lib/countries";
 import { getEnabledCurrencies } from "@/lib/currencies.functions";
-import { Link, useNavigate } from "@/lib/router-compat";
+import { Link, useNavigate, useSearchParams } from "@/lib/router-compat";
+import { oauthReturnPath, withOAuthNext } from "@/lib/oauth-return-path";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
@@ -9,6 +10,8 @@ import { friendlyError } from "@/lib/friendly-error";
 
 export default function Register() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = oauthReturnPath(searchParams.get("next"));
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -84,7 +87,7 @@ export default function Register() {
 
     // ── Sign up ──
     const TIMEOUT_MS = 15000;
-    const redirectTo = `${window.location.origin}/verify-email?email=${encodeURIComponent(formData.email)}`;
+    const redirectTo = new URL(next !== "/" ? next : `/verify-email?email=${encodeURIComponent(formData.email)}`, window.location.origin).href;
 
     const signupPromise = supabase.auth.signUp({
       email: formData.email.normalize("NFKC").replace(/[\s\u200B-\u200D\u2060\uFEFF\u00A0]/g, "").toLowerCase(),
@@ -190,7 +193,7 @@ export default function Register() {
     }
 
     // Navigate to email verification
-    navigate(`/verify-email?email=${encodeURIComponent(formData.email)}&userId=${encodeURIComponent(data.user.id)}`);
+    navigate(withOAuthNext(`/verify-email?email=${encodeURIComponent(formData.email)}&userId=${encodeURIComponent(data.user.id)}`, next));
   };
 
   const inputClass = (field: string) =>
@@ -422,7 +425,7 @@ export default function Register() {
               <p className="text-center text-sm text-foreground-600 mt-6">
                 Already have an account?{" "}
                 <Link
-                  to="/login"
+                  to={withOAuthNext("/login", next)}
                   className="text-primary-500 hover:text-primary-600 font-medium"
                 >
                   Log In

@@ -8,10 +8,12 @@ import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/friendly-error";
 import { useAuth } from "@/contexts/AuthContext";
+import { oauthReturnPath, withOAuthNext } from "@/lib/oauth-return-path";
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const next = oauthReturnPath(searchParams.get("next"));
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
 
   const emailFromParam = searchParams.get("email") || "";
@@ -191,7 +193,7 @@ export default function VerifyEmail() {
 
       setSuccess(true);
       setTimeout(() => {
-        navigate(signedIn ? "/dashboard/kyc" : "/login", { replace: true, state: { skipVerificationGuard: true } } as any);
+        navigate(signedIn ? (next !== "/" ? next : "/dashboard/kyc") : withOAuthNext("/login", next), { replace: true, state: { skipVerificationGuard: true } } as any);
       }, 1200);
     } catch {
       setError("We couldn't reach the server. Please check your connection and try again.");

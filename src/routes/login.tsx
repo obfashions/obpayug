@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import Page from "@/pages/login/page";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>) => ({ next: typeof search.next === "string" ? search.next : undefined }),
   head: () => ({
     meta: [
       { title: "Sign in to ObPay" },

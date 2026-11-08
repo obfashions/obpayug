@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "sdk_version": "3.4.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://rpivflptcksnafymmvlr.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "obpay",
+      "version": "0.1.0",
+      "title": "Obpay"
+    },
+    "tools": [
+      {
+        "name": "get_wallet_balances",
+        "title": "Get wallet balances",
+        "description": "Read your recorded ObPay wallet balances separately by currency; this does not move money or query pooled network funds.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_transactions",
+        "title": "List recent transactions",
+        "description": "Read your recent ObPay dashboard transactions, optionally filtered by currency, without customer contact details or payment credentials.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "description": "Maximum recent transactions, from 1 to 50."
+            },
+            "currency": {
+              "type": "string",
+              "description": "Optional stored wallet currency, such as UGX or RWF; use SLL for Sierra Leone."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

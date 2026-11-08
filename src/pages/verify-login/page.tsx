@@ -1,7 +1,8 @@
 import { sendVerificationCode, checkVerificationCode } from "@/lib/verification.functions";
 import { getAccessToken } from "@/lib/session-token";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "@/lib/router-compat";
+import { useNavigate, useSearchParams } from "@/lib/router-compat";
+import { oauthReturnPath, withOAuthNext } from "@/lib/oauth-return-path";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function VerifyLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = oauthReturnPath(searchParams.get("next"));
   const { user, profile, refreshProfile } = useAuth();
 
   const email = profile?.email || "";
@@ -33,7 +36,7 @@ export default function VerifyLogin() {
       // Give AuthContext a moment to load
       const t = setTimeout(() => {
         if (!user) {
-          navigate("/login", { replace: true });
+          navigate(withOAuthNext("/login", next), { replace: true });
         }
       }, 2000);
       return () => clearTimeout(t);
@@ -67,7 +70,7 @@ export default function VerifyLogin() {
                   const [base, members] = await Promise.all([supabase.from("user_roles").select("role").eq("user_id", user.id), supabase.from("member_roles").select("role").eq("user_id", user.id)]);
                   const { staffHome } = await import("@/lib/member-permissions");
                   const dest = staffHome([...(base.data || []), ...(members.data || [])].map((r: { role: string }) => r.role));
-                  navigate(dest, { replace: true, state: { skipVerificationGuard: true } });
+                  navigate(next !== "/" ? next : dest, { replace: true, state: { skipVerificationGuard: true } });
                 });
             });
         }
@@ -222,7 +225,7 @@ export default function VerifyLogin() {
 
       const [baseRoles, memberRoles] = await Promise.all([supabase.from("user_roles").select("role").eq("user_id", user.id), supabase.from("member_roles").select("role").eq("user_id", user.id)]);
       const { staffHome } = await import("@/lib/member-permissions");
-      navigate(staffHome([...(baseRoles.data || []), ...(memberRoles.data || [])].map((r: { role: string }) => r.role)), { replace: true });
+      navigate(next !== "/" ? next : staffHome([...(baseRoles.data || []), ...(memberRoles.data || [])].map((r: { role: string }) => r.role)), { replace: true });
     } catch {
       setError("Network error. Please check your connection and try again.");
       setSubmitting(false);
@@ -343,7 +346,7 @@ export default function VerifyLogin() {
                 <button
                   onClick={async () => {
                     await supabase.auth.signOut({ scope: "local" });
-                    navigate("/login", { replace: true });
+                    navigate(withOAuthNext("/login", next), { replace: true });
                   }}
                   className="text-sm text-foreground-500 hover:text-foreground-700 cursor-pointer whitespace-nowrap"
                 >
