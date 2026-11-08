@@ -96,7 +96,7 @@ export default function PaymentLinksPage() {
           <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">{error}</div>
         )}
 
-        <form onSubmit={create} className="rounded-xl border border-background-200 bg-white p-4 sm:p-5 space-y-4">
+        <form onSubmit={create} className="rounded-xl border border-background-200 bg-card text-card-foreground p-4 sm:p-5 space-y-4">
           <h2 className="text-sm font-semibold text-foreground-900">New payment link</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
@@ -141,13 +141,13 @@ export default function PaymentLinksPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 cursor-pointer"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 cursor-pointer"
           >
             {submitting ? "Creating…" : "Create link"}
           </button>
         </form>
 
-        <div className="rounded-xl border border-background-200 bg-white overflow-hidden">
+        <div className="rounded-xl border border-background-200 bg-card text-card-foreground overflow-hidden">
           {loading ? (
             <div className="p-6 text-sm text-foreground-500">Loading your links…</div>
           ) : links.length === 0 ? (

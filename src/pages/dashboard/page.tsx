@@ -439,7 +439,7 @@ export default function DashboardPage() {
             <div className="account-card-grid absolute inset-0 opacity-20" />
             <div className="relative p-6 md:p-8 flex flex-col h-full min-h-[230px]">
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background-50/15 text-xs font-semibold tracking-wide">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-on-inverse/15 text-xs font-semibold tracking-wide">
                   <i className="ri-bank-line" />Currency wallet
                 </span>
                 <div className="flex items-center gap-2">
@@ -449,7 +449,7 @@ export default function DashboardPage() {
                     onClick={() => setShowBalance((value) => !value)}
                     variant="ghost"
                     size="icon-sm"
-                    className="text-background-50 hover:bg-background-50/15 hover:text-background-50"
+                    className="text-on-inverse hover:bg-on-inverse/15 hover:text-on-inverse"
                     aria-label={showBalance ? "Hide balance" : "Show balance"}
                     title={showBalance ? "Hide balance" : "Show balance"}
                   >
@@ -457,17 +457,17 @@ export default function DashboardPage() {
                   </Button>
                 </div>
               </div>
-              <p className="mt-6 text-xs uppercase tracking-[0.2em] text-background-50/70">Available balance</p>
+              <p className="mt-6 text-xs uppercase tracking-[0.2em] text-on-inverse/70">Available balance</p>
               <p className="font-heading font-bold text-3xl sm:text-4xl mt-2 break-words leading-none">
                 {showBalance ? formatCurrency(activeBalance, activeCurrency) : `${activeCurrency} ••••••`}
               </p>
               <div className="mt-auto pt-6 flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-widest text-background-50/60">Account</p>
+                  <p className="text-[11px] uppercase tracking-widest text-on-inverse/60">Account</p>
                   <p className="font-mono text-base tracking-[0.25em]">•••• {(user?.id || "").replace(/-/g, "").slice(-4).toUpperCase()}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] uppercase tracking-widest text-background-50/60">Pending</p>
+                  <p className="text-[11px] uppercase tracking-widest text-on-inverse/60">Pending</p>
                   <p className="font-heading font-semibold text-base">{formatCurrency(wallet?.pending_balance || 0, activeCurrency)}</p>
                 </div>
               </div>

@@ -59,28 +59,28 @@ export default function MerchantNoticesCard() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+    <div className="bg-card rounded-xl border border-border p-5 space-y-4">
       <div>
-        <h2 className="font-bold text-lg text-gray-900">Merchant notices</h2>
-        <p className="text-sm text-gray-600">Tap a template, edit if needed, then send. {"{name}"} becomes each merchant's name.</p>
+        <h2 className="font-bold text-lg text-foreground">Merchant notices</h2>
+        <p className="text-sm text-muted-foreground">Tap a template, edit if needed, then send. {"{name}"} becomes each merchant's name.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {NOTICE_TEMPLATES.map((t) => (
           <button
             key={t.id}
             onClick={() => { setActive(t.id); setSubject(t.subject); setBody(t.body); setMsg(null); }}
-            className={`px-3 py-1.5 rounded-full text-sm border ${active === t.id ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300"}`}
+            className={`px-3 py-1.5 rounded-full text-sm border ${active === t.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-input"}`}
           >
             {t.label}
           </button>
         ))}
       </div>
-      <input value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Subject" />
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+      <input value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full border border-input rounded-lg px-3 py-2 text-sm" placeholder="Subject" />
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full border border-input rounded-lg px-3 py-2 text-sm" />
       <div className="flex flex-col sm:flex-row gap-2">
-        <input value={testTo} onChange={(e) => setTestTo(e.target.value)} type="email" placeholder="Your email for a test" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-        <button disabled={busy || !testTo} onClick={() => run(true)} className="px-4 py-2 rounded-lg border border-gray-300 text-sm disabled:opacity-50">Send test</button>
-        <button disabled={busy} onClick={() => run(false)} className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm disabled:opacity-50">
+        <input value={testTo} onChange={(e) => setTestTo(e.target.value)} type="email" placeholder="Your email for a test" className="flex-1 border border-input rounded-lg px-3 py-2 text-sm" />
+        <button disabled={busy || !testTo} onClick={() => run(true)} className="px-4 py-2 rounded-lg border border-input text-sm disabled:opacity-50">Send test</button>
+        <button disabled={busy} onClick={() => run(false)} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm disabled:opacity-50">
           {busy ? "Sending…" : verifiedOnly ? "Send to verified merchants" : "Send to all merchants"}
         </button>
       </div>
