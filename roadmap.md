@@ -1,6 +1,7 @@
 ## Agent integrations
-- [ ] Add OAuth-protected read-only wallet and transaction tools, consent with preserved sign-in/registration continuation, and mounted browser tools.
-- [ ] Verify consent errors, approve/deny failure states, auth rejection and tool catalog; republish required for the hosted revision.
+- [x] Add OAuth-protected read-only wallet and transaction tools, consent with preserved sign-in/registration continuation, and mounted browser navigation tools; OAuth authorization enabled, existing authentication/database preserved.
+- [x] Verify missing-request errors, sign-in/signup continuation, anonymous HTTP 401 and generated two-tool catalog; local account and ledger safeguard tests pass, build clean.
+- [ ] Verify real approval/denial, expired requests, delegated reads and signed-in browser registration: requesting account session returns to login; needs an active verified account and external OAuth client after republishing. No payments or arbitrary SQL exposed.
 
 ## Dark-mode readability
 - [x] Correct shared contrast, inverted wallet labels, documentation and light-only API/admin surfaces; unify saved appearance across pages. Eight public pages and desktop/mobile toggles verified; clean build, no money moved.

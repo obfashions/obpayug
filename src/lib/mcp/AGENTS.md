@@ -1,0 +1,2 @@
+- Remote tools are read-only, OAuth client-claim protected, account-verification checked and explicitly owner-filtered through caller RLS; never expose arbitrary SQL or money-changing actions.
+- Browser tools stay in the component owning visible navigation, with matching access gates and static privacy-safe telemetry; browser state is never accessible to remote tools.
