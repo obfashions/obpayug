@@ -1,3 +1,7 @@
+## Agent integrations
+- [ ] Add OAuth-protected read-only wallet and transaction tools, consent with preserved sign-in/registration continuation, and mounted browser tools.
+- [ ] Verify consent errors, approve/deny failure states, auth rejection and tool catalog; republish required for the hosted revision.
+
 ## Dark-mode readability
 - [x] Correct shared contrast, inverted wallet labels, documentation and light-only API/admin surfaces; unify saved appearance across pages. Eight public pages and desktop/mobile toggles verified; clean build, no money moved.
 - [ ] Visually verify merchant/admin dark mode signed in: requesting account's restored session redirects to login; no account status or protections changed.

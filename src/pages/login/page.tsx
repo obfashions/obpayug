@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "@/lib/router-compat";
+import { Link, useNavigate, useSearchParams } from "@/lib/router-compat";
+import { oauthReturnPath, withOAuthNext } from "@/lib/oauth-return-path";
 import Navbar from "@/components/feature/Navbar";
 import Footer from "@/components/feature/Footer";
 import { supabase } from "@/lib/supabase";
@@ -24,6 +25,8 @@ function sleep(ms: number): Promise<void> {
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = oauthReturnPath(searchParams.get("next"));
   const { refreshProfile } = useAuth();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -199,7 +202,7 @@ export default function Login() {
 
         if (verificationRequired) {
           // Go through the verification code flow
-          navigate("/verify-login", { replace: true });
+          navigate(withOAuthNext("/verify-login", next), { replace: true });
         } else {
           // Skip verification — mark as verified in DB, refresh profile in context, then redirect
           await supabase
@@ -211,7 +214,7 @@ export default function Login() {
           // This prevents the layout guards from redirecting back to verify-login
           await refreshProfile();
 
-          navigate(destination, { replace: true, state: { skipVerificationGuard: true } });
+          navigate(next !== "/" ? next : destination, { replace: true, state: { skipVerificationGuard: true } });
         }
         setSubmitting(false);
         return;
@@ -373,7 +376,7 @@ export default function Login() {
               <p className="text-center text-sm text-foreground-600 mt-6">
                 Don&apos;t have an account?{" "}
                 <Link
-                  to="/register"
+                  to={withOAuthNext("/register", next)}
                   className="text-primary-500 hover:text-primary-600 font-medium"
                 >
                   Create an account

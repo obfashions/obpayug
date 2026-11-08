@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import Page from "@/pages/verify-login/page";
 
 export const Route = createFileRoute("/verify-login")({
+  validateSearch: (search: Record<string, unknown>) => ({ next: typeof search.next === "string" ? search.next : undefined }),
   head: () => ({
     meta: [
       { title: "Verify your login — ObPay" },

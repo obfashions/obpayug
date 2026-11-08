@@ -6,9 +6,11 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { fileURLToPath } from "node:url";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 
 export default defineConfig({
   vite: {
+    plugins: [mcpPlugin()],
     resolve: {
       alias: [
         { find: "entities/lib/decode.js", replacement: fileURLToPath(new URL("./node_modules/entities/lib/esm/decode.js", import.meta.url)) },
