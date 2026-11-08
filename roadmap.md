@@ -1,4 +1,6 @@
 ## Jjuma bank integration
+- [ ] Enable requested Jjuma bank receiving: current public docs still omit a bank collection method, receiving instructions, supported bank currencies and verifiable bank fee contract; provider confirmation is required.
+- [x] Restore the Receive bank payments tab without claiming inactive collections are enabled; preserve existing bank withdrawal processing.
 - [x] Read official collection/checkout, authentication, verification and webhook docs; connect Jjuma securely and verify read-only transactions HTTP 200. Bank-specific fields, fees and disbursement endpoint are undocumented.
 - [x] Restore Bank Payments navigation and receive/send/saved-account tabs; add admin connection health and ObPay bank capability/API documentation without inventing payment controls.
 - [x] Nineteen bank capability, admin privacy and owner-account tests passed; desktop/mobile docs verified without overflow or browser errors. App credential path returned HTTP 200; no money moved.
