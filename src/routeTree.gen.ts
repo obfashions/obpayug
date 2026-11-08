@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -22,6 +23,7 @@ import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as VerifyLoginRouteImport } from './routes/verify-login'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminApiMonitoringRouteImport } from './routes/admin.api-monitoring'
 import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
@@ -66,6 +68,7 @@ import { Route as DashboardTransactionsRouteImport } from './routes/dashboard.tr
 import { Route as DashboardTvRouteImport } from './routes/dashboard.tv'
 import { Route as DashboardWaterRouteImport } from './routes/dashboard.water'
 import { Route as PaySlugRouteImport } from './routes/pay.$slug'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicEgressIpRouteImport } from './routes/api/public/egress-ip'
 import { Route as ApiPublicGatewayCallbackRouteImport } from './routes/api/public/gateway-callback'
 import { Route as ApiPublicMailjetEventsRouteImport } from './routes/api/public/mailjet-events'
@@ -95,6 +98,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -142,6 +150,12 @@ const VerifyLoginRoute = VerifyLoginRouteImport.update({
   path: '/verify-login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -363,6 +377,11 @@ const PaySlugRoute = PaySlugRouteImport.update({
   path: '/pay/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEgressIpRoute = ApiPublicEgressIpRouteImport.update({
   id: '/api/public/egress-ip',
   path: '/api/public/egress-ip',
@@ -421,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/docs': typeof DocsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
@@ -430,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
@@ -474,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/pay/$slug': typeof PaySlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
   '/api/public/mailjet-events': typeof ApiPublicMailjetEventsRoute
@@ -490,6 +512,7 @@ export interface FileRoutesByTo {
   '/docs': typeof DocsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
@@ -499,6 +522,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
@@ -543,6 +567,7 @@ export interface FileRoutesByTo {
   '/pay/$slug': typeof PaySlugRoute
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
   '/api/public/mailjet-events': typeof ApiPublicMailjetEventsRoute
@@ -560,6 +585,7 @@ export interface FileRoutesById {
   '/docs': typeof DocsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
@@ -569,6 +595,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/verify-email': typeof VerifyEmailRoute
   '/verify-login': typeof VerifyLoginRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
@@ -613,6 +640,7 @@ export interface FileRoutesById {
   '/pay/$slug': typeof PaySlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/egress-ip': typeof ApiPublicEgressIpRoute
   '/api/public/gateway-callback': typeof ApiPublicGatewayCallbackRoute
   '/api/public/mailjet-events': typeof ApiPublicMailjetEventsRoute
@@ -631,6 +659,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/register'
@@ -640,6 +669,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify-email'
     | '/verify-login'
+    | '/.well-known/oauth-protected-resource'
     | '/admin/api-monitoring'
     | '/admin/audit-logs'
     | '/admin/company-documents'
@@ -684,6 +714,7 @@ export interface FileRouteTypes {
     | '/pay/$slug'
     | '/admin/'
     | '/dashboard/'
+    | '/.lovable/oauth/consent'
     | '/api/public/egress-ip'
     | '/api/public/gateway-callback'
     | '/api/public/mailjet-events'
@@ -700,6 +731,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/register'
@@ -709,6 +741,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify-email'
     | '/verify-login'
+    | '/.well-known/oauth-protected-resource'
     | '/admin/api-monitoring'
     | '/admin/audit-logs'
     | '/admin/company-documents'
@@ -753,6 +786,7 @@ export interface FileRouteTypes {
     | '/pay/$slug'
     | '/admin'
     | '/dashboard'
+    | '/.lovable/oauth/consent'
     | '/api/public/egress-ip'
     | '/api/public/gateway-callback'
     | '/api/public/mailjet-events'
@@ -769,6 +803,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/register'
@@ -778,6 +813,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify-email'
     | '/verify-login'
+    | '/.well-known/oauth-protected-resource'
     | '/admin/api-monitoring'
     | '/admin/audit-logs'
     | '/admin/company-documents'
@@ -822,6 +858,7 @@ export interface FileRouteTypes {
     | '/pay/$slug'
     | '/admin/'
     | '/dashboard/'
+    | '/.lovable/oauth/consent'
     | '/api/public/egress-ip'
     | '/api/public/gateway-callback'
     | '/api/public/mailjet-events'
@@ -839,6 +876,7 @@ export interface RootRouteChildren {
   DocsRoute: typeof DocsRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  McpRoute: typeof McpRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RegisterRoute: typeof RegisterRoute
@@ -848,6 +886,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   VerifyLoginRoute: typeof VerifyLoginRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AdminApiMonitoringRoute: typeof AdminApiMonitoringRoute
   AdminAuditLogsRoute: typeof AdminAuditLogsRoute
   AdminCompanyDocumentsRoute: typeof AdminCompanyDocumentsRoute
@@ -892,6 +931,7 @@ export interface RootRouteChildren {
   PaySlugRoute: typeof PaySlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicEgressIpRoute: typeof ApiPublicEgressIpRoute
   ApiPublicGatewayCallbackRoute: typeof ApiPublicGatewayCallbackRoute
   ApiPublicMailjetEventsRoute: typeof ApiPublicMailjetEventsRoute
@@ -932,6 +972,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -995,6 +1042,13 @@ declare module '@tanstack/react-router' {
       path: '/verify-login'
       fullPath: '/verify-login'
       preLoaderRoute: typeof VerifyLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -1305,6 +1359,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PaySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/egress-ip': {
       id: '/api/public/egress-ip'
       path: '/api/public/egress-ip'
@@ -1383,6 +1444,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsRoute: DocsRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  McpRoute: McpRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RegisterRoute: RegisterRoute,
@@ -1392,6 +1454,8 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   VerifyLoginRoute: VerifyLoginRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   AdminApiMonitoringRoute: AdminApiMonitoringRoute,
   AdminAuditLogsRoute: AdminAuditLogsRoute,
   AdminCompanyDocumentsRoute: AdminCompanyDocumentsRoute,
@@ -1436,6 +1500,7 @@ const rootRouteChildren: RootRouteChildren = {
   PaySlugRoute: PaySlugRoute,
   AdminIndexRoute: AdminIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicEgressIpRoute: ApiPublicEgressIpRoute,
   ApiPublicGatewayCallbackRoute: ApiPublicGatewayCallbackRoute,
   ApiPublicMailjetEventsRoute: ApiPublicMailjetEventsRoute,
