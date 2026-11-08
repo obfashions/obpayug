@@ -168,6 +168,10 @@ function bankCodeFor(input: string): string {
 }
 
 export async function runServiceAction(action: string, accessToken: string, userId: string | null, body: any) {
+  if (["card-create", "card-status", "card-list"].includes(action)) {
+    const { cardAction } = await import("./card-payments.server");
+    return cardAction(action, userId, body || {});
+  }
   const { secondaryAction } = await import("./marz-services.server");
   return secondaryAction(action, userId, body || {});
 }

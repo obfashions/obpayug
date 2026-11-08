@@ -3,3 +3,4 @@
 - Bank lookups use one shared validity-and-name guard for saving and sending; a successful name lookup with valid=false is not confirmed registration — prevents misleading receiving-account verification and unsafe transfers.
 - All payout callers resolve recipient-name aliases through payout-recipient.ts; never infer a recipient identity from a phone number.
 - Service REST dispatch reuses secondary validation and settlement; API purchases retain their source and receiving-account operations always scope to the authenticated merchant-key owner — avoids divergent payment rules and cross-account access.
+- New cards use the primary collection ledger with a pre-submission unique reference reservation, hosted checkout and verified fee-aware currency-matched settlement; legacy restricted card balances are never converted or relabeled.

@@ -46,6 +46,14 @@ function cleanCatalog(data: any) {
   };
 }
 export async function secondaryCatalog() {
+  return [
+    { code: "collections", name: "Mobile money collections", status: "active" },
+    { code: "payouts", name: "Mobile money payouts", status: "active" },
+    { code: "card_payments", name: "Card payments · USD, KES, NGN", status: "active" },
+    { code: "bank_transfer", name: "Bank payments", status: "unavailable" },
+  ];
+}
+async function retiredSecondaryCatalog() {
   const [airtime, bills, bank, subscriptions] = await Promise.allSettled([
     marzRequest("/airtime-data/catalog"), marzRequest("/bill-payment/services"),
     marzRequest("/bank-transfer/services"), marzRequest("/services"),
@@ -143,6 +151,9 @@ export async function verifiedIdentity(userId: string): Promise<{ ok: true; name
 }
 
 export async function secondaryPurchase(userId: string, kind: "airtime" | "bill" | "card" | "bank", body: any, source: "dashboard" | "api" = "dashboard") {
+  return fail("This service has been discontinued. No new payment has been sent. Card payments are available on the Card Payments page.");
+}
+async function retiredSecondaryPurchase(userId: string, kind: "airtime" | "bill" | "card" | "bank", body: any, source: "dashboard" | "api" = "dashboard") {
   let reserved = false;
   try {
     const payload: any = (kind === "bank" ? bankInput : kind === "airtime" ? airtimeInput : kind === "bill" ? billInput : cardInput).parse(body);
@@ -235,6 +246,7 @@ export async function secondaryPurchase(userId: string, kind: "airtime" | "bill"
 }
 
 export async function secondaryAction(action: string, userId: string | null, b: any) {
+  if (!["svc-list", "service-history", "airtime-list", "card-list", "airtime-status", "bill-status", "card-status", "bank-status", "bank-accounts-list", "bank-accounts-delete"].includes(action)) return fail("This service has been discontinued. No new payment has been sent. Bank payments are awaiting a new connection.");
   try {
     if (action === "svc-list") return ok({ services: await secondaryCatalog() });
     if (action === "airtime-catalog") return ok(cleanCatalog(await marzRequest("/airtime-data/catalog")));
@@ -318,7 +330,5 @@ export async function secondaryAction(action: string, userId: string | null, b: 
 
 export async function secondaryAdmin(accessToken: string) {
   await requireAdmin(accessToken, "settings");
-  const [services, account] = await Promise.all([secondaryCatalog(), marzRequest("/balance")]);
-  return ok({ services, connected: true, main_float: moneyRaw(account.account?.available_balance), card_float: moneyRaw(account.account?.card_balance), currency: "UGX",
-    note: "Bank transfers require a live exact fee and verified recipient. Uncertain submissions stay reserved and are never automatically retried. Cards collect payments; card issuing is not documented." });
+  return ok({ services: await secondaryCatalog(), connected: false, main_float: null, card_float: null, currency: "UGX", note: "Marz is disabled for new operations. Historical obligations retain verification-only reconciliation. New card collections use Payza hosted checkout." });
 }
