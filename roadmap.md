@@ -1,3 +1,6 @@
+## Dark-mode readability
+- [ ] Correct shared contrast, inverted wallet panels and light-only surfaces; unify the saved appearance across pages and verify public/dashboard views without moving money.
+
 - [x] Address PesaSuite documentation/testing gaps: public no-money pending-to-success demo; dashboard simulation default and live-write approval; stored sandbox keys blocked from live API; consent/settlement guides; registered callbacks refuse redirects; malformed JSON objects rejected. 48 relevant tests passed, public demo and HTTP 403 verified, build clean; no real money sent.
 - [ ] Complete PesaSuite funded Uganda demonstration and production due diligence: needs agreed authorised customer/recipient, funds and verified account, plus written custody/licence/settlement documents from the business team. No live demonstration booked; signed-in tester remains unverified.
 - [ ] Extend production integration reliability with an atomic collection-reference reservation and durable signed notification outbox; these are not implemented in this documentation/testing update. No unattended recurring mandate or external sandbox exists; keep consent and transaction-lookup limitations explicit.
