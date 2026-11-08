@@ -37,7 +37,7 @@ it("exposes bill verification and packages needed before purchase", async () => 
 });
 it("rejects malformed account and payment identifiers before actions", async () => {
   expect((await serviceApi("DELETE", "services/banks/accounts/not-a-uuid", "owner", {}, query))?.success).toBe(false);
-  expect((await serviceApi("GET", "services/status/not-a-uuid", "owner", {}, query))?.success).toBe(false);
+  expect((await serviceApi("GET", "services/status/invalid%20reference", "owner", {}, query))?.success).toBe(false);
   expect(mocks.action).not.toHaveBeenCalled();
 });
 it("does not invent an incoming bank collection endpoint", async () => {

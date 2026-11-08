@@ -16,7 +16,7 @@ const serviceFees = [
   { name: "Collections", charge: "Network cost + ObPay collection fee", detail: "The verified network charge and the ObPay collection fee shown below are deducted once before the payment is credited to your wallet." },
   { name: "Payouts & withdrawals", charge: "Network quote + ObPay payout fee", detail: "The quote separates the network and ObPay charges. Your saved fee preference determines the recipient amount and the total wallet deduction." },
   { name: "Currency exchange", charge: "Exchange rate + ObPay exchange fee", detail: "The fee is deducted from what you receive. Review the destination amount and the fee before confirming. Exchanges are subject to available funds and account eligibility." },
-  { name: "Bills, airtime & data", charge: "Service price + applicable charges", detail: "The total amount to be deducted is confirmed before submission. Available services and packages depend on the selected service." },
+  { name: "Card payments", charge: "Verified network charge + ObPay collection fee", detail: "Hosted checkout in USD, KES and NGN. Confirmed proceeds are credited to the payment-currency wallet; applicable exemptions remain effective." },
 ];
 
 const questions = [

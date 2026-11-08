@@ -20,7 +20,10 @@ export async function serviceApi(method: string, path: string, merchantId: strin
       if (path === "services/airtime/network") return action("airtime-detect", { msisdn: query.get("msisdn") });
       if (path === "services/bills/packages") return action("bill-bouquets", { utilityCode: query.get("utility_code") });
       const status = /^services\/status\/([^/]+)$/.exec(path);
-      if (status) return action("card-status", { reference: z.string().uuid().parse(status[1]) });
+      if (status) {
+        const { cardAction } = await import("./card-payments.server");
+        return cardAction("card-status", merchantId, { reference: z.string().min(1).max(40).regex(/^[a-zA-Z0-9_-]+$/).parse(status[1]) }, "api");
+      }
     }
     if (method === "POST") {
       if (path === "services/banks/validate") return action("bank-validate", { bankName: body.bank_name, accountNumber: body.account_number });
