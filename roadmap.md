@@ -1,7 +1,8 @@
 ## Jjuma bank integration
-- [ ] Verify official bank collection/disbursement contracts and secure connection requirements.
-- [ ] Update bank pages, merchant/admin fields and ObPay API documentation to supported capabilities only.
-- [ ] Test supported flows without moving real money; identify any credentials or provider-contract blockers.
+- [x] Read official collection/checkout, authentication, verification and webhook docs; connect Jjuma securely and verify read-only transactions HTTP 200. Bank-specific fields, fees and disbursement endpoint are undocumented.
+- [x] Restore Bank Payments navigation and receive/send/saved-account tabs; add admin connection health and ObPay bank capability/API documentation without inventing payment controls.
+- [ ] Test bank capability guards, admin-only health and public documentation without moving money.
+- [ ] Activate bank collections/disbursements: requires Jjuma's official bank rail contract, account/recipient fields, exact fees, verification evidence and idempotency semantics. Generic checkout is not proof of bank support.
 
 ## Payza cards and Marz removal
 - [x] Disable new Marz operations at service dispatch and request boundaries; preserve historical records and verification-only reconciliation. Remove active bank/bill/airtime advertising and navigation.
