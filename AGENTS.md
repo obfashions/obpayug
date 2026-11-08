@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Primary mobile-money partner remains Payza in gateway.server.ts; secondary Uganda services use marz-services.server.ts via the server connector — keep existing payments unchanged.
+- Payza handles mobile money and hosted cards; Marz new operations are disabled, preserving history and verification-only reconciliation — protect existing obligations.
 - Collections trigger the PIN prompt server-side and settle only after /api/v1/verify confirms — white-label UX and never trust unsigned/unchecked notices.
 - Auth and ledgers use this backend; legacy migration imports on first login — one system of record.
 - Password resets (merchant and admin) email a Mailjet link built from generateLink recovery hashed_token → /reset-password — no dependency on the old system's email sender.

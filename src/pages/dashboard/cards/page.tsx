@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { invokeObpay } from "@/lib/edge-function";
 import { Link } from "@/lib/router-compat";
 import { CARD_CURRENCIES, CARD_MINIMUMS } from "@/lib/card-payments";
-import { platform } from "@/lib/platform";
 
 export default function CardsPage() {
   const [amount, setAmount] = useState("");
