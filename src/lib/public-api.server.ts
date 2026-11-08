@@ -148,7 +148,13 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
   const currency = String(body.currency || "UGX").toUpperCase();
   const { SUPPORTED_MONEY_CURRENCIES } = await import("./countries");
   if (!SUPPORTED_MONEY_CURRENCIES.includes(currency)) return err(`\`currency\` must be one of ${SUPPORTED_MONEY_CURRENCIES.join(", ")}.`);
-  const crypto = body.crypto === true || body.payment_method === "crypto" || currency === "USD";
+  const card = body.payment_method === "card";
+  const crypto = !card && (body.crypto === true || body.payment_method === "crypto" || currency === "USD");
+  if (card) {
+    const { cardPaymentError } = await import("./card-payments");
+    const error = cardPaymentError(currency, amount);
+    if (error) return err(error);
+  }
   const customerName = pick(body, "customer_name", "customerName", "customer_name");
   const customerEmail = pick(body, "customer_email", "customerEmail");
   const cb = await callbackFrom(body);
@@ -161,7 +167,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
   if (!Number.isFinite(amount) || amount <= 0) return err("`amount` must be greater than zero.");
   if (currency !== "USD" && !Number.isInteger(amount)) return err("`amount` must be a whole number.");
   if (currency === "USD" && amount < 0.5) return err("The minimum crypto/USD payment is 0.50.");
-  if (currency !== "USD" && !phone) return err(`\`phone_number\` must be a ${countryFor(currency)?.country} mobile money number, e.g. ${countryFor(currency)?.example}.`);
+  if (currency !== "USD" && (!card || currency === "KES") && !phone) return err(`\`phone_number\` must be a ${countryFor(currency)?.country} number, e.g. ${countryFor(currency)?.example}.`);
 
   const reference = String(body.reference || `OBP${Date.now().toString(36).toUpperCase()}`).slice(0, 40);
   // `reference` is globally unique (payment_records upserts on it), so the
@@ -191,12 +197,21 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
     });
   }
 
+  // Reserve card references before the external request. Concurrent submissions
+  // must never create two checkouts or overwrite another merchant's record.
+  let cardRecordId: string | undefined;
+  if (card) {
+    const { data, error } = await db().from("payment_records").insert({ merchant_id: merchantId, reference, type: "collection", source, amount, currency, status: "pending", description: body.description || null, phone_number: phone || null, metadata: { payment_method: "card", customer_name: customerName, callback_url: cb.url, submission_state: "reserved" } }).select("id").single();
+    if (error || !data) return err("This reference could not be reserved. Check its status before submitting again.");
+    cardRecordId = data.id;
+  }
   const { merchantTag } = await import("./merchant-identity.server");
   const out = await gatewayCollect(creds, {
     merchant: await merchantTag(merchantId),
     channel: `${source}_collection`,
     currency,
     crypto,
+    card,
     network: String(body.network || ""),
     reference,
     amount,
@@ -210,6 +225,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
   });
 
   if (!out.ok) {
+    if (cardRecordId) return err("The card request could not be confirmed. Check this reference before creating another payment; do not pay twice.");
     await recordPayment(merchantId, {
       reference,
       type: "collection",
@@ -226,7 +242,7 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
 
   const { reportedCollectionFee } = await import("./platform-fees");
   const partnerFee = reportedCollectionFee(out.res.data);
-  await recordPayment(merchantId, {
+  const savedRow = {
     reference,
     provider_reference: out.platformReference,
     type: "collection",
@@ -242,9 +258,15 @@ export async function apiCollect(merchantId: string, body: Record<string, any>, 
       callback_url: cb.url,
       checkout_url: out.checkoutUrl,
       prompt_sent: out.promptSent,
+      ...(card ? { payment_method: "card", customer_name: customerName, submission_state: "accepted" } : {}),
       ...(out.promptMessage ? { prompt_message: out.promptMessage } : {}),
     },
-  });
+  };
+  if (cardRecordId) {
+    const { error } = await db().from("payment_records").update(savedRow).eq("id", cardRecordId).eq("merchant_id", merchantId);
+    if (error) return err("Payment confirmation could not be saved. Check this reference; do not pay again.");
+    if (!/^https:\/\//.test(out.checkoutUrl)) return err("The secure checkout address is unavailable. Check this reference before creating another payment.");
+  } else await recordPayment(merchantId, savedRow);
 
   return ok({
     reference,

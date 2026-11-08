@@ -1,3 +1,9 @@
+## Payza cards and Marz removal
+- [ ] Disable new Marz operations, retain historical records and reconciliation, and remove active service advertising.
+- [ ] Add documented Payza hosted card checkout with verified fee-aware settlement and merchant API documentation.
+- [ ] Verify card rules and checkout flow without charging a real card.
+- [ ] Add bank collection/disbursement after the owner supplies the new gateway documentation.
+
 ## Agent integrations
 - [x] Add OAuth-protected read-only wallet and transaction tools, consent with preserved sign-in/registration continuation, and mounted browser navigation tools; OAuth authorization enabled, existing authentication/database preserved.
 - [x] Verify missing-request errors, sign-in/signup continuation, anonymous HTTP 401 and generated two-tool catalog; local account and ledger safeguard tests pass, build clean.

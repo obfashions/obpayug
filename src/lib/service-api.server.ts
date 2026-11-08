@@ -5,6 +5,10 @@ import { secondaryAction, secondaryPurchase } from "./marz-services.server";
 export async function serviceApi(method: string, path: string, merchantId: string, body: Record<string, unknown>, query: URLSearchParams) {
   const action = (name: string, data: Record<string, unknown> = {}) => secondaryAction(name, merchantId, data);
   try {
+    if (method === "POST" && path === "services/cards") {
+      const { cardAction } = await import("./card-payments.server");
+      return cardAction("card-create", merchantId, body, "api");
+    }
     if (method === "GET") {
       const reads: Record<string, string> = {
         services: "svc-list", "services/airtime/catalog": "airtime-catalog",

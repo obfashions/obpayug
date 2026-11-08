@@ -392,6 +392,8 @@ export interface CollectionRequest {
   network?: string;
   /** Send the payer to the crypto checkout. */
   crypto?: boolean;
+  /** Hosted checkout; the payer selects card, without any mobile-money prompt. */
+  card?: boolean;
 }
 
 /**
@@ -415,7 +417,7 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
       ...(phone ? { phone } : {}),
     },
     callback_url: req.notifyUrl || callbackUrl(),
-    ...(currency === "KES" ? { stk_push: req.network !== "airtel_money" } : {}),
+    ...(currency === "KES" ? { stk_push: !req.card && req.network !== "airtel_money" } : {}),
     ...(req.redirectUrl ? { redirect_url: req.redirectUrl, cancel_url: req.redirectUrl } : {}),
     metadata: { ...tagMetadata(req.merchant, req.channel || "dashboard"), obpay_reference: req.reference },
   };
@@ -426,9 +428,9 @@ export async function gatewayCollect(creds: GatewayCreds, req: CollectionRequest
   const cryptoUrl = String(res.data?.crypto_payment_url || "");
   let promptSent = false;
   let promptMessage = "";
-  if (currency === "KES") {
+  if (currency === "KES" && !req.card) {
     promptSent = res.data?.stk_sent === true;
-  } else if (phone && !req.crypto) {
+  } else if (phone && !req.crypto && !req.card) {
     // Same request the partner's own checkout page makes (number in
     // international format plus the two-letter country code).
     const COUNTRY_CODES: Record<string, string> = { UGX: "UG", RWF: "RW", XOF: "SN", ZMW: "ZM", SLL: "SL", CDF: "CD", XAF: "CM" };
