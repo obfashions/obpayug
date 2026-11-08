@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { secondaryAction, secondaryPurchase } from "./marz-services.server";
+import { bankCapabilities, blockedBankOperation } from "./bank-capabilities";
 
 /** Caller must already be authenticated by the merchant-secret API boundary. */
 export async function serviceApi(method: string, path: string, merchantId: string, body: Record<string, unknown>, query: URLSearchParams) {
   const action = (name: string, data: Record<string, unknown> = {}) => secondaryAction(name, merchantId, data);
   try {
+    if (method === "GET" && path === "services/banks/catalog") return { success: true, data: bankCapabilities };
+    if (method === "POST" && ["services/banks/collect", "services/banks/transfers", "services/banks/validate", "services/banks/accounts"].includes(path)) return blockedBankOperation();
     if (method === "POST" && path === "services/cards") {
       const { cardAction } = await import("./card-payments.server");
       return cardAction("card-create", merchantId, body, "api");
