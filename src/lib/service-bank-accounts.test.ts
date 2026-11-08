@@ -15,12 +15,12 @@ it("lists receiving accounts only for the authenticated owner without automatic 
   expect(await secondaryAction("bank-accounts-list", "owner", { merchant_id: "other" })).toEqual({ success: true, data: { accounts: [{ id: "account" }], automatic_wallet_credit: false } });
   expect(mocks.eq).toHaveBeenCalledWith("merchant_id", "owner");
 });
-it("saves the network name and key owner, ignoring forged names and owners", async () => {
+it("blocks new receiving registrations after removing the secondary provider", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({ status: "success", data: { valid: true, account_name: "Jane Nakato" } })));
   mocks.single.mockResolvedValue({ data: { id: "account", account_name: "Jane Nakato" }, error: null });
   const result = await secondaryAction("bank-accounts-create", "owner", { bank_name: "Equity Bank", account_number: "60001256421", merchant_id: "other", account_name: "Forged name" });
-  expect(result.success).toBe(true);
-  expect(mocks.insert).toHaveBeenCalledWith({ bank_name: "Equity Bank", account_number: "60001256421", branch: "", currency: "UGX", merchant_id: "owner", account_name: "Jane Nakato" });
+  expect(result.success).toBe(false);
+  expect(mocks.insert).not.toHaveBeenCalled();
 });
 it("never saves a bank name lookup with unconfirmed registration", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({ status: "success", data: { valid: false, account_name: "Jane Nakato", status_code: 0 } })));

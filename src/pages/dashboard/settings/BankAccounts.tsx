@@ -15,7 +15,7 @@ export default function BankAccounts() {
     const { data, error } = await supabase.from("merchant_bank_accounts").select("id,bank_name,account_number,account_name").order("created_at", { ascending: false });
     if (error) setMessage("Your saved bank accounts could not be loaded."); else setAccounts(data || []);
   }
-  useEffect(() => { void load(); void invokeObpay({ action: "bank-banks" }).then(r => { if (r.success) setBanks(r.data?.banks || []); else setMessage(r.error || "The current bank list could not be loaded. Please try again."); }); }, []);
+  useEffect(() => { void load(); }, []);
   async function save(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setMessage("");
     try {
@@ -35,8 +35,9 @@ export default function BankAccounts() {
   }
   return <section className="border-y border-border py-6 space-y-4">
     <h3 className="font-semibold">Receiving bank accounts</h3>
+    <p className="text-sm text-muted-foreground">Bank collections and disbursements are awaiting a new connection. Existing saved details are retained; adding or verifying accounts is currently unavailable.</p>
     {accounts.map(a => <div key={a.id} className="flex items-center justify-between gap-3 border-b border-border pb-3"><div><p className="font-medium">{a.bank_name}</p><p className="text-sm text-muted-foreground">{a.account_name} · ending {a.account_number.slice(-4)}</p></div><Button variant="outline" onClick={() => remove(a.id)}>Remove</Button></div>)}
-    <form onSubmit={save} className="space-y-3">
+    <form onSubmit={save} className="hidden">
       <div><label htmlFor="receiving-bank" className="text-sm">Bank</label><select id="receiving-bank" required value={bank} onChange={e => setBank(e.target.value)} className="w-full border border-border rounded-md bg-background p-2"><option value="">Select bank</option>{banks.map(b => <option key={b.code} value={b.name}>{b.name}</option>)}</select></div>
       <div><label htmlFor="receiving-account" className="text-sm">Account number (UGX)</label><Input id="receiving-account" required inputMode="numeric" pattern="[0-9]{5,30}" value={number} onChange={e => setNumber(e.target.value.replace(/\D/g, ""))}/></div>
       <Button disabled={busy || !bank}>{busy ? "Verifying…" : "Verify and add bank account"}</Button>

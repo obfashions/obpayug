@@ -1,7 +1,8 @@
 ## Payza cards and Marz removal
-- [ ] Disable new Marz operations, retain historical records and reconciliation, and remove active service advertising.
-- [ ] Add documented Payza hosted card checkout with verified fee-aware settlement and merchant API documentation.
-- [ ] Verify card rules and checkout flow without charging a real card.
+- [x] Disable new Marz operations at service dispatch and request boundaries; preserve historical records and verification-only reconciliation. Remove active bank/bill/airtime advertising and navigation.
+- [x] Add Payza hosted checkout in documented USD/KES/NGN card currencies with pre-submission reference reservation, exact verification, existing fees and API documentation.
+- [x] Test no-money card checkout and settlement safeguards; public desktop/mobile documentation verified with no overflow or browser errors.
+- [ ] Verify real merchant card creation, checkout and settlement: requesting account's restored session redirects to login; requires active verified merchant and authorised card payment. No real card charged.
 - [ ] Add bank collection/disbursement after the owner supplies the new gateway documentation.
 
 ## Agent integrations
