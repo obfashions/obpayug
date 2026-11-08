@@ -24,7 +24,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
       supabase.from("platform_settings").select("require_login_verification").limit(1).maybeSingle(),
     ]);
     if (profile.error || settings.error || !profile.data) throw new Error("Your account could not be checked. Please try again.");
-    if (!["active", "pending"].includes(profile.data.status)) throw new Error("This account is unavailable. Please sign in with an active account.");
+    if (!profile.data.status || !["active", "pending"].includes(profile.data.status)) throw new Error("This account is unavailable. Please sign in with an active account.");
     if (!profile.data.email_verified) throw redirect({ to: "/verify-email", search: { next } });
     if ((settings.data?.require_login_verification ?? true) && !profile.data.login_verified_at) throw redirect({ to: "/verify-login", search: { next } });
   },
@@ -33,12 +33,11 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     if (!id) throw new Error("Missing connection request.");
     const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(id);
     if (error) throw error;
-    const target = data?.redirect_url;
-    if (target && !("client" in data)) throw redirect({ href: target });
+    if (data && "redirect_url" in data && data.redirect_url) throw redirect({ href: data.redirect_url });
     return data;
   },
   pendingComponent: () => <main className="min-h-screen bg-background-50 p-8 text-foreground-900">Loading connection request…</main>,
-  errorComponent: ({ error }) => <main className="min-h-screen bg-background-50 p-8 text-foreground-900"><div className="mx-auto max-w-lg"><h1 className="text-2xl font-heading mb-4">Connection unavailable</h1><p role="alert">{error.message}</p><a href="/login" className="text-primary-600 mt-6 inline-block">Sign in to ObPay</a></div></main>,
+  errorComponent: ({ error }) => <main className="min-h-screen bg-background-50 p-8 text-foreground-900"><div className="mx-auto max-w-lg"><h1 className="text-2xl font-heading mb-4">Connection unavailable</h1><p role="alert">{error instanceof Error ? error.message : "This request is unavailable or expired. Start again from your agent."}</p><a href="/login" className="text-primary-600 mt-6 inline-block">Sign in to ObPay</a></div></main>,
   component: Consent,
 });
 

@@ -5,6 +5,8 @@ import { staffHome } from "@/lib/member-permissions";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
+import { useWebMCP } from "use-webmcp-tool";
+import { runWebMCPTool } from "@/lib/webmcp-telemetry";
 import {
   ArrowLeftRight,
   BadgeDollarSign,
@@ -212,6 +214,28 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         .toUpperCase()
         .slice(0, 2)
     : "??";
+
+  const agentEnabled = !loading && !profileLoading && !!user && !!profile && ["active", "pending"].includes(profile.status) && profile.email_verified && (loginVerified || !globalVerificationEnabled);
+  useWebMCP({
+    name: "list_dashboard_pages",
+    description: "List the ObPay pages available in the current dashboard navigation.",
+    enabled: agentEnabled,
+    annotations: { readOnlyHint: true },
+    execute: () => runWebMCPTool("list_dashboard_pages", () => navItems.map((item) => `${item.href}: ${item.label}`).join("\n")),
+  });
+  useWebMCP({
+    name: "open_dashboard_page",
+    description: "Open a page from the current ObPay dashboard navigation without submitting payments or changing account data.",
+    enabled: agentEnabled,
+    inputSchema: { type: "object", properties: { path: { type: "string", enum: navItems.map((item) => item.href), description: "A path returned by list_dashboard_pages." } }, required: ["path"], additionalProperties: false },
+    execute: ({ path }: { path: string }) => runWebMCPTool("open_dashboard_page", () => {
+      if (!agentEnabled) throw new Error("Complete your ObPay sign-in and verification first.");
+      if (typeof path !== "string" || !navItems.some((item) => item.href === path)) throw new Error("This page is not in the current dashboard navigation.");
+      navigate(path);
+      setIsSidebarOpen(false);
+      return "Opening the requested dashboard page.";
+    }),
+  });
 
   return (
     <div className="account-workspace min-h-screen bg-background-100 flex">

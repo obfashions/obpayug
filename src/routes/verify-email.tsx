@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import Page from "@/pages/verify-email/page";
 
 export const Route = createFileRoute("/verify-email")({
-  validateSearch: (search: Record<string, unknown>) => ({ next: typeof search.next === "string" ? search.next : undefined, email: typeof search.email === "string" ? search.email : undefined, userId: typeof search.userId === "string" ? search.userId : undefined }),
+  validateSearch: (search: Record<string, unknown>): { next?: string; email?: string; userId?: string } => ({ next: typeof search.next === "string" ? search.next : undefined, email: typeof search.email === "string" ? search.email : undefined, userId: typeof search.userId === "string" ? search.userId : undefined }),
   head: () => ({
     meta: [
       { title: "Verify your email — ObPay" },
