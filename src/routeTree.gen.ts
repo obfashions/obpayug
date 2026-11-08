@@ -27,6 +27,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminApiMonitoringRouteImport } from './routes/admin.api-monitoring'
 import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
+import { Route as AdminBankPayoutsRouteImport } from './routes/admin.bank-payouts'
 import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.company-documents'
 import { Route as AdminEmailCampaignsRouteImport } from './routes/admin.email-campaigns'
 import { Route as AdminGatewayApiRouteImport } from './routes/admin.gateway-api'
@@ -169,6 +170,11 @@ const AdminApiMonitoringRoute = AdminApiMonitoringRouteImport.update({
 const AdminAuditLogsRoute = AdminAuditLogsRouteImport.update({
   id: '/admin/audit-logs',
   path: '/admin/audit-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminBankPayoutsRoute = AdminBankPayoutsRouteImport.update({
+  id: '/admin/bank-payouts',
+  path: '/admin/bank-payouts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCompanyDocumentsRoute = AdminCompanyDocumentsRouteImport.update({
@@ -453,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/bank-payouts': typeof AdminBankPayoutsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
@@ -525,6 +532,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/bank-payouts': typeof AdminBankPayoutsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
@@ -598,6 +606,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/api-monitoring': typeof AdminApiMonitoringRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
+  '/admin/bank-payouts': typeof AdminBankPayoutsRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/email-campaigns': typeof AdminEmailCampaignsRoute
   '/admin/gateway-api': typeof AdminGatewayApiRoute
@@ -672,6 +681,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin/api-monitoring'
     | '/admin/audit-logs'
+    | '/admin/bank-payouts'
     | '/admin/company-documents'
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
@@ -744,6 +754,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin/api-monitoring'
     | '/admin/audit-logs'
+    | '/admin/bank-payouts'
     | '/admin/company-documents'
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
@@ -816,6 +827,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin/api-monitoring'
     | '/admin/audit-logs'
+    | '/admin/bank-payouts'
     | '/admin/company-documents'
     | '/admin/email-campaigns'
     | '/admin/gateway-api'
@@ -889,6 +901,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AdminApiMonitoringRoute: typeof AdminApiMonitoringRoute
   AdminAuditLogsRoute: typeof AdminAuditLogsRoute
+  AdminBankPayoutsRoute: typeof AdminBankPayoutsRoute
   AdminCompanyDocumentsRoute: typeof AdminCompanyDocumentsRoute
   AdminEmailCampaignsRoute: typeof AdminEmailCampaignsRoute
   AdminGatewayApiRoute: typeof AdminGatewayApiRoute
@@ -1070,6 +1083,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/audit-logs'
       fullPath: '/admin/audit-logs'
       preLoaderRoute: typeof AdminAuditLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/bank-payouts': {
+      id: '/admin/bank-payouts'
+      path: '/admin/bank-payouts'
+      fullPath: '/admin/bank-payouts'
+      preLoaderRoute: typeof AdminBankPayoutsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/company-documents': {
@@ -1458,6 +1478,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   AdminApiMonitoringRoute: AdminApiMonitoringRoute,
   AdminAuditLogsRoute: AdminAuditLogsRoute,
+  AdminBankPayoutsRoute: AdminBankPayoutsRoute,
   AdminCompanyDocumentsRoute: AdminCompanyDocumentsRoute,
   AdminEmailCampaignsRoute: AdminEmailCampaignsRoute,
   AdminGatewayApiRoute: AdminGatewayApiRoute,

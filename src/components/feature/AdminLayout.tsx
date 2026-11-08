@@ -11,6 +11,7 @@ const adminNavItems = [
   { label: "Transactions", href: "/admin/transactions", icon: "ri-exchange-line" },
   { label: "Transaction lookup", href: "/admin/transaction-lookup", icon: "ri-search-line" },
   { label: "Payout Requests", href: "/admin/payout-requests", icon: "ri-upload-cloud-line" },
+  { label: "Bank Withdrawals", href: "/admin/bank-payouts", icon: "ri-bank-line" },
   { label: "Refunds", href: "/admin/refunds", icon: "ri-refund-2-line" },
   { label: "Reports", href: "/admin/reports", icon: "ri-file-chart-line" },
   { label: "API Monitoring", href: "/admin/api-monitoring", icon: "ri-radar-line" },
