@@ -1,11 +1,15 @@
-import { Link } from "@/lib/router-compat";
+import { Link, useSearchParams } from "@/lib/router-compat";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { getSiteSetting } from "@/lib/site-settings.functions";
 
+import { oauthReturnPath, withOAuthNext } from "@/lib/oauth-return-path";
+
 const WHATSAPP_UPDATES_FALLBACK = "https://chat.whatsapp.com/HKBWYaui63M3mQxmu7ciLh";
 
 export default function Footer() {
+  const [searchParams] = useSearchParams();
+  const next = oauthReturnPath(searchParams.get("next"));
   const [supportEmail, setSupportEmail] = useState("support@obpay.com");
   const [supportPhone, setSupportPhone] = useState("+256762201984");
   const [supportWhatsApp, setSupportWhatsApp] = useState("+256745482977");
@@ -29,7 +33,7 @@ export default function Footer() {
   const productLinks = [
     { label: "Payment services", href: "/services" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Create an account", href: "/register" },
+    { label: "Create an account", href: withOAuthNext("/register", next) },
   ];
   const developerLinks = [
     { label: "API documentation", href: "/docs" },
@@ -38,7 +42,7 @@ export default function Footer() {
   ];
   const companyLinks = [
     { label: "Contact support", href: "/support" },
-    { label: "Sign in", href: "/login" },
+    { label: "Sign in", href: withOAuthNext("/login", next) },
     { label: "Terms of Service", href: "/terms" },
     { label: "Privacy Policy", href: "/privacy" },
   ];
