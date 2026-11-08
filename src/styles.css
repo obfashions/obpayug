@@ -503,6 +503,8 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: 0; }
 body { color: var(--foreground); background-color: var(--background); }
 
 /* Native controls must inherit the same readable foreground as custom controls. */
-button, input, select, textarea { color: inherit; }
-input::placeholder, textarea::placeholder { color: var(--muted-foreground); opacity: 1; }
-select option { background-color: var(--background); color: var(--foreground); }
+@layer base {
+  button, input, select, textarea { color: inherit; }
+  input::placeholder, textarea::placeholder { color: var(--muted-foreground); opacity: 1; }
+  select option { background-color: var(--background); color: var(--foreground); }
+}
