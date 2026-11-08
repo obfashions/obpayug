@@ -35,7 +35,7 @@ export default function BankAccounts() {
   }
   return <section className="border-y border-border py-6 space-y-4">
     <h3 className="font-semibold">Receiving bank accounts</h3>
-    <p className="text-sm text-muted-foreground">The bank connection is established; collections and disbursements await the network’s bank integration contract. Existing saved details are retained; adding or verifying accounts is currently unavailable.</p>
+    <p className="text-sm text-muted-foreground">Existing saved details are retained. Adding or verifying accounts and automatic bank receiving are currently unavailable. Bank withdrawals can be requested in Bank Payments; saving an account does not credit your ObPay wallet.</p>
     {accounts.map(a => <div key={a.id} className="flex items-center justify-between gap-3 border-b border-border pb-3"><div><p className="font-medium">{a.bank_name}</p><p className="text-sm text-muted-foreground">{a.account_name} · ending {a.account_number.slice(-4)}</p></div><Button variant="outline" onClick={() => remove(a.id)}>Remove</Button></div>)}
     <form onSubmit={save} className="hidden">
       <div><label htmlFor="receiving-bank" className="text-sm">Bank</label><select id="receiving-bank" required value={bank} onChange={e => setBank(e.target.value)} className="w-full border border-border rounded-md bg-background p-2"><option value="">Select bank</option>{banks.map(b => <option key={b.code} value={b.name}>{b.name}</option>)}</select></div>
