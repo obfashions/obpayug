@@ -4,3 +4,4 @@
 - All payout callers resolve recipient-name aliases through payout-recipient.ts; never infer a recipient identity from a phone number.
 - Service REST dispatch reuses secondary validation and settlement; API purchases retain their source and receiving-account operations always scope to the authenticated merchant-key owner — avoids divergent payment rules and cross-account access.
 - New cards use the primary collection ledger with a pre-submission unique reference reservation, hosted checkout and verified fee-aware currency-matched settlement; legacy restricted card balances are never converted or relabeled.
+- Jjuma is an admin-checked server connector; bank capability flags remain false and bank writes fail before provider access until official bank fields, fees and settlement contracts exist — generic checkout is not proof of a bank rail.

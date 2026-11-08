@@ -42,6 +42,7 @@ const navItems: Array<{ label: string; href: string; icon: LucideIcon; group: st
   { label: "Collections", href: "/dashboard/collections", icon: BanknoteArrowDown, group: "main" },
   { label: "Payouts", href: "/dashboard/payouts", icon: BanknoteArrowUp, group: "main" },
   { label: "Card Payments", href: "/dashboard/cards", icon: CreditCard, group: "services" },
+  { label: "Bank Payments", href: "/dashboard/bank-transfer", icon: Building2, group: "services" },
   { label: "Service History", href: "/dashboard/service-history", icon: ReceiptText, group: "services" },
   { label: "Services", href: "/dashboard/services", icon: LayoutGrid, group: "services" },
   { label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight, group: "main" },

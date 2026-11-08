@@ -14,6 +14,7 @@ const BASE = "https://obpay.online/api/public/v1";
 type SectionId =
   | "overview"
   | "services"
+  | "banks"
   | "operating"
   | "quickstart"
   | "subscriptions"
@@ -33,6 +34,7 @@ type SectionId =
   | "going-live";
 
 const sections: Array<{ id: SectionId; label: string; icon: string }> = [
+  { id: "banks", label: "Bank payments", icon: "ri-bank-line" },
   { id: "services", label: "Card payments", icon: "ri-apps-line" },
   { id: "overview", label: "Overview", icon: "ri-home-4-line" },
   { id: "operating", label: "How ObPay works", icon: "ri-compass-3-line" },
@@ -118,6 +120,8 @@ function Table({ rows }: { rows: Array<{ name: string; type: string; required: s
 }
 
 const endpointList: Array<{ m: string; p: string; d: string }> = [
+  { m: "GET", p: "/services/banks/catalog", d: "Bank capability status; currently disabled pending contract." },
+  { m: "GET", p: "/services/banks/accounts", d: "Your retained saved bank accounts; no payment or automatic credit." },
   { m: "GET", p: "/services", d: "Current payment service availability." },
   { m: "POST", p: "/services/cards", d: "Hosted card checkout in USD, KES or NGN." },
   { m: "GET", p: "/services/history", d: "Historical discontinued services and restricted UGX card funds." },
@@ -204,6 +208,20 @@ export default function DocsPage() {
         </aside>
 
         <main className="bg-card text-card-foreground rounded-2xl border border-background-200 p-4 sm:p-8 min-w-0 space-y-4">
+          {active === "banks" && <section className="space-y-4">
+            <Header icon="ri-bank-line" label="Bank payments" />
+            <p className={P}>Manage bank setup and saved account details inside ObPay. The new payment network connection is established, but its public documentation does not specify bank collection routing, a bank disbursement endpoint, recipient validation or bank fees. These operations are not enabled.</p>
+            <CodeBlock title="Bank capability status — read only" code={`GET ${BASE}/services/banks/catalog
+Authorization: Bearer $OBPAY_SECRET_KEY
+
+{"success":true,"data":{"bank_collection_available":false,"bank_disbursement_available":false,"account_verification_available":false,"automatic_wallet_credit":false,"status":"awaiting_bank_contract"}}`} />
+            <p className={P}>Use these capability flags before displaying payment controls. A connected account is not proof that a bank rail is available. POST /services/banks/collect, /services/banks/transfers, /services/banks/validate and /services/banks/accounts return success=false with code bank_contract_required without submitting a payment or deducting funds.</p>
+            <CodeBlock title="Retained receiving accounts" code={`GET ${BASE}/services/banks/accounts
+DELETE ${BASE}/services/banks/accounts/ACCOUNT_UUID`} />
+            <p className={P}>Your live merchant key can only read or remove its own saved accounts. Existing bank names, registered account names, masked display details and original history are preserved. Saving a bank account never proves receipt or credits an ObPay wallet.</p>
+            <Note tone="warn">No bank payment URL, beneficiary fields, fee quote, success response or automatic settlement is invented. Generic hosted checkout is not documented bank collection. Bank operations require the network’s official bank-specific endpoints, supported currencies, account validation, fee evidence and verification contract before activation.</Note>
+            <p className={P}><Link to="/dashboard/bank-transfer" className="text-primary underline">Bank payments workspace</Link> · <Link to="/dashboard/service-history" className="text-primary underline">Historical records</Link></p>
+          </section>}
           {active === "services" && <section className="space-y-4">
             <Header icon="ri-bank-card-line" label="Card payments" />
             <p className={P}>Accept card payments through hosted checkout in USD, KES and NGN. Existing mobile-money collections and payouts are unchanged. Bank collections and disbursements are awaiting a new connection; airtime, data and bill-payment operations are discontinued.</p>

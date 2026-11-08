@@ -6,10 +6,10 @@ vi.mock("./marz-services.server", () => ({ secondaryAction: mocks.action, second
 import { serviceApi } from "./service-api.server";
 beforeEach(() => { vi.clearAllMocks(); mocks.action.mockResolvedValue({ success: true }); mocks.purchase.mockResolvedValue({ success: true }); });
 const query = new URLSearchParams();
-it("exposes outgoing banks with the same merchant and API audit origin", async () => {
+it("blocks outgoing banks pending the replacement bank contract", async () => {
   const body = { amount: 100000, expected_fee: 50000 };
-  await serviceApi("POST", "services/banks/transfers", "owner", body, query);
-  expect(mocks.purchase).toHaveBeenCalledWith("owner", "bank", body, "api");
+  expect(await serviceApi("POST", "services/banks/transfers", "owner", body, query)).toMatchObject({ success: false, code: "bank_contract_required" });
+  expect(mocks.purchase).not.toHaveBeenCalled();
 });
 it("maps every service purchase to the shared safeguards", async () => {
   for (const [path, kind] of [["airtime", "airtime"], ["bills", "bill"]]) {
@@ -25,7 +25,7 @@ it("routes new cards through primary collection with the authenticated API owner
 });
 it("exposes bank validation and saved accounts to the authenticated key owner", async () => {
   await serviceApi("POST", "services/banks/validate", "owner", { bank_name: "Equity Bank", account_number: "60001256421" }, query);
-  expect(mocks.action).toHaveBeenCalledWith("bank-validate", "owner", { bankName: "Equity Bank", accountNumber: "60001256421" });
+  expect(mocks.action).not.toHaveBeenCalled();
   await serviceApi("GET", "services/banks/accounts", "owner", {}, query);
   expect(mocks.action).toHaveBeenCalledWith("bank-accounts-list", "owner", {});
 });
@@ -41,6 +41,6 @@ it("rejects malformed account and payment identifiers before actions", async () 
   expect(mocks.action).not.toHaveBeenCalled();
 });
 it("does not invent an incoming bank collection endpoint", async () => {
-  expect(await serviceApi("POST", "services/banks/collect", "owner", {}, query)).toBeNull();
+  expect(await serviceApi("POST", "services/banks/collect", "owner", {}, query)).toMatchObject({ success: false, code: "bank_contract_required" });
   expect(mocks.purchase).not.toHaveBeenCalled();
 });
