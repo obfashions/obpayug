@@ -1,7 +1,8 @@
 ## Jjuma bank integration
 - [x] Read official collection/checkout, authentication, verification and webhook docs; connect Jjuma securely and verify read-only transactions HTTP 200. Bank-specific fields, fees and disbursement endpoint are undocumented.
 - [x] Restore Bank Payments navigation and receive/send/saved-account tabs; add admin connection health and ObPay bank capability/API documentation without inventing payment controls.
-- [ ] Test bank capability guards, admin-only health and public documentation without moving money.
+- [x] Nineteen bank capability, admin privacy and owner-account tests passed; desktop/mobile docs verified without overflow or browser errors. App credential path returned HTTP 200; no money moved.
+- [ ] Verify merchant/admin bank workspace signed in: requesting account's restored session redirects to login; no account protections bypassed.
 - [ ] Activate bank collections/disbursements: requires Jjuma's official bank rail contract, account/recipient fields, exact fees, verification evidence and idempotency semantics. Generic checkout is not proof of bank support.
 
 ## Payza cards and Marz removal
@@ -9,7 +10,7 @@
 - [x] Add Payza hosted checkout in documented USD/KES/NGN card currencies with pre-submission reference reservation, exact verification, existing fees and API documentation.
 - [x] Test no-money card checkout and settlement safeguards; public desktop/mobile documentation verified with no overflow or browser errors.
 - [ ] Verify real merchant card creation, checkout and settlement: requesting account's restored session redirects to login; requires active verified merchant and authorised card payment. No real card charged.
-- [ ] Add bank collection/disbursement after the owner supplies the new gateway documentation.
+- [x] Owner supplied Jjuma docs and connected credentials; bank activation is tracked above pending the missing bank-specific contract.
 
 ## Agent integrations
 - [x] Add OAuth-protected read-only wallet and transaction tools, consent with preserved sign-in/registration continuation, and mounted browser navigation tools; OAuth authorization enabled, existing authentication/database preserved.
