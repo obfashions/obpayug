@@ -161,6 +161,7 @@ export async function refreshPaymentRecord(record: Record<string, any>): Promise
   if (record.type !== "payout") {
     const chk = await gatewayCollectionStatus(creds, record.reference);
     if (!chk.ok || !chk.status || chk.status === "pending") return record;
+    if (record.metadata?.payment_method === "card" && (chk.amount !== Number(record.amount) || chk.currency !== record.currency || String(chk.res.data?.reference || "") !== record.reference)) return record;
     const status = chk.status === "success" && chk.amount > 0 && chk.amount < Number(record.amount || 0) ? "failed" : chk.status;
     const done = await settlePaymentRecord(record, status, { providerReference: record.reference, partnerFee: chk.partnerFee });
     return done.record || { ...record, status };

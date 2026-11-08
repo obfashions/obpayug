@@ -18,6 +18,8 @@ export function secondaryErrorMessage(code: unknown, status: number): string {
 }
 
 export async function marzRequest(path: string, body?: Record<string, unknown>): Promise<any> {
+  // Keep verification-only GETs for obligations already on the legacy ledger.
+  if (body || !/^\/(bank-transfer|collect-money|bill-payment|airtime-data|transactions)\/[a-zA-Z0-9_-]+$/.test(path)) throw new Error("This service has been discontinued. No new payment has been sent.");
   const key = process.env["UDC_MARZPAY_SERVICES_2_API_KEY"];
   const auth = process.env["LOVABLE_API_KEY"];
   if (!key || !auth) throw new Error(UNAVAILABLE);

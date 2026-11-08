@@ -38,6 +38,8 @@ async function handle(request: Request): Promise<Response> {
   const creds = await gateway.getGatewayCreds();
   let partnerFee: number | undefined;
   let verifiedAmount = 0;
+  let verifiedCurrency = "";
+  let verifiedReference = "";
 
   // Confirm with the partner before crediting anyone.
   if (status === "success") {
@@ -47,6 +49,8 @@ async function handle(request: Request): Promise<Response> {
       status = check.status;
       partnerFee = check.partnerFee;
       verifiedAmount = check.amount;
+      verifiedCurrency = check.currency;
+      verifiedReference = String(check.res.data?.reference || "");
     } else status = null; // could not confirm now — the dashboard sync retries later
   }
   if (!status || status === "pending") return new Response("OK", { status: 200 });
@@ -60,6 +64,8 @@ async function handle(request: Request): Promise<Response> {
       .maybeSingle();
 
     if (record && record.status === "pending") {
+      if (record.metadata?.provider === "marz") return new Response("OK", { status: 200 });
+      if (record.metadata?.payment_method === "card" && status === "success" && (verifiedAmount !== Number(record.amount) || verifiedCurrency !== record.currency || verifiedReference !== record.reference)) return new Response("OK", { status: 200 });
       // A short payment is never a full success.
       const paid = verifiedAmount;
       const settled: "success" | "failed" =
