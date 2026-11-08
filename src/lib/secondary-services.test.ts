@@ -13,22 +13,25 @@ beforeEach(() => {
   rpc.mockReset();
 });
 describe("secondary service rules", () => {
-  it("does not call a named but unconfirmed Bank of Africa account verified", async () => {
+  it("blocks new bank verification after secondary provider removal", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: false, is_registered: "", status_code: 0, status_description: "SUCCESS" } }))));
-    expect(await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).toEqual({ success: false, error: "The bank found this account, but has not confirmed it is active. Ask your bank to confirm its registration for bank-network transfers, then try verification again. No money has been moved." });
+    expect((await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).success).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
     expect(rpc).not.toHaveBeenCalled();
   });
-  it("accepts network-confirmed active bank accounts with a registered name", async () => {
+  it("does not reactivate bank verification even when a mock network would approve", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: true, is_registered: "ACTIVE", status_code: 0 } }))));
-    expect(await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).toEqual({ success: true, data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: true } });
+    expect((await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).success).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
   });
   it("distinguishes bank validation rejection from a connection outage", () => {
     expect(secondaryErrorMessage("VALIDATION_FAILED", 400)).toBe("The bank could not verify this account. Check the bank and account number with the recipient.");
     expect(secondaryErrorMessage("BANK_NOT_SUPPORTED", 400)).toBe("This bank is not supported. Select a bank from the current list.");
   });
-  it("reads an enabled bank connection without inventing fee settings", async () => {
+  it("does not fetch the removed provider bank catalog", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { bank_transfer_available: true } }))));
-    expect(await secondaryAction("bank-services", null, {})).toEqual({ success: true, data: { bank_transfer_available: true, bank_transfer_settings: null } });
+    expect((await secondaryAction("bank-services", null, {})).success).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
   });
   it("accepts 500 UGX airtime and rejects 499 and fractional amounts", () => {
     expect(airtimeInput.parse({ reference, purchase_type: "airtime", msisdn: "0771234567", amount: 500 }).msisdn).toBe("256771234567");
