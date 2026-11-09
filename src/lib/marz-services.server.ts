@@ -19,7 +19,9 @@ export function secondaryErrorMessage(code: unknown, status: number): string {
 
 export async function marzRequest(path: string, body?: Record<string, unknown>): Promise<any> {
   // Keep verification-only GETs for obligations already on the legacy ledger.
-  if (body || !/^\/(bank-transfer|collect-money|bill-payment|airtime-data|transactions)\/[a-zA-Z0-9_-]+$/.test(path)) throw new Error("This service has been discontinued. No new payment has been sent.");
+  // Bank payouts are re-enabled on Marz; other new Marz services stay discontinued.
+  const bankPath = /^\/bank-transfer(\/(services|banks|validate|[a-zA-Z0-9_-]+))?$/.test(path) && (!body || path === "/bank-transfer" || path === "/bank-transfer/validate");
+  if (!bankPath && (body || !/^\/(bank-transfer|collect-money|bill-payment|airtime-data|transactions)\/[a-zA-Z0-9_-]+$/.test(path))) throw new Error("This service has been discontinued. No new payment has been sent.");
   const key = process.env["UDC_MARZPAY_SERVICES_2_API_KEY"];
   const auth = process.env["LOVABLE_API_KEY"];
   if (!key || !auth) throw new Error(UNAVAILABLE);
@@ -52,7 +54,8 @@ export async function secondaryCatalog() {
     { code: "collections", name: "Mobile money collections", status: "active" },
     { code: "payouts", name: "Mobile money payouts", status: "active" },
     { code: "card_payments", name: "Card payments · USD, KES, NGN", status: "active" },
-    { code: "bank_transfer", name: "Bank payments", status: "unavailable" },
+    { code: "bank_transfer", name: "Bank payouts · UGX", status: "active" },
+    { code: "bank_collection", name: "Bank collections", status: "unavailable" },
   ];
 }
 async function retiredSecondaryCatalog() {
@@ -153,6 +156,7 @@ export async function verifiedIdentity(userId: string): Promise<{ ok: true; name
 }
 
 export async function secondaryPurchase(userId: string, kind: "airtime" | "bill" | "card" | "bank", body: any, source: "dashboard" | "api" = "dashboard") {
+  if (kind === "bank") return retiredSecondaryPurchase(userId, kind, body, source);
   return fail("This service has been discontinued. No new payment has been sent. Card payments are available on the Card Payments page.");
 }
 async function retiredSecondaryPurchase(userId: string, kind: "airtime" | "bill" | "card" | "bank", body: any, source: "dashboard" | "api" = "dashboard") {
@@ -248,7 +252,7 @@ async function retiredSecondaryPurchase(userId: string, kind: "airtime" | "bill"
 }
 
 export async function secondaryAction(action: string, userId: string | null, b: any) {
-  if (!["svc-list", "service-history", "airtime-list", "card-list", "airtime-status", "bill-status", "card-status", "bank-status", "bank-accounts-list", "bank-accounts-delete"].includes(action)) return fail("This service has been discontinued. No new payment has been sent. Bank payments are awaiting a new connection.");
+  if (!["svc-list", "service-history", "airtime-list", "card-list", "airtime-status", "bill-status", "card-status", "bank-status", "bank-accounts-list", "bank-accounts-delete", "bank-banks", "bank-services", "bank-validate", "bank-transfer", "bank-accounts-create"].includes(action)) return fail("This service has been discontinued. No new payment has been sent. Bank payments are awaiting a new connection.");
   try {
     if (action === "svc-list") return ok({ services: await secondaryCatalog() });
     if (action === "airtime-catalog") return ok(cleanCatalog(await marzRequest("/airtime-data/catalog")));

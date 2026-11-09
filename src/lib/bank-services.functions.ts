@@ -14,6 +14,12 @@ export const submitBankPayout = createServerFn({ method: "POST" })
   .inputValidator(z.object({ reference: z.string(), amount: z.number(), currency: z.string(), bank_name: z.string(), account_number: z.string(), account_name: z.string(), branch: z.string().optional(), note: z.string().max(200).optional() }))
   .handler(async ({ data, context }) => (await import("./bank-payouts.server")).requestBankPayout(context.userId, data));
 
+/** Marz automatic bank payouts: banks, live fee, account check and send. */
+export const marzBank = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ action: z.enum(["bank-banks", "bank-services", "bank-validate", "bank-transfer", "bank-status"]), body: z.record(z.string(), z.any()).default({}) }))
+  .handler(async ({ data, context }) => (await import("./marz-services.server")).secondaryAction(data.action, context.userId, data.body));
+
 export const myBankPayouts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => (await import("./bank-payouts.server")).listMyBankPayouts(context.userId));
