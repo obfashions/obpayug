@@ -2,10 +2,10 @@ import DashboardLayout from "@/components/feature/DashboardLayout";
 import BankAccounts from "@/pages/dashboard/settings/BankAccounts";
 import BankWithdraw from "./BankWithdraw";
 import MarzBankSend from "./MarzBankSend";
+import BankReceive from "./BankReceive";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2 } from "lucide-react";
 import { BANK_PAYOUT_TIMELINE } from "@/lib/bank-payouts";
-import { bankCapabilities } from "@/lib/bank-capabilities";
 
 export default function BankTransferPage() {
   return <DashboardLayout><div className="max-w-5xl mx-auto space-y-6">
