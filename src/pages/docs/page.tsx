@@ -210,7 +210,6 @@ export default function DocsPage() {
         <main className="bg-card text-card-foreground rounded-2xl border border-background-200 p-4 sm:p-8 min-w-0 space-y-4">
           {active === "banks" && <section className="space-y-4">
             <Header icon="ri-bank-line" label="Bank payments" />
-            <p className={P}>Manage bank setup and saved account details inside ObPay. The new payment network connection is established, but its public documentation does not specify bank collection routing, a bank disbursement endpoint, recipient validation or bank fees. These operations are not enabled.</p>
             <p className={P}>Send UGX from your ObPay wallet to any supported Ugandan bank account, automatically. Always list banks, verify the account, read the live fee, then send with a unique reference. Receiving bank payments into an ObPay wallet is not available yet.</p>
             <CodeBlock title="1. Banks and live fee" code={`GET ${BASE}/services/banks
 GET ${BASE}/services/banks/catalog
