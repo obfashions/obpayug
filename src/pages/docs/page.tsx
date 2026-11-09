@@ -229,7 +229,6 @@ Authorization: Bearer $OBPAY_SECRET_KEY
 POST ${BASE}/services/banks/accounts  {"bank_name":"...","account_number":"..."}
 DELETE ${BASE}/services/banks/accounts/ACCOUNT_UUID`} />
             <Note tone="warn">POST /services/banks/collect returns bank_contract_required: the bank network offers no documented way to receive bank payments into ObPay, so bank payment links are not offered. Use mobile money or card payment links to receive money.</Note>
-            <Note tone="warn">No bank payment URL, beneficiary fields, fee quote, success response or automatic settlement is invented. Generic hosted checkout is not documented bank collection. Bank operations require the network’s official bank-specific endpoints, supported currencies, account validation, fee evidence and verification contract before activation.</Note>
             <p className={P}><Link to="/dashboard/bank-transfer" className="text-primary underline">Bank payments workspace</Link> · <Link to="/dashboard/service-history" className="text-primary underline">Historical records</Link></p>
           </section>}
           {active === "services" && <section className="space-y-4">
