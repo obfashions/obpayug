@@ -210,16 +210,25 @@ export default function DocsPage() {
         <main className="bg-card text-card-foreground rounded-2xl border border-background-200 p-4 sm:p-8 min-w-0 space-y-4">
           {active === "banks" && <section className="space-y-4">
             <Header icon="ri-bank-line" label="Bank payments" />
-            <p className={P}>Manage bank setup and saved account details inside ObPay. The new payment network connection is established, but its public documentation does not specify bank collection routing, a bank disbursement endpoint, recipient validation or bank fees. These operations are not enabled.</p>
-            <CodeBlock title="Bank capability status — read only" code={`GET ${BASE}/services/banks/catalog
+            <p className={P}>Send UGX from your ObPay wallet to any supported Ugandan bank account, automatically. Always list banks, verify the account, read the live fee, then send with a unique reference. Receiving bank payments into an ObPay wallet is not available yet.</p>
+            <CodeBlock title="1. Banks and live fee" code={`GET ${BASE}/services/banks
+GET ${BASE}/services/banks/catalog
 Authorization: Bearer $OBPAY_SECRET_KEY
 
-{"success":true,"data":{"bank_collection_available":false,"bank_disbursement_available":false,"account_verification_available":false,"automatic_wallet_credit":false,"status":"awaiting_bank_contract"}}`} />
-            <p className={P}>Use these capability flags before displaying payment controls. A connected account is not proof that a bank rail is available. POST /services/banks/collect, /services/banks/transfers, /services/banks/validate and /services/banks/accounts return success=false with code bank_contract_required without submitting a payment or deducting funds.</p>
-            <CodeBlock title="Retained receiving accounts" code={`GET ${BASE}/services/banks/accounts
+{"success":true,"data":{"bank_transfer_available":true,"bank_transfer_settings":{...}}}`} />
+            <CodeBlock title="2. Verify the recipient" code={`POST ${BASE}/services/banks/validate
+{"bank_name":"Stanbic Bank","account_number":"9030012345678"}
+
+{"success":true,"data":{"account_name":"JANE NAKATO","valid":true}}`} />
+            <CodeBlock title="3. Send" code={`POST ${BASE}/services/banks/transfers
+{"reference":"550e8400-e29b-41d4-a716-446655440000","amount":100000,"bank_name":"Stanbic Bank",
+ "bank_account_number":"9030012345678","bank_branch":"Kampala Road","confirmed_name":"JANE NAKATO",
+ "expected_fee":3000,"description":"Supplier payment"}`} />
+            <p className={P}>The amount plus the exact fee is reserved from your UGX wallet before sending. If the fee changed or the name does not match the verified name, the request is refused and no money moves. Reuse the same reference to read status: GET /services/status/REFERENCE. Never resend with a new reference after an unclear result.</p>
+            <CodeBlock title="Saved receiving accounts" code={`GET ${BASE}/services/banks/accounts
+POST ${BASE}/services/banks/accounts  {"bank_name":"...","account_number":"..."}
 DELETE ${BASE}/services/banks/accounts/ACCOUNT_UUID`} />
-            <p className={P}>Your live merchant key can only read or remove its own saved accounts. Existing bank names, registered account names, masked display details and original history are preserved. Saving a bank account never proves receipt or credits an ObPay wallet.</p>
-            <Note tone="warn">No bank payment URL, beneficiary fields, fee quote, success response or automatic settlement is invented. Generic hosted checkout is not documented bank collection. Bank operations require the network’s official bank-specific endpoints, supported currencies, account validation, fee evidence and verification contract before activation.</Note>
+            <Note tone="warn">POST /services/banks/collect returns bank_contract_required: the bank network offers no documented way to receive bank payments into ObPay, so bank payment links are not offered. Use mobile money or card payment links to receive money.</Note>
             <p className={P}><Link to="/dashboard/bank-transfer" className="text-primary underline">Bank payments workspace</Link> · <Link to="/dashboard/service-history" className="text-primary underline">Historical records</Link></p>
           </section>}
           {active === "services" && <section className="space-y-4">

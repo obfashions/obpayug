@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/feature/DashboardLayout";
 import BankAccounts from "@/pages/dashboard/settings/BankAccounts";
 import BankWithdraw from "./BankWithdraw";
+import MarzBankSend from "./MarzBankSend";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2 } from "lucide-react";
 import { BANK_PAYOUT_TIMELINE } from "@/lib/bank-payouts";
@@ -17,7 +18,7 @@ export default function BankTransferPage() {
         <p className="text-sm text-muted-foreground">Do not send money to a saved bank account expecting an ObPay wallet credit. Saved account details do not enable automatic collection.</p>
         {!bankCapabilities.automatic_wallet_credit && <p className="text-sm text-muted-foreground">No bank receiving request is submitted and no wallet balance is changed.</p>}
       </section></TabsContent>
-      <TabsContent value="send"><BankWithdraw/></TabsContent>
+      <TabsContent value="send"><MarzBankSend/><details className="mt-6 border-t border-border pt-4"><summary className="text-sm cursor-pointer text-muted-foreground">Other currencies (processed by our team)</summary><BankWithdraw/></details></TabsContent>
       <TabsContent value="accounts"><BankAccounts/></TabsContent>
     </Tabs>
   </div></DashboardLayout>;

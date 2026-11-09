@@ -13,25 +13,22 @@ beforeEach(() => {
   rpc.mockReset();
 });
 describe("secondary service rules", () => {
-  it("blocks new bank verification after secondary provider removal", async () => {
+  it("refuses an account the bank found but has not confirmed as registered", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: false, is_registered: "", status_code: 0, status_description: "SUCCESS" } }))));
     expect((await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).success).toBe(false);
-    expect(fetch).not.toHaveBeenCalled();
     expect(rpc).not.toHaveBeenCalled();
   });
-  it("does not reactivate bank verification even when a mock network would approve", async () => {
+  it("returns the registered name when the bank confirms the account", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: true, is_registered: "ACTIVE", status_code: 0 } }))));
-    expect((await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).success).toBe(false);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(await secondaryAction("bank-validate", "merchant", { bankName: "Bank of Africa", accountNumber: "03897690002" })).toMatchObject({ success: true, data: { account_name: "RAHA VOYAGE SAFARIS LTD", valid: true } });
   });
   it("distinguishes bank validation rejection from a connection outage", () => {
     expect(secondaryErrorMessage("VALIDATION_FAILED", 400)).toBe("The bank could not verify this account. Check the bank and account number with the recipient.");
     expect(secondaryErrorMessage("BANK_NOT_SUPPORTED", 400)).toBe("This bank is not supported. Select a bank from the current list.");
   });
-  it("does not fetch the removed provider bank catalog", async () => {
+  it("reads live bank payout availability", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "success", data: { bank_transfer_available: true } }))));
-    expect((await secondaryAction("bank-services", null, {})).success).toBe(false);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(await secondaryAction("bank-services", null, {})).toMatchObject({ success: true, data: { bank_transfer_available: true } });
   });
   it("accepts 500 UGX airtime and rejects 499 and fractional amounts", () => {
     expect(airtimeInput.parse({ reference, purchase_type: "airtime", msisdn: "0771234567", amount: 500 }).msisdn).toBe("256771234567");
