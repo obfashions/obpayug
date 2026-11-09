@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { marzBank } from "@/lib/bank-services.functions";
+import { bankFee } from "@/lib/secondary-service-rules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,12 +28,8 @@ export default function MarzBankSend() {
 
   const amount = Number(f.amount);
   useEffect(() => {
-    const s = settings?.bank_transfer_settings;
-    if (!s || !amount) return setFee(null);
-    // Mirror the server: flat charge or percentage; server rejects any mismatch.
-    const flat = Number(s.charge_amount ?? s.fee ?? NaN);
-    const pct = Number(s.charge_percentage ?? NaN);
-    setFee(Number.isFinite(flat) ? flat : Number.isFinite(pct) ? Math.ceil((amount * pct) / 100) : null);
+    // Same rule as the server; the server rejects any mismatch.
+    setFee(bankFee(settings?.bank_transfer_settings, amount));
   }, [amount, settings]);
 
   const upd = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { setF({ ...f, [k]: e.target.value }); if (k === "bankName" || k === "accountNumber") setName(""); };
